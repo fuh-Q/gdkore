@@ -1,0 +1,5 @@
+autoflake
+black
+isort
+pre-commit
+pip==21.2.1

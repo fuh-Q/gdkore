@@ -1,0 +1,12 @@
+# Compiled python files (Binary)
+__pycache__/
+
+# VSCode config
+.vscode/
+
+# Private stuff
+config/secrets.json
+
+# Irrelevant
+heroku/
+random-shit/
