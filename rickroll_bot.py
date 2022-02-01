@@ -55,8 +55,8 @@ class AdminControls(discord.ui.View):
 intents: discord.Intents = discord.Intents.default()
 intents.messages = False
 client = commands.Bot(command_prefix=".", help_command=None, intents=intents)
-on_safe_timer: list[bool] = [False]
-safe_timer_disconnect: list[bool] = [False]
+on_safe_timer: bool = False
+safe_timer_disconnect: bool = False
 kick_whitelist: list[int] = [749890079580749854, 596481615253733408]
 
 
@@ -85,6 +85,9 @@ async def on_ready():
 async def on_voice_state_update(
     member: discord.Member, before: discord.VoiceState, after: discord.VoiceState
 ):
+    global on_safe_timer
+    global safe_timer_disconnect
+    
     r: discord.Role = client.get_guild(831692952027791431).get_role(901923300681342999)
 
     if member.guild.id == 831692952027791431 and member.id != client.user.id:
@@ -118,13 +121,13 @@ async def on_voice_state_update(
                 831692952489033758
             )
             if member.id != client.user.id and after.channel is not None:
-                if on_safe_timer[0]:
+                if on_safe_timer:
                     if member in r.members or member.id in kick_whitelist:
                         await member.move_to(channel=None)
                     else:
                         await member.kick(reason="Other user is still on safe timer")
 
-                    safe_timer_disconnect[0] = True
+                    safe_timer_disconnect = True
                     return
                 c = member.guild.get_channel(831704623210561576)
                 try:
@@ -162,15 +165,15 @@ async def on_voice_state_update(
                         f"{member.name}#{member.discriminator} [{member.mention}] has been rickrolled!"
                     )
 
-                on_safe_timer[0] = True
+                on_safe_timer = True
                 t: threading.Thread = threading.Thread(target=vc.play(audio)).start()
                 await asyncio.sleep(8)
-                on_safe_timer[0] = False
+                on_safe_timer = False
                 t.join()
 
             if before.channel == the_channel and member.id != client.user.id:
-                if safe_timer_disconnect[0]:
-                    safe_timer_disconnect[0] = False
+                if safe_timer_disconnect:
+                    safe_timer_disconnect = False
                     return
 
                 try:
@@ -182,7 +185,7 @@ async def on_voice_state_update(
                 except:
                     pass
 
-                on_safe_timer[0] = False
+                on_safe_timer = False
 
                 await member.guild.voice_client.disconnect()
 
