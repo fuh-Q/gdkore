@@ -87,7 +87,7 @@ async def on_voice_state_update(
 ):
     global on_safe_timer
     global safe_timer_disconnect
-    
+
     r: discord.Role = client.get_guild(831692952027791431).get_role(901923300681342999)
 
     if member.guild.id == 831692952027791431 and member.id != client.user.id:
