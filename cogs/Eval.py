@@ -31,13 +31,17 @@ wraps = r"\(\)\[\]\{\}"
 expression = rf"[\w\./\\:=<>!{wraps}{quote}', ]"
 
 REGEX_LIST: list[re.Pattern[str]] = [
-    re.compile(rf"^(?:async )?def \w+\({expression}*\)(?::| *-> [\w\[\]\(\), ]*:) *$"),  # FUNCTION
+    re.compile(
+        rf"^(?:async )?def \w+\({expression}*\)(?::| *-> [\w\[\]\(\), ]*:) *$"
+    ),  # FUNCTION
     re.compile(r"^class \w+(?:\(.*\))?:"),  # CLASS
     re.compile(rf"^if {expression}+: *$"),  # IF
     re.compile(rf"^elif {expression}+: *$"),  # ELIF
     re.compile(r"^else: *$"),  # ELSE
     re.compile(r"^try: *$"),  # TRY
-    re.compile(r"^except(?: (?:\(?(?:[\w\.]*)(?:, ?)?\)?(?:| as \w+))| \w)?: *$"),  # EXCEPT
+    re.compile(
+        r"^except(?: (?:\(?(?:[\w\.]*)(?:, ?)?\)?(?:| as \w+))| \w)?: *$"
+    ),  # EXCEPT
     re.compile(r"^finally: *$"),  # FINALLY
     re.compile(rf"^(?:async )?with [\w\.]+\({expression}*\)(?: as \w+)?: *$"),  # WITH
     re.compile(rf"^(?:async )?for \w+ in {expression}+: *$"),  # FOR
@@ -163,9 +167,9 @@ class Eval(BattlerCog):
     def cleanup_code(content: str):
         # remove ```py\n```
         if (
-            content.startswith("```") and
-            content.endswith("```") and
-            content.count("\n") > 0
+            content.startswith("```")
+            and content.endswith("```")
+            and content.count("\n") > 0
         ):
             return "\n".join(content.split("\n")[1:-1])
         # remove `foo`
