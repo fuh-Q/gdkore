@@ -27,7 +27,7 @@ class RickrollBot(commands.Bot):
                 await message.delete()
             except discord.HTTPException:
                 continue
-        
+
         if restart is True:
             for voice in self.voice_clients:
                 try:
@@ -43,7 +43,7 @@ class RickrollBot(commands.Bot):
 
         else:
             await super().close()
-    
+
     async def on_ready(self):
         self.g: discord.Guild = self.get_guild(831692952027791431)
         self.r: discord.Role = self.g.get_role(879548917514117131)
