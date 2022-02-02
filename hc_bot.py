@@ -1,6 +1,8 @@
+import asyncio
 import logging
 import os
 import sys
+import time
 
 import discord
 from discord.ext import commands
@@ -14,6 +16,7 @@ from config.json import Json
 from config.utils import *
 
 secrets: dict[str, str] = Json.read_json("secrets")
+secondary_config: dict[str, str] = Json.read_json("restart")
 logging.basicConfig(level=logging.INFO)
 
 mongoURI = secrets["hcMongoURI"]
@@ -89,6 +92,36 @@ class HeistingCultBot(commands.Bot):
             f"Logged in as: {self.user.name} : {self.user.id}\n----- Cogs and Extensions -----\nMain bot online"
         )
         await self.change_presence(activity=discord.Game(name="with balls"))  # mmm yes
+        
+        try:
+            secondary_config["chan_id"]
+            secondary_config["id"]
+            secondary_config["now"]
+        except Exception:
+            return
+        
+        if secondary_config["chan_id"] != 0:
+            start: float = secondary_config["now"]
+            restart_channel = self.get_channel(secondary_config["chan_id"])
+            msg = await restart_channel.fetch_message(secondary_config["id"])
+
+            pointer_right = "<a:arrow:847549608581791804>"
+
+            e = msg.embeds[0].copy()
+            e.description = f"{pointer_right} Aight brb"
+            e.description += f"\n{pointer_right} k im back"
+            e.description += "\n<a:loading:937145488493379614> calculating reboot time"
+            await msg.edit(embed=e)
+            end = time.monotonic() + 0.5
+            await asyncio.sleep(0.5)
+            e.description = (
+                f"{pointer_right} Aight brb\n"
+                f"{pointer_right} k im back\n"
+                f"{pointer_right} reboot took around `{round(end - start, 1)}s`"
+            )
+            await msg.edit(embed=e)
+
+            Json.clear_json("restart")
 
     async def on_message(self, message: discord.Message):
         if not message.guild:  # Too lazy to put guild_only() on every command
