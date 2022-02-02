@@ -79,6 +79,8 @@ def print_intro() -> None:
 
     print("Bots you can launch:", end="\n\n")
     print(bots, end="\n\n")
+    print("Which bot would you like to launch? [0|1|2|3]")
+    print(LINE)
 
 
 def main():
@@ -86,7 +88,7 @@ def main():
 
     print_intro()
     while True:
-        user_input = input("Which bot would you like to launch? [0|1|2|3]\n>>> ")
+        user_input = input(">>> ")
 
         try:
             user_input = int(user_input)
