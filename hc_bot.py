@@ -1,5 +1,6 @@
 import logging
 import os
+import sys
 
 import discord
 from discord.ext import commands
@@ -38,6 +39,7 @@ class HeistingCultBot(commands.Bot):
 
         extensions = [
             "cogs.debug",
+            "cogs.dev",
             "cogs.Eval",
             "cogs.dailyheist",
             "cogs.donotracker",
@@ -131,8 +133,22 @@ class HeistingCultBot(commands.Bot):
     async def start(self, *args, **kwargs):
         await super().start(self.token, *args, **kwargs)
 
-    async def close(self):
-        await super().close()
+    async def close(self, restart: bool = False):
+        if restart is True:
+            for voice in self.voice_clients:
+                try:
+                    await voice.disconnect()
+                    
+                except Exception:
+                    continue
+            
+            if self.ws and self.ws.open:
+                await self.ws.close(code=1000)
+            
+            sys.exit(69)
+        
+        else:
+            await super().close()
 
     def add_commands(self):
         @self.command(name="load", brief="Load cogs", hidden=True)

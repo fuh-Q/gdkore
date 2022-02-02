@@ -14,16 +14,45 @@ logging.basicConfig(level=logging.INFO)
 secrets: dict[str, str] = Json.read_json("secrets")
 
 
+class RickrollBot(commands.Bot):
+    def __init__(self):
+        intents = discord.Intents.default()
+        intents.messages = False
+        
+        super().__init__(
+            command_prefix=".",
+            help_command=None,
+            intents=intents
+        )
+    
+    async def close(self, restart: bool = False):
+        if restart is True:
+            for voice in self.voice_clients:
+                try:
+                    await voice.disconnect()
+                
+                except Exception:
+                    continue
+            
+            if self.ws is not None and self.ws.open:
+                await self.ws.close(code=1000)
+            
+            sys.exit(69)
+
+        else:
+            await super().close()
+
+
 class AdminControls(discord.ui.View):
-    def __init__(self, client: commands.Bot):
+    def __init__(self, client: RickrollBot):
         self.client = client
         self.g: discord.Guild = self.client.get_guild(831692952027791431)
         self.r: discord.Role = self.g.get_role(879548917514117131)
         super().__init__(timeout=None)
 
-    @discord.ui.button(label="Grant admin", style=discord.ButtonStyle.success)
+    @discord.ui.button(label="Grant Admin", style=discord.ButtonStyle.success, row=0)
     async def grant_admin(
-        self, button: discord.Button, interaction: discord.Interaction
+        self, _: discord.Button, interaction: discord.Interaction
     ):
         m = await self.g.fetch_member(596481615253733408)
         if self.r in m.roles:
@@ -36,9 +65,9 @@ class AdminControls(discord.ui.View):
             "Your RickHub admin priviledges are now enabled", ephemeral=True
         )
 
-    @discord.ui.button(label="Revoke admin", style=discord.ButtonStyle.danger)
+    @discord.ui.button(label="Revoke Admin", style=discord.ButtonStyle.danger, row=0)
     async def revoke_admin(
-        self, button: discord.Button, interaction: discord.Interaction
+        self, _: discord.Button, interaction: discord.Interaction
     ):
         m = await self.g.fetch_member(596481615253733408)
         if not self.r in m.roles:
@@ -50,11 +79,24 @@ class AdminControls(discord.ui.View):
         await interaction.response.send_message(
             "Your RickHub admin priviledges are now disabled", ephemeral=True
         )
+    
+    @discord.ui.button(label="Shutdown Bot", style=discord.ButtonStyle.secondary, row=1)
+    async def restart_bot(
+        self, _: discord.Button, interaction: discord.Interaction
+    ):
+        await self.client.close()
+        return
+    
+    @discord.ui.button(label="Restart Bot", style=discord.ButtonStyle.secondary, row=1)
+    async def restart_bot(
+        self, _: discord.Button, interaction: discord.Interaction
+    ):
+        await self.client.close(restart=True)
+        return
 
 
-intents: discord.Intents = discord.Intents.default()
-intents.messages = False
-client = commands.Bot(command_prefix=".", help_command=None, intents=intents)
+client = RickrollBot()
+
 on_safe_timer: bool = False
 safe_timer_disconnect: bool = False
 kick_whitelist: list[int] = [749890079580749854, 596481615253733408]
