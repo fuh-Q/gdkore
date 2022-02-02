@@ -22,6 +22,12 @@ class RickrollBot(commands.Bot):
         super().__init__(command_prefix=".", help_command=None, intents=intents)
 
     async def close(self, restart: bool = False):
+        async for message in self.c.history(limit=1):
+            try:
+                await message.delete()
+            except discord.HTTPException:
+                continue
+        
         if restart is True:
             for voice in self.voice_clients:
                 try:
@@ -37,48 +43,61 @@ class RickrollBot(commands.Bot):
 
         else:
             await super().close()
+    
+    async def on_ready(self):
+        self.g: discord.Guild = self.get_guild(831692952027791431)
+        self.r: discord.Role = self.g.get_role(879548917514117131)
+        self.m: discord.Member = await self.g.fetch_member(596481615253733408)
+        self.c: discord.DMChannel = await self.m.create_dm()
+        e: discord.Embed = discord.Embed(
+            title="RickHub Admin Panel",
+            description="Use this to give and remove admin permissions for yourself",
+            colour=0x2E3135,
+        )
+        await self.c.send(embed=e, view=AdminControls(client=self))
+        print("Ready to rickroll")
 
 
 class AdminControls(discord.ui.View):
     def __init__(self, client: RickrollBot):
         self.client = client
-        self.g: discord.Guild = self.client.get_guild(831692952027791431)
-        self.r: discord.Role = self.g.get_role(879548917514117131)
         super().__init__(timeout=None)
 
     @discord.ui.button(label="Grant Admin", style=discord.ButtonStyle.success, row=0)
     async def grant_admin(self, _: discord.Button, interaction: discord.Interaction):
-        m = await self.g.fetch_member(596481615253733408)
-        if self.r in m.roles:
+        m = await self.client.g.fetch_member(596481615253733408)
+        if self.client.r in m.roles:
             await interaction.response.send_message(
                 "Your RickHub admin priviledges are already enabled", ephemeral=True
             )
             return
-        await m.add_roles(self.r)
+        await m.add_roles(self.client.r)
         await interaction.response.send_message(
             "Your RickHub admin priviledges are now enabled", ephemeral=True
         )
 
     @discord.ui.button(label="Revoke Admin", style=discord.ButtonStyle.danger, row=0)
     async def revoke_admin(self, _: discord.Button, interaction: discord.Interaction):
-        m = await self.g.fetch_member(596481615253733408)
-        if not self.r in m.roles:
+        m = await self.client.g.fetch_member(596481615253733408)
+        if not self.client.r in m.roles:
             await interaction.response.send_message(
                 "Your RickHub admin priviledges are already disabled", ephemeral=True
             )
             return
-        await m.remove_roles(self.r)
+        await m.remove_roles(self.client.r)
         await interaction.response.send_message(
             "Your RickHub admin priviledges are now disabled", ephemeral=True
         )
 
     @discord.ui.button(label="Shutdown Bot", style=discord.ButtonStyle.secondary, row=1)
     async def shutdown_bot(self, _: discord.Button, interaction: discord.Interaction):
+        await interaction.response.send_message("Shutting down...", ephemeral=True)
         await self.client.close()
         return
 
     @discord.ui.button(label="Restart Bot", style=discord.ButtonStyle.secondary, row=1)
     async def restart_bot(self, _: discord.Button, interaction: discord.Interaction):
+        await interaction.response.send_message("Restarting now...", ephemeral=True)
         await self.client.close(restart=True)
         return
 
@@ -88,27 +107,6 @@ client = RickrollBot()
 on_safe_timer: bool = False
 safe_timer_disconnect: bool = False
 kick_whitelist: list[int] = [749890079580749854, 596481615253733408]
-
-
-@client.event
-async def on_ready():
-    g: discord.Guild = client.get_guild(831692952027791431)
-    m: discord.Member = await g.fetch_member(596481615253733408)
-    c: discord.DMChannel = await m.create_dm()
-    e: discord.Embed = discord.Embed(
-        title="RickHub Admin Panel",
-        description="Use this to give and remove admin permissions for yourself",
-        colour=0x2E3135,
-    )
-    async for message in c.history(limit=1):
-        try:
-            await message.delete()
-        except discord.HTTPException:
-            continue
-    await c.send(embed=e, view=AdminControls(client=client))
-    for voice in client.voice_clients:
-        await voice.disconnect()
-    print("Ready to rickroll")
 
 
 @client.event
