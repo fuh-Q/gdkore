@@ -73,7 +73,7 @@ class AdminControls(discord.ui.View):
         )
 
     @discord.ui.button(label="Shutdown Bot", style=discord.ButtonStyle.secondary, row=1)
-    async def restart_bot(self, _: discord.Button, interaction: discord.Interaction):
+    async def shutdown_bot(self, _: discord.Button, interaction: discord.Interaction):
         await self.client.close()
         return
 
