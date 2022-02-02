@@ -82,7 +82,7 @@ def print_intro() -> None:
 def prompt():
     global bot_to_launch
     ask = ">>> "
-    
+
     while True:
         user_input = input(ask)
 
@@ -102,18 +102,20 @@ def prompt():
             bot_to_launch = user_input
             if process_map[list(process_map)[user_input - 1]] is True:
                 print("")
-                print(f"{bot_map[user_input][:-3]} is already running - Start bot regardless? [y|n]")
+                print(
+                    f"{bot_map[user_input][:-3]} is already running - Start bot regardless? [y|n]"
+                )
                 confirm = input(ask)
-                
+
                 if confirm.lower() in ["y", "yes", "true"]:
                     break
-                
+
                 else:
                     print("")
                     print("Which bot would you like to launch? [0|1|2|3]")
                     print(LINE)
                     continue
-            
+
             break
 
 
