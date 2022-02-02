@@ -56,12 +56,10 @@ def print_intro() -> None:
 
     processes = list(psutil.process_iter())
     proc_cmd_regex = re.compile(r"py(?:thon3\.9)? ((?:hc_|rickroll_)?bot\.py)")
-    access_denied = []
     for process in processes:
         try:
             proc_cmd = " ".join(process.cmdline())
         except psutil.AccessDenied:
-            access_denied.append(process)
             continue
         else:
             if match := proc_cmd_regex.search(proc_cmd):
