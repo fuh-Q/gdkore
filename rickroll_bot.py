@@ -18,25 +18,21 @@ class RickrollBot(commands.Bot):
     def __init__(self):
         intents = discord.Intents.default()
         intents.messages = False
-        
-        super().__init__(
-            command_prefix=".",
-            help_command=None,
-            intents=intents
-        )
-    
+
+        super().__init__(command_prefix=".", help_command=None, intents=intents)
+
     async def close(self, restart: bool = False):
         if restart is True:
             for voice in self.voice_clients:
                 try:
                     await voice.disconnect()
-                
+
                 except Exception:
                     continue
-            
+
             if self.ws is not None and self.ws.open:
                 await self.ws.close(code=1000)
-            
+
             sys.exit(69)
 
         else:
@@ -51,9 +47,7 @@ class AdminControls(discord.ui.View):
         super().__init__(timeout=None)
 
     @discord.ui.button(label="Grant Admin", style=discord.ButtonStyle.success, row=0)
-    async def grant_admin(
-        self, _: discord.Button, interaction: discord.Interaction
-    ):
+    async def grant_admin(self, _: discord.Button, interaction: discord.Interaction):
         m = await self.g.fetch_member(596481615253733408)
         if self.r in m.roles:
             await interaction.response.send_message(
@@ -66,9 +60,7 @@ class AdminControls(discord.ui.View):
         )
 
     @discord.ui.button(label="Revoke Admin", style=discord.ButtonStyle.danger, row=0)
-    async def revoke_admin(
-        self, _: discord.Button, interaction: discord.Interaction
-    ):
+    async def revoke_admin(self, _: discord.Button, interaction: discord.Interaction):
         m = await self.g.fetch_member(596481615253733408)
         if not self.r in m.roles:
             await interaction.response.send_message(
@@ -79,18 +71,14 @@ class AdminControls(discord.ui.View):
         await interaction.response.send_message(
             "Your RickHub admin priviledges are now disabled", ephemeral=True
         )
-    
+
     @discord.ui.button(label="Shutdown Bot", style=discord.ButtonStyle.secondary, row=1)
-    async def restart_bot(
-        self, _: discord.Button, interaction: discord.Interaction
-    ):
+    async def restart_bot(self, _: discord.Button, interaction: discord.Interaction):
         await self.client.close()
         return
-    
+
     @discord.ui.button(label="Restart Bot", style=discord.ButtonStyle.secondary, row=1)
-    async def restart_bot(
-        self, _: discord.Button, interaction: discord.Interaction
-    ):
+    async def restart_bot(self, _: discord.Button, interaction: discord.Interaction):
         await self.client.close(restart=True)
         return
 

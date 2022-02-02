@@ -138,15 +138,15 @@ class HeistingCultBot(commands.Bot):
             for voice in self.voice_clients:
                 try:
                     await voice.disconnect()
-                    
+
                 except Exception:
                     continue
-            
+
             if self.ws and self.ws.open:
                 await self.ws.close(code=1000)
-            
+
             sys.exit(69)
-        
+
         else:
             await super().close()
 
