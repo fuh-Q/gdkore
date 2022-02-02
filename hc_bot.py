@@ -92,14 +92,14 @@ class HeistingCultBot(commands.Bot):
             f"Logged in as: {self.user.name} : {self.user.id}\n----- Cogs and Extensions -----\nMain bot online"
         )
         await self.change_presence(activity=discord.Game(name="with balls"))  # mmm yes
-        
+
         try:
             secondary_config["chan_id"]
             secondary_config["id"]
             secondary_config["now"]
         except Exception:
             return
-        
+
         if secondary_config["chan_id"] != 0:
             start: float = secondary_config["now"]
             restart_channel = self.get_channel(secondary_config["chan_id"])
