@@ -5,7 +5,19 @@ import sys
 
 import psutil
 
+LINE = "==========================="
 bot_to_launch = 0
+process_map = {
+    "bot.py": False,
+    "rickroll_bot.py": False,
+    "hc_bot.py": False,
+}
+
+bot_map = {
+    1: "bot.py",
+    2: "rickroll_bot.py",
+    3: "hc_bot.py",
+}
 
 
 def generate_kwargs() -> dict[str, str]:
@@ -14,12 +26,6 @@ def generate_kwargs() -> dict[str, str]:
     different arguments to be passed through on Windows and Linux,
     so this function returns the correct arguments based on your system
     """
-
-    bot_map = {
-        1: "bot.py",
-        2: "rickroll_bot.py",
-        3: "hc_bot.py",
-    }
 
     if sys.platform == "win32":
         return {
@@ -36,8 +42,6 @@ def generate_kwargs() -> dict[str, str]:
 
 
 def print_intro() -> None:
-    LINE = "==========================="
-
     print(
         "\n".join(
             [
@@ -47,12 +51,6 @@ def print_intro() -> None:
             ]
         )
     )
-
-    process_map = {
-        "bot.py": False,
-        "rickroll_bot.py": False,
-        "hc_bot.py": False,
-    }
 
     processes = list(psutil.process_iter())
     proc_cmd_regex = re.compile(r"py(?:thon3\.9)? ((?:hc_|rickroll_)?bot\.py)")
@@ -81,12 +79,12 @@ def print_intro() -> None:
     print(LINE)
 
 
-def main():
+def prompt():
     global bot_to_launch
-
-    print_intro()
+    ask = ">>> "
+    
     while True:
-        user_input = input(">>> ")
+        user_input = input(ask)
 
         try:
             user_input = int(user_input)
@@ -102,7 +100,26 @@ def main():
 
         else:
             bot_to_launch = user_input
+            if process_map[list(process_map)[user_input - 1]] is True:
+                print("")
+                print(f"{bot_map[user_input][:-3]} is already running - Start bot regardless? [y|n]")
+                confirm = input(ask)
+                
+                if confirm.lower() in ["y", "yes", "true"]:
+                    break
+                
+                else:
+                    print("")
+                    print("Which bot would you like to launch? [0|1|2|3]")
+                    print(LINE)
+                    continue
+            
             break
+
+
+def main():
+    print_intro()
+    prompt()
 
     while True:
         proc = subprocess.Popen(**generate_kwargs())

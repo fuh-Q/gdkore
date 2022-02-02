@@ -1,3 +1,4 @@
+import contextlib
 from datetime import datetime
 from typing import Optional
 
@@ -21,37 +22,39 @@ class DailyHeist(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
-        if not (datetime.utcnow() - self.last_edit).total_seconds() < 600:
-            if (
-                message.author.id == 270904126974590976
-                and len(message.embeds) > 0
-                and message.embeds[0].title.endswith(" is starting a bank robbery")
-                and len(message.components) > 0
-            ):
-                heist_channel = await self.client.heist_channel.find_one({})
-                if message.channel.id == heist_channel["_id"]:
-                    if not message.channel.name == "🟢・daily-heists":
-                        await message.channel.edit(
-                            name="🟢・daily-heists", reason="Heist started"
-                        )
-                        await message.add_reaction("🤑")
-                        self.last_edit = datetime.utcnow()
+        with contextlib.suppress(TypeError):
+            if not (datetime.utcnow() - self.last_edit).total_seconds() < 600:
+                if (
+                    message.author.id == 270904126974590976
+                    and len(message.embeds) > 0
+                    and message.embeds[0].title.endswith(" is starting a bank robbery")
+                    and len(message.components) > 0
+                ):
+                    heist_channel = await self.client.heist_channel.find_one({})
+                    if message.channel.id == heist_channel["_id"]:
+                        if not message.channel.name == "🟢・daily-heists":
+                            await message.channel.edit(
+                                name="🟢・daily-heists", reason="Heist started"
+                            )
+                            await message.add_reaction("🤑")
+                            self.last_edit = datetime.utcnow()
 
     @commands.Cog.listener()
     async def on_message_edit(self, _, after: discord.Message):
-        if (
-            after.author.id == 270904126974590976
-            and len(after.embeds) > 0
-            and "` people are teaming up to rob **" in after.embeds[0].description
-            and len(after.components) > 0
-        ):
-            heist_channel = await self.client.heist_channel.find_one({})
-            if after.channel.id == heist_channel["_id"]:
-                if not after.channel.name == "🔴・daily-heists":
-                    await after.channel.edit(
-                        name="🔴・daily-heists", reason="Heist ended"
-                    )
-                    self.last_edit = datetime.utcnow()
+        with contextlib.suppress(TypeError):
+            if (
+                after.author.id == 270904126974590976
+                and len(after.embeds) > 0
+                and "` people are teaming up to rob **" in after.embeds[0].description
+                and len(after.components) > 0
+            ):
+                heist_channel = await self.client.heist_channel.find_one({})
+                if after.channel.id == heist_channel["_id"]:
+                    if not after.channel.name == "🔴・daily-heists":
+                        await after.channel.edit(
+                            name="🔴・daily-heists", reason="Heist ended"
+                        )
+                        self.last_edit = datetime.utcnow()
 
     @commands.group(
         name="dailyheistchannel",
