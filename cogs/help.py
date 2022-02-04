@@ -6,7 +6,7 @@ from discord.ext import commands
 from discord.ext.commands import Cog, Command, Group
 
 from bot import BanBattler
-from config.utils import BattlerCog, botcolours
+from config.utils import BattlerCog, Botcolours
 
 commands_module = commands  # This word clashes a lot throughout the subclass
 
@@ -113,7 +113,7 @@ class HelpCommand(commands.HelpCommand):
 
     async def send_bot_help(self, mapping: Mapping[BattlerCog, Iterable[Command]]):
         embed = discord.Embed(
-            description="__Command categories:__", color=botcolours.cyan()
+            description="__Command categories:__", color=Botcolours.cyan
         )
         embed.set_author(
             name="Help Menu",
@@ -160,7 +160,7 @@ class HelpCommand(commands.HelpCommand):
             return
         embed = discord.Embed(
             description="**__{0} commands:__**".format(cog_name),
-            color=botcolours.cyan(),
+            color=Botcolours.cyan,
         )
         embed.set_author(
             name="Help Menu",
@@ -222,7 +222,7 @@ class HelpCommand(commands.HelpCommand):
                 list_subcommands,
                 self.more_help(group),
             ),
-            color=botcolours.cyan(),
+            color=Botcolours.cyan,
         )
         thing = self.cooldown(group)
         if type(thing) == list:
@@ -254,7 +254,7 @@ class HelpCommand(commands.HelpCommand):
                 self.description(command),
                 self.more_help(command),
             ),
-            color=botcolours.cyan(),
+            color=Botcolours.cyan,
         )
         thing = self.max_concurrency(command)
         thing2 = self.cooldown(command)
