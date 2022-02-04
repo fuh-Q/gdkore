@@ -1,0 +1,11 @@
+git+https://github.com/Pycord-development/pycord
+PyNaCl
+
+fuzzy-match
+numpy
+
+dnspython
+motor
+
+psutil
+jishaku
