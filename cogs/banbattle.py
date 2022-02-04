@@ -245,15 +245,15 @@ class GuidePaginator(discord.ui.View):
             self.pages.page_four,
             self.pages.page_five,
             self.pages.page_six,
-            self.pages.page_seven
+            self.pages.page_seven,
         ]
-        
+
         button: discord.Button = self.children[self.start_page]
         button.disabled = True
         self.previous_button = button
         if not self.start_page == 0:
             self.children[0].disabled = False
-        
+
         inter: discord.Interaction = await self.ctx.respond(
             embed=page_list[self.start_page], view=self
         )
@@ -691,7 +691,7 @@ class BanBattle(BattlerCog):
                 OptionChoice(name="Page 6 (Misc.)", value=6),
             ],
             required=False,
-        ) = 0
+        ) = 0,
     ):
         view = GuidePaginator(ctx=ctx, page=page)
         pages = GuideEmbeds()
