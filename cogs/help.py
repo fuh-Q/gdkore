@@ -303,7 +303,3 @@ class help(BattlerCog):
 
 def setup(client: BanBattler):
     client.add_cog(help(client=client))
-
-
-def e(_: discord.Button):
-    ...
