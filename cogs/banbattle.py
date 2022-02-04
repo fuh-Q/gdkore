@@ -211,8 +211,9 @@ class ReadyOrNot(discord.ui.View):
 
 
 class GuidePaginator(discord.ui.View):
-    def __init__(self, ctx: ApplicationContext):
+    def __init__(self, ctx: ApplicationContext, page: int = 0):
         self.pages = GuideEmbeds()
+        self.start_page = page
         self.timeout = 120
         self.owner = ctx.author
         self.delete_me = False
@@ -237,8 +238,24 @@ class GuidePaginator(discord.ui.View):
         self.stop()
 
     async def start(self):
+        page_list: list[discord.Embed] = [
+            self.pages.page_one,
+            self.pages.page_two,
+            self.pages.page_three,
+            self.pages.page_four,
+            self.pages.page_five,
+            self.pages.page_six,
+            self.pages.page_seven
+        ]
+        
+        button: discord.Button = self.children[self.start_page]
+        button.disabled = True
+        self.previous_button = button
+        if not self.start_page == 0:
+            self.children[0].disabled = False
+        
         inter: discord.Interaction = await self.ctx.respond(
-            embed=self.pages.page_one, view=self
+            embed=page_list[self.start_page], view=self
         )
         self.message: discord.InteractionMessage = await inter.original_message()
         self.client.active_paginators.append(self.message)
@@ -575,7 +592,7 @@ class BanBattle(BattlerCog):
             embed = discord.Embed(
                 title="OOP-",
                 description=f'Damn this command **errored**!!!1!!1!11!!!1 Sorry for being a nub, here\'s the error itself, I have cancelled the game in the meantime\n```py\n{"".join(traceback.format_exception(e, e, e.__traceback__))}```\n\n[`Get s0uport`](https://discord.gg/6jC54cRRrm)',
-                color=botcolours.red(),
+                color=Botcolours.red,
             )
             await channel.send(embed=embed)
             return
@@ -658,8 +675,25 @@ class BanBattle(BattlerCog):
     )
     @commands.max_concurrency(1, commands.BucketType.guild, wait=False)
     @commands.cooldown(1, 20, commands.BucketType.user)
-    async def explain(self, ctx: ApplicationContext):
-        view = GuidePaginator(ctx=ctx)
+    async def explain(
+        self,
+        ctx: ApplicationContext,
+        page: Option(
+            int,
+            name="page",
+            description="The page to jump to",
+            choices=[
+                OptionChoice(name="Page 1 (What This is)", value=1),
+                OptionChoice(name="Page 2 (Gamemodes)", value=2),
+                OptionChoice(name="Page 3 (Options)", value=3),
+                OptionChoice(name="Page 4 (Customization)", value=4),
+                OptionChoice(name="Page 5 (Syntax)", value=5),
+                OptionChoice(name="Page 6 (Misc.)", value=6),
+            ],
+            required=False,
+        ) = 0
+    ):
+        view = GuidePaginator(ctx=ctx, page=page)
         pages = GuideEmbeds()
 
         await view.start()
@@ -753,7 +787,7 @@ class BanBattle(BattlerCog):
             embed = discord.Embed(
                 title="OOP-",
                 description=f'Damn this command **errored**!!!1!!1!11!!!1 Sorry for being a nub, here\'s the error itself, I have cancelled the game in the meantime\n```py\n{"".join(traceback.format_exception(e, e, e.__traceback__))}```\n\n[`Get s0uport`](https://discord.gg/6jC54cRRrm)',
-                color=botcolours.red(),
+                color=Botcolours.red,
             )
             await ctx.send_followup(embed=embed)
 
@@ -805,7 +839,7 @@ class BanBattle(BattlerCog):
                 embed = discord.Embed(
                     title="Yeah, so uhhh",
                     description=f"Looks like you don't have a player role set up, you can do that now with\n[`/bansettings`]",
-                    color=botcolours.red(),
+                    color=Botcolours.red,
                 )
                 await ctx.send_response(embed=embed, ephemeral=True)
                 ctx.command.reset_cooldown(ctx)
@@ -820,7 +854,7 @@ class BanBattle(BattlerCog):
                     description="Looks like my bot role is below the set player role, which I need control over.\nTo fix this, simply move my bot role [<@&{0}>] **above** the player role [{1}]".format(
                         bot_role.id, thing[1]
                     ),
-                    color=botcolours.red(),
+                    color=Botcolours.red,
                 )
                 await ctx.send_response(
                     embed=embed,
@@ -837,7 +871,7 @@ class BanBattle(BattlerCog):
                 embed = discord.Embed(
                     title="Yeah, so uhhh",
                     description=f"Looks like my bot role is set to the @everyone role in the server.\n To fix this, simply make me a role (any name works), with the same permissions, and drag it **above** [{thingy[1]}]",
-                    color=botcolours.red(),
+                    color=Botcolours.red,
                 )
                 await ctx.send_response(
                     embed=embed,
@@ -887,7 +921,7 @@ class BanBattle(BattlerCog):
                     embed = discord.Embed(
                         title="Yeah, so uhhh",
                         description=f"If you wanna play SelfBan Mode, you need to set a percentage of how often you'll end up banning yourself [`/bset selfbanchance`]",
-                        color=botcolours.red(),
+                        color=Botcolours.red,
                     )
                     await ctx.send_response(embed=embed, ephemeral=True)
                     ctx.command.reset_cooldown(ctx)
@@ -1126,7 +1160,7 @@ class BanBattle(BattlerCog):
 
             embed = discord.Embed(
                 description="Everything's ready! Click start to start whenever you're ready (or cancel to cancel)",
-                color=botcolours.green(),
+                color=Botcolours.green,
             )
             view = ReadyOrNot(ctx=ctx)
             delete_view: discord.Message = await to_edit.edit(embed=embed, view=view)
@@ -1144,7 +1178,7 @@ class BanBattle(BattlerCog):
                 await msg.edit(
                     embed=discord.Embed(
                         description="The signal to start was never recieved. Ending the command",
-                        color=botcolours.red(),
+                        color=Botcolours.red,
                     )
                 )
                 for member in self.players[num]:
@@ -1180,7 +1214,7 @@ class BanBattle(BattlerCog):
                 await delete_view.delete()
                 await msg.edit(
                     embed=discord.Embed(
-                        description="Game cancelled", color=botcolours.red()
+                        description="Game cancelled", color=Botcolours.red
                     )
                 )
                 for member in self.players[num]:
@@ -1415,7 +1449,7 @@ class BanBattle(BattlerCog):
             embed = discord.Embed(
                 title="List of players",
                 description=" ".join(List),
-                color=botcolours.yellow(),
+                color=Botcolours.yellow,
             )
             await ctx.respond(embed=embed)
         return
@@ -1544,7 +1578,7 @@ class BanBattle(BattlerCog):
                     embed = discord.Embed(
                         title="Yeah, so uhhh",
                         description="I need external emoji permissions for this feature :|",
-                        color=botcolours.red(),
+                        color=Botcolours.red,
                     )
                     return await ctx.send_response(embed=embed, ephemeral=True)
 
@@ -1882,7 +1916,7 @@ class BanBattle(BattlerCog):
             embed = discord.Embed(
                 title="Yeah, so uhhh",
                 description=f"{error}\n[`/game explain`] for more info",
-                color=botcolours.red(),
+                color=Botcolours.red,
             )
             ctx.command.reset_cooldown(ctx)
             return await ctx.respond(embed=embed, ephemeral=True)
@@ -1890,7 +1924,7 @@ class BanBattle(BattlerCog):
             errorEmbed = discord.Embed(
                 title="Yeah, so uhhh",
                 description=f"You need the set Game Starter role [`/bansettings`] or `Manage Server` permissions to use this command!",
-                color=botcolours.red(),
+                color=Botcolours.red,
             )
             ctx.command.reset_cooldown(ctx)
             return await ctx.respond(embed=errorEmbed, ephemeral=True)
@@ -1906,7 +1940,7 @@ class BanBattle(BattlerCog):
                 embed = discord.Embed(
                     title="Yeah, so uhhh",
                     description=f"You need Manage Server permissions to perform these actions!",
-                    color=botcolours.red(),
+                    color=Botcolours.red,
                 )
                 return await ctx.send_response(embed=embed, ephemeral=True)
 

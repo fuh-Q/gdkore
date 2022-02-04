@@ -174,7 +174,7 @@ class BanBattler(commands.Bot):
         await self.change_presence(
             status=discord.Status.idle, activity=discord.Game(name="Starting up...")
         )
-        await self.register_commands()
+        await self.sync_commands()
 
     async def on_ready(self):
         log.info(
@@ -229,7 +229,7 @@ class BanBattler(commands.Bot):
             return await guild.leave()
 
         wh: discord.Webhook = await self.fetch_webhook(905343987555131403)
-        e = discord.Embed(colour=botcolours.green())
+        e = discord.Embed(colour=Botcolours.green)
         e.set_author(
             name=f"Guild Joined ({len(self.guilds)} servers)",
             icon_url="https://cdn.discordapp.com/emojis/816263605686894612.png?size=160",
@@ -256,7 +256,7 @@ class BanBattler(commands.Bot):
             return
 
         wh: discord.Webhook = await self.fetch_webhook(905343987555131403)
-        e = discord.Embed(colour=botcolours.red())
+        e = discord.Embed(colour=Botcolours.red)
         e.set_author(
             name=f"Guild Left ({len(self.guilds)} servers)",
             icon_url="https://cdn.discordapp.com/emojis/816263605837103164.png?size=160",

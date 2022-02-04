@@ -84,34 +84,14 @@ def humanize_timedelta(
     return ", ".join(strings)
 
 
-class botcolours:
-    @staticmethod
-    def red():
-        return 0xC0382B
-
-    @staticmethod
-    def orange():
-        return 0xFF8000
-
-    @staticmethod
-    def yellow():
-        return 0xFFFF00
-
-    @staticmethod
-    def green():
-        return 0x2ECC70
-
-    @staticmethod
-    def cyan():
-        return 0x09DFFF
-
-    @staticmethod
-    def blue():
-        return 0x0000FF
-
-    @staticmethod
-    def pink():
-        return 0xFF0080
+class Botcolours:
+    red = 0xC0382B
+    orange = 0xFF8000
+    yellow = 0xFFFF00
+    green = 0x2ECC70
+    cyan = 0x09DFFF
+    blue = 0x0000FF
+    pink = 0xFF0080
 
 
 class BattlerCog(commands.Cog):
@@ -159,7 +139,7 @@ class GuideEmbeds:
                         "> `6.` ▏Miscellaneous",
                     ]
                 ),
-                color=botcolours.cyan(),
+                color=Botcolours.cyan,
             )
             .set_footer(
                 text="Click the buttons to go to their respective pages\nIf they're aren't buttons or they don't respond, run the command again"
@@ -187,7 +167,7 @@ class GuideEmbeds:
                         "(If you don't know how a Ban Battle works just watch the video above)",
                     ]
                 ),
-                color=botcolours.cyan(),
+                color=Botcolours.cyan,
             )
             .set_footer(text=f"1/6")
             .set_author(
@@ -227,7 +207,7 @@ class GuideEmbeds:
                         f"Pick your gamemode in the `/game start` command (more on syntax later)",
                     ]
                 ),
-                color=botcolours.cyan(),
+                color=Botcolours.cyan,
             )
             .set_footer(text=f"2/6")
             .set_author(
@@ -257,7 +237,7 @@ class GuideEmbeds:
                         f"> `/game start passive ping             `",
                     ]
                 ),
-                color=botcolours.cyan(),
+                color=Botcolours.cyan,
             )
             .set_footer(text=f"3/6")
             .set_author(
@@ -321,7 +301,7 @@ class GuideEmbeds:
                         "representing the member you attemped to ban",
                     ]
                 ),
-                color=botcolours.cyan(),
+                color=Botcolours.cyan,
             )
             .set_footer(text=f"4/6")
             .set_author(
@@ -354,7 +334,7 @@ class GuideEmbeds:
                         "Have fun!",
                     ]
                 ),
-                color=botcolours.cyan(),
+                color=Botcolours.cyan,
             )
             .set_footer(text=f"5/6")
             .set_author(
@@ -386,7 +366,7 @@ class GuideEmbeds:
                         "- 1 use(s) per 20 seconds",
                     ]
                 ),
-                color=botcolours.cyan(),
+                color=Botcolours.cyan,
             )
             .set_footer(text=f"6/6")
             .set_author(
