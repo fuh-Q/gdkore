@@ -69,6 +69,13 @@ def natural_size(size_in_bytes: int) -> str:
 
 
 class PaginatorInterFace(OGPaginatorInterface):
+    button_start: discord.Button
+    button_previous: discord.Button
+    button_current: discord.Button
+    button_next: discord.Button
+    button_last: discord.Button
+    button_close: discord.Button
+    
     def __init__(
         self,
         bot: Union[BanBattler, commands.Bot],
@@ -94,6 +101,22 @@ class PaginatorInterFace(OGPaginatorInterface):
         self.button_last.label = f"Page {self.page_count}"
         self.button_close.emoji = self.emojis.close
         self.button_close.label = "Close paginator"
+        
+        if self.display_page == self.page_count - 1:
+            self.button_last.disabled = True
+            self.button_next.disabled = True
+            
+        else:
+            self.button_last.disabled = False
+            self.button_next.disabled = False
+        
+        if self.display_page == 0:
+            self.button_start.disabled = True
+            self.button_previous.disabled = True
+            
+        else:
+            self.button_start.disabled = False
+            self.button_previous.disabled = False
 
     async def interaction_check(self, interaction: discord.Interaction):
         """Check that determines whether this interaction should be honored"""

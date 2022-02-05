@@ -252,7 +252,7 @@ class GuidePaginator(discord.ui.View):
         button.disabled = True
         self.previous_button = button
         if not self.start_page == 0:
-            self.children[0].disabled = False
+            self.page_one.disabled = False
 
         inter: discord.Interaction = await self.ctx.respond(
             embed=page_list[self.start_page], view=self
@@ -291,7 +291,7 @@ class GuidePaginator(discord.ui.View):
         if self.previous_button:
             self.previous_button.disabled = False
 
-        self.children[0].disabled = False
+        self.page_one.disabled = False
 
         self.previous_button = button
         button.disabled = True
@@ -305,7 +305,7 @@ class GuidePaginator(discord.ui.View):
         if self.previous_button:
             self.previous_button.disabled = False
 
-        self.children[0].disabled = False
+        self.page_one.disabled = False
 
         self.previous_button = button
         button.disabled = True
@@ -317,7 +317,7 @@ class GuidePaginator(discord.ui.View):
         if self.previous_button:
             self.previous_button.disabled = False
 
-        self.children[0].disabled = False
+        self.page_one.disabled = False
 
         self.previous_button = button
         button.disabled = True
@@ -331,7 +331,7 @@ class GuidePaginator(discord.ui.View):
         if self.previous_button:
             self.previous_button.disabled = False
 
-        self.children[0].disabled = False
+        self.page_one.disabled = False
 
         self.previous_button = button
         button.disabled = True
@@ -343,7 +343,7 @@ class GuidePaginator(discord.ui.View):
         if self.previous_button:
             self.previous_button.disabled = False
 
-        self.children[0].disabled = False
+        self.page_one.disabled = False
 
         self.previous_button = button
         button.disabled = True
@@ -359,7 +359,7 @@ class GuidePaginator(discord.ui.View):
         if self.previous_button:
             self.previous_button.disabled = False
 
-        self.children[0].disabled = False
+        self.page_one.disabled = False
 
         self.previous_button = button
         button.disabled = True
@@ -388,6 +388,17 @@ class GuidePaginator(discord.ui.View):
     ):
         self.delete_me = True
         self.stop()
+    
+    # Type-hinting
+    page_one: discord.Button
+    page_two: discord.Button
+    page_three: discord.Button
+    page_four: discord.Button
+    page_five: discord.Button
+    page_six: discord.Button
+    page_seven: discord.Button
+    all_pages: discord.Button
+    close_menu: discord.Button
 
 
 class BanBattle(BattlerCog):
