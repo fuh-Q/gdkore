@@ -388,7 +388,7 @@ class GuidePaginator(discord.ui.View):
     ):
         self.delete_me = True
         self.stop()
-    
+
     # Type-hinting
     page_one: discord.Button
     page_two: discord.Button
