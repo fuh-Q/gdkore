@@ -5,7 +5,13 @@ import sys
 
 import psutil
 
-LINE = "==========================="
+from config.utils import PrintColours
+
+G = PrintColours.GREEN
+R = PrintColours.RED
+W = PrintColours.WHITE
+
+LINE = f"{G}==========================={W}"
 bot_to_launch = 0
 process_map = {
     "bot.py": False,
@@ -65,11 +71,11 @@ def print_intro() -> None:
 
     bots = "\n".join(
         [
-            "0. Exit Launcher",
+            f"{G}0.{W} Exit Launcher",
             "",
-            f"1. Not GDKID {'-- RUNNING' if process_map['bot.py'] else ''}",
-            f"2. Rickroll Bot {'-- RUNNING' if process_map['rickroll_bot.py'] else ''}",
-            f"3. HC Utility {'-- RUNNING' if process_map['hc_bot.py'] else ''}",
+            f"{G}1.{W} Not GDKID {R + '-- RUNNING' + W if process_map['bot.py'] else ''}",
+            f"{G}2.{W} Rickroll Bot {R + '-- RUNNING' + W if process_map['rickroll_bot.py'] else ''}",
+            f"{G}3.{W} HC Utility {R + '-- RUNNING' + W if process_map['hc_bot.py'] else ''}",
         ]
     )
 
@@ -103,7 +109,7 @@ def prompt():
             if process_map[list(process_map)[user_input - 1]] is True:
                 print("")
                 print(
-                    f"{bot_map[user_input][:-3]} is already running - Start bot regardless? [y|n]"
+                    f"{G + bot_map[user_input][:-3] + W} is already running - Start bot regardless? [y|n]"
                 )
                 confirm = input(ask)
 

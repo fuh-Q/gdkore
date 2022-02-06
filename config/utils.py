@@ -122,6 +122,18 @@ async def mobile(self: discord.gateway.DiscordWebSocket):
     await self.send_as_json(payload)
 
 
+class PrintColours:
+    PURPLE = '\033[95m'
+    BLUE = '\033[94m'
+    CYAN = '\033[96m'
+    GREEN = '\033[92m'
+    YELLOW = '\033[93m'
+    RED = '\033[91m'
+    WHITE = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+
 class Botcolours:
     red = 0xC0382B
     orange = 0xFF8000
