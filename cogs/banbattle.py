@@ -530,7 +530,6 @@ class BanBattle(BattlerCog):
         channel = guild.get_channel(doc["channel"])
         gamemode = doc["mode"]
         gamer_role = guild.get_role(doc["player_role"])
-        bot_role: discord.Role = guild.self_role or guild.me.top_role
 
         try:
             if not gamer_role:
