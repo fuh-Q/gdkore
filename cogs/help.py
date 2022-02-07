@@ -295,9 +295,9 @@ class HelpCommand(commands.HelpCommand):
             mapping = self.get_bot_mapping()
             return await self.send_bot_help(mapping)
 
-        list_of_cogs: list[commands.Cog] = [c.lower() for c in bot.cogs.keys()]
+        cl: list[str] = [c.lower() for c in bot.cogs.keys()]
         try:
-            cog = list_of_cogs.index(command)
+            cl[cl.index(command)]
         except ValueError:
             pass
         else:
