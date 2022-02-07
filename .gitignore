@@ -8,5 +8,6 @@ __pycache__/
 config/secrets.json
 
 # Irrelevant
-heroku/
+.mypy_cache
+.pytest_cache
 random-shit/
