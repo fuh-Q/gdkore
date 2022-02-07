@@ -671,7 +671,7 @@ class BanBattle(BattlerCog):
                 await member.ban(
                     reason=f"Ban battle (Eliminated by {self.client.user.name}#{self.client.user.discriminator}, User ID: {self.client.user.id})",
                 )
-            except:
+            except Exception:
                 pass
         if len(self.players[member.guild.id]) <= 1:
             await self.end_game(member.guild)
@@ -1449,7 +1449,7 @@ class BanBattle(BattlerCog):
         for i in range(0, 201):
             try:
                 List.append(self.players[num][i].mention)
-            except:
+            except Exception:
                 break
         if List == []:
             await ctx.respond(
@@ -1641,7 +1641,7 @@ class BanBattle(BattlerCog):
         if not role:
             try:
                 await self.client.starter.delete_one({"_id": ctx.guild.id})
-            except:
+            except Exception:
                 pass
             embed = await self.get_all_bansettings(ctx, key=0)
             await ctx.send_followup(
@@ -1670,7 +1670,7 @@ class BanBattle(BattlerCog):
         if not time:
             try:
                 await self.client.time_to_join.delete_one({"_id": ctx.guild.id})
-            except:
+            except Exception:
                 pass
             embed = await self.get_all_bansettings(ctx, key=1)
             await ctx.send_followup(
@@ -1698,7 +1698,7 @@ class BanBattle(BattlerCog):
         if not time:
             try:
                 await self.client.game_timeout.delete_one({"_id": ctx.guild.id})
-            except:
+            except Exception:
                 pass
             embed = await self.get_all_bansettings(ctx, key=2)
             await ctx.send_followup(
@@ -1722,7 +1722,7 @@ class BanBattle(BattlerCog):
         if not role:
             try:
                 await self.client.ban_gamer.delete_one({"_id": ctx.guild.id})
-            except:
+            except Exception:
                 pass
             embed = await self.get_all_bansettings(ctx, key=3)
             await ctx.send_followup(
@@ -1748,7 +1748,7 @@ class BanBattle(BattlerCog):
         if not emoji:
             try:
                 await self.client.game_emoji.delete_one({"_id": ctx.guild.id})
-            except:
+            except Exception:
                 pass
             embed = await self.get_all_bansettings(ctx, key=5)
             return await ctx.send_followup(
@@ -1779,7 +1779,7 @@ class BanBattle(BattlerCog):
         if not percentage:
             try:
                 await self.client.self_ban_chance.delete_one({"_id": ctx.guild.id})
-            except:
+            except Exception:
                 pass
             embed = await self.get_all_bansettings(ctx, key=6)
             await ctx.send_followup(
@@ -1805,7 +1805,7 @@ class BanBattle(BattlerCog):
         if not message:
             try:
                 await self.client.ban_dm.delete_one({"_id": ctx.guild.id})
-            except:
+            except Exception:
                 pass
             embed = await self.get_all_bansettings(ctx, key=7)
             await ctx.send_followup(
@@ -1839,7 +1839,7 @@ class BanBattle(BattlerCog):
         if not message:
             try:
                 await self.client.self_ban_dm.delete_one({"_id": ctx.guild.id})
-            except:
+            except Exception:
                 pass
             embed = await self.get_all_bansettings(ctx, key=8)
             await ctx.send_followup(

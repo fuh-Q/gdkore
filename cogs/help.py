@@ -63,7 +63,7 @@ class HelpCommand(commands.HelpCommand):
         for command in command_list:
             try:
                 await command.can_run(self.context)
-            except:
+            except Exception:
                 continue
             else:
                 L.append(
@@ -141,7 +141,7 @@ class HelpCommand(commands.HelpCommand):
                     for command in all_commands:
                         try:
                             await command.can_run(self.context)
-                        except:
+                        except Exception:
                             continue
                         else:
                             counter += 1
@@ -175,7 +175,7 @@ class HelpCommand(commands.HelpCommand):
             command: Union[Group, Command] = command
             try:
                 await command.can_run(self.context)
-            except:
+            except Exception:
                 continue
             else:
                 command_signature = self.get_command_signature(

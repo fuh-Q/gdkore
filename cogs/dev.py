@@ -32,7 +32,7 @@ class Dev(BattlerCog):
                     reason
                 )
             )
-        except:
+        except Exception:
             await ctx.reply("User banned. I couldn't DM them")
         await ctx.message.add_reaction(self.client.yes)
 
@@ -56,7 +56,7 @@ class Dev(BattlerCog):
                     guild.name, reason
                 )
             )
-        except:
+        except Exception:
             await guild.leave()
             await ctx.reply("Guild banned. I couldn't DM the owner")
         await ctx.message.add_reaction(self.client.yes)
@@ -73,7 +73,7 @@ class Dev(BattlerCog):
                 await user.send(
                     "Congrats, you've been unbanned. Don't pull shit like that again"
                 )
-            except:
+            except Exception:
                 await ctx.reply("User unbanned. I couldn't DM them")
             await ctx.message.add_reaction(self.client.yes)
         else:
@@ -96,7 +96,7 @@ class Dev(BattlerCog):
                         is_guild_blacklisted["name"]
                     )
                 )
-            except:
+            except Exception:
                 await ctx.reply("Guild unbanned. I couldn't DM the owner")
             await ctx.message.add_reaction(self.client.yes)
         else:

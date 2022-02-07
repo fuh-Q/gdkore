@@ -341,7 +341,7 @@ class BanBattler(commands.Bot):
                 value=f"Name: `{ctx.guild.name}`\nGuild ID: {ctx.guild.id}\nGuild Member Count: {ctx.guild.member_count}",
                 inline=True,
             )
-        except:
+        except Exception:
             embed.add_field(
                 name="Triggered in",
                 value=f"Name: `DMs`\nGuild ID: DMs\nGuild Member Count: DMs",
