@@ -26,15 +26,17 @@ mongoURI = secrets["mongoURI"]
 cluster: MongoClient = AsyncIOMotorClient(mongoURI)
 db: Database = cluster["BanDB"]
 
-def new_call_soon(self: asyncio.BaseEventLoop, callback, *args, context = None):
+
+def new_call_soon(self: asyncio.BaseEventLoop, callback, *args, context=None):
     if not self._closed:
         if self._debug:
             self._check_thread()
-            self._check_callback(callback, 'call_soon')
+            self._check_callback(callback, "call_soon")
         handle = self._call_soon(callback, args, context)
         if handle._source_traceback:
             del handle._source_traceback[-1]
         return handle
+
 
 asyncio.BaseEventLoop.call_soon = new_call_soon
 

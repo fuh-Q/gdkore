@@ -95,43 +95,45 @@ async def mobile(self: discord.gateway.DiscordWebSocket):
                 "$browser": "Discord iOS",
                 "$device": "pycord",
                 "$referrer": "",
-                "$referring_domain": ""
+                "$referring_domain": "",
             },
             "compress": True,
             "large_threshold": 250,
-            "v": 3
-        }
+            "v": 3,
+        },
     }
-    
+
     if self.shard_id is not None and self.shard_count is not None:
         payload["d"]["shard"] = [self.shard_id, self.shard_count]
-    
+
     state = self._connection
     if state._activity is not None or state._status is not None:
         payload["d"]["presence"] = {
             "status": state._status,
             "game": state._activity,
             "since": 0,
-            "afk": False
+            "afk": False,
         }
-    
+
     if state._intents is not None:
         payload["d"]["intents"] = state._intents.value
-    
-    await self.call_hooks("before_identify", self.shard_id, initial=self._initial_identify)
+
+    await self.call_hooks(
+        "before_identify", self.shard_id, initial=self._initial_identify
+    )
     await self.send_as_json(payload)
 
 
 class PrintColours:
-    PURPLE = '\033[95m'
-    BLUE = '\033[94m'
-    CYAN = '\033[96m'
-    GREEN = '\033[92m'
-    YELLOW = '\033[93m'
-    RED = '\033[91m'
-    WHITE = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
+    PURPLE = "\033[95m"
+    BLUE = "\033[94m"
+    CYAN = "\033[96m"
+    GREEN = "\033[92m"
+    YELLOW = "\033[93m"
+    RED = "\033[91m"
+    WHITE = "\033[0m"
+    BOLD = "\033[1m"
+    UNDERLINE = "\033[4m"
 
 
 class Botcolours:

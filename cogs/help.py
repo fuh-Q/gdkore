@@ -4,11 +4,10 @@ from typing import *
 import discord
 from discord.ext import commands
 from discord.ext.commands import Cog, Command, Group
+from fuzzy_match.match import extractOne
 
 from bot import BanBattler
 from config.utils import BattlerCog, Botcolours
-
-from fuzzy_match.match import extractOne
 
 commands_module = commands  # This word clashes a lot throughout the subclass
 
@@ -284,46 +283,54 @@ class HelpCommand(commands.HelpCommand):
         mapping: Mapping[BattlerCog, Iterable[Command]] = self.get_bot_mapping()
         await self.send_bot_help(mapping=mapping)
         del error
-    
+
     async def command_callback(self, ctx: commands.Context, *, command: str = None):
         command = command.lower()
-        
+
         await self.prepare_help_command(ctx, command)
-        
+
         bot: BanBattler = ctx.bot
-        
+
         if command is None:
             mapping = self.get_bot_mapping()
             return await self.send_bot_help(mapping)
-        
+
         list_of_cogs: list[commands.Cog] = [c.lower() for c in bot.cogs.keys()]
         try:
             cog = list_of_cogs.index(command)
         except ValueError:
             pass
         else:
-            return await self.send_cog_help(bot.get_cog(extractOne(command, bot.cogs.keys())[0]))
-        
+            return await self.send_cog_help(
+                bot.get_cog(extractOne(command, bot.cogs.keys())[0])
+            )
+
         maybe_coro = discord.utils.maybe_coroutine
-        keys = command.split(' ')
+        keys = command.split(" ")
         cmd = bot.all_commands.get(keys[0])
-        
+
         if cmd is None:
-            string = await maybe_coro(self.command_not_found, self.remove_mentions(keys[0]))
+            string = await maybe_coro(
+                self.command_not_found, self.remove_mentions(keys[0])
+            )
             return await self.send_error_message(string)
-        
+
         for key in keys[1:]:
             try:
                 found = cmd.all_commands.get(key)
             except AttributeError:
-                string = await maybe_coro(self.subcommand_not_found, cmd, self.remove_mentions(key))
+                string = await maybe_coro(
+                    self.subcommand_not_found, cmd, self.remove_mentions(key)
+                )
                 return await self.send_error_message(string)
             else:
                 if found is None:
-                    string = await maybe_coro(self.subcommand_not_found, cmd, self.remove_mentions(key))
+                    string = await maybe_coro(
+                        self.subcommand_not_found, cmd, self.remove_mentions(key)
+                    )
                     return await self.send_error_message(string)
                 cmd = found
-        
+
         if isinstance(cmd, Group):
             return await self.send_group_help(cmd)
         else:
