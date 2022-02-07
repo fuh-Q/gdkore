@@ -105,9 +105,6 @@ class BanBattler(commands.Bot):
         self.stream_url = "https://www.youtube.com/watch?v=Cjs6Ea8pbzI"  # YouTube video
         self.yes = "<:yes_tick:842078179833151538>"  # Checkmark
         self.no = "<:no_cross:842078253032407120>"  # X
-        self._BotBase__cogs = (
-            commands.core._CaseInsensitiveDict()
-        )  # Case insensitive help menu
         self.token = secrets["token"]  # Ban Battler's token
         self.testing_token = secrets["testing_token"]  # Ban Battler Testing's token
         self.uptime = datetime.datetime.utcnow()  # Startup timestamp

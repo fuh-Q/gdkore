@@ -59,9 +59,6 @@ class HeistingCultBot(commands.Bot):
         os.environ["BOT_RESTART"] = "False"
 
         self.owner_ids = [596481615253733408]
-        self._BotBase__cogs = (
-            commands.core._CaseInsensitiveDict()
-        )  # Case insensitive cogs in the help command
         self.token = secrets["hc_token"]
         self.main_guild_id = 831822972389294152
         self.yes = "<:yes_tick:842078179833151538>"
