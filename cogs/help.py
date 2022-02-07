@@ -285,7 +285,7 @@ class HelpCommand(commands.HelpCommand):
         del error
 
     async def command_callback(self, ctx: commands.Context, *, command: str = None):
-        command = command.lower()
+        command = command.lower() if command is not None else ""
 
         await self.prepare_help_command(ctx, command)
 
