@@ -4,7 +4,6 @@ from typing import *
 import discord
 from discord.ext import commands
 from discord.ext.commands import Cog, Command, Group
-from fuzzy_match.match import extractOne
 
 from bot import BanBattler
 from config.utils import BattlerCog, Botcolours
@@ -294,16 +293,13 @@ class HelpCommand(commands.HelpCommand):
         if command is None:
             mapping = self.get_bot_mapping()
             return await self.send_bot_help(mapping)
-
-        cl: list[str] = [c.lower() for c in bot.cogs.keys()]
+        
+        cogs_lower = {k.lower(): v for k, v in bot.cogs.items()}
         try:
-            cl[cl.index(command)]
-        except ValueError:
+            return await self.send_cog_help(cogs_lower[command])
+        
+        except KeyError:
             pass
-        else:
-            return await self.send_cog_help(
-                bot.get_cog(extractOne(command, bot.cogs.keys())[0])
-            )
 
         maybe_coro = discord.utils.maybe_coroutine
         keys = command.split(" ")
