@@ -293,11 +293,11 @@ class HelpCommand(commands.HelpCommand):
         if command is None:
             mapping = self.get_bot_mapping()
             return await self.send_bot_help(mapping)
-        
+
         cogs_lower = {k.lower(): v for k, v in bot.cogs.items()}
         try:
             return await self.send_cog_help(cogs_lower[command])
-        
+
         except KeyError:
             pass
 
