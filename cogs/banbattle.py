@@ -781,7 +781,7 @@ class BanBattle(BattlerCog):
         pingrole: discord.Role = pingrole
         role: discord.Role = role
 
-        async def handle_error(e: Exception):
+        async def handle_error(e: Exception, gamer_role: discord.Role):
             print("".join(traceback.format_exception(e, e, e.__traceback__)))
             await self.client.games.delete_one({"_id": guild.id})
             try:
@@ -796,7 +796,7 @@ class BanBattle(BattlerCog):
                         await member.remove_roles(gamer_role)
             embed = discord.Embed(
                 title="OOP-",
-                description=f'Damn this command **errored**!!!1!!1!11!!!1 Sorry for being a nub, here\'s the error itself, I have cancelled the game in the meantime\n```py\n{"".join(traceback.format_exception(e, e, e.__traceback__))}```\n\n[`Get s0uport`](https://discord.gg/6jC54cRRrm)',
+                description=f'If the error below says something like "Missing Permissions", try giving me admin and making sure my role is above the player\'s role\n```py\n{"".join(traceback.format_exception(e, e, e.__traceback__))}```\n\n[`Get s0uport`](https://discord.gg/6jC54cRRrm)',
                 color=Botcolours.red,
             )
             await ctx.send_followup(embed=embed)
@@ -812,6 +812,10 @@ class BanBattle(BattlerCog):
                             f"Guild ID: {guild.id}",
                             f"Gamemode: {gamemode}",
                             f"```py",
+                            "Bot role position:",
+                            f"{guild.self_role.position}",
+                            "Gamer role position:",
+                            f"{gamer_role.position}",
                             f"Bot permissions:",
                             "",
                             "\n".join(
@@ -1437,7 +1441,7 @@ class BanBattle(BattlerCog):
                     return
 
         except Exception as e:
-            await handle_error(e)
+            await handle_error(e, gamer_role)
             ctx.command.reset_cooldown(ctx)
             return
 

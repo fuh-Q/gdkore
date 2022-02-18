@@ -11,3 +11,8 @@ config/secrets.json
 .mypy_cache
 .pytest_cache
 random-shit/
+
+# Not ready
+presence_bot.py
+cogs/presencetracker.py
+assets/
