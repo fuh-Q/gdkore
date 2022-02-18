@@ -72,9 +72,7 @@ class AdminControls(discord.ui.View):
             )
             return
         await m.add_roles(self.client.r)
-        await interaction.response.send_message(
-            "Your RickHub admin priviledges are now enabled", ephemeral=True
-        )
+        await interaction.response.send_message("Your RickHub admin priviledges are now enabled", ephemeral=True)
 
     @discord.ui.button(label="Revoke Admin", style=discord.ButtonStyle.danger, row=0)
     async def revoke_admin(self, _: discord.Button, interaction: discord.Interaction):
@@ -85,9 +83,7 @@ class AdminControls(discord.ui.View):
             )
             return
         await m.remove_roles(self.client.r)
-        await interaction.response.send_message(
-            "Your RickHub admin priviledges are now disabled", ephemeral=True
-        )
+        await interaction.response.send_message("Your RickHub admin priviledges are now disabled", ephemeral=True)
 
     @discord.ui.button(label="Shutdown Bot", style=discord.ButtonStyle.secondary, row=1)
     async def shutdown_bot(self, _: discord.Button, interaction: discord.Interaction):
@@ -110,9 +106,7 @@ kick_whitelist: list[int] = [749890079580749854, 596481615253733408]
 
 
 @client.event
-async def on_voice_state_update(
-    member: discord.Member, before: discord.VoiceState, after: discord.VoiceState
-):
+async def on_voice_state_update(member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
     global on_safe_timer
     global safe_timer_disconnect
 
@@ -123,9 +117,7 @@ async def on_voice_state_update(
             if member in r.members or member.id in kick_whitelist:
                 await member.move_to(channel=None)
             else:
-                await member.kick(
-                    reason=f"{member.name}#{member.discriminator} is deafened."
-                )
+                await member.kick(reason=f"{member.name}#{member.discriminator} is deafened.")
             try:
                 await member.guild.voice_client.disconnect()
             except:
@@ -142,12 +134,8 @@ async def on_voice_state_update(
         ):
             return
 
-        with contextlib.suppress(
-            (AttributeError, TypeError, RuntimeError, RuntimeWarning)
-        ):
-            the_channel: discord.VoiceChannel = await client.fetch_channel(
-                831692952489033758
-            )
+        with contextlib.suppress((AttributeError, TypeError, RuntimeError, RuntimeWarning)):
+            the_channel: discord.VoiceChannel = await client.fetch_channel(831692952489033758)
             if member.id != client.user.id and after.channel is not None:
                 if on_safe_timer:
                     if member in r.members or member.id in kick_whitelist:
@@ -171,9 +159,7 @@ async def on_voice_state_update(
                             if person in r.members or person.id in kick_whitelist:
                                 await person.move_to(channel=None)
                             else:
-                                await person.kick(
-                                    reason=f"Successfully rickrolled {member.display_name}"
-                                )
+                                await person.kick(reason=f"Successfully rickrolled {member.display_name}")
 
                 except:
                     pass
@@ -183,15 +169,11 @@ async def on_voice_state_update(
                     pass
                 audio = discord.FFmpegPCMAudio(
                     source=str(Path(__file__).parent) + r"/rickroll.mp3",
-                    executable=r"/usr/bin/ffmpeg"
-                    if sys.platform == "linux"
-                    else r"d:\thingyy\ffmpeg.exe",
+                    executable=r"/usr/bin/ffmpeg" if sys.platform == "linux" else r"d:\thingyy\ffmpeg.exe",
                 )
                 vc = await after.channel.connect()
                 if member.id != 596481615253733408:
-                    await c.send(
-                        f"{member.name}#{member.discriminator} [{member.mention}] has been rickrolled!"
-                    )
+                    await c.send(f"{member.name}#{member.discriminator} [{member.mention}] has been rickrolled!")
 
                 on_safe_timer = True
                 t: threading.Thread = threading.Thread(target=vc.play(audio)).start()
@@ -206,9 +188,7 @@ async def on_voice_state_update(
 
                 try:
                     if member not in r.members or member.id in kick_whitelist:
-                        await member.kick(
-                            reason=f"Successfully rickrolled {member.display_name}"
-                        )
+                        await member.kick(reason=f"Successfully rickrolled {member.display_name}")
 
                 except:
                     pass

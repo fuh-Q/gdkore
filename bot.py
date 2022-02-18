@@ -74,9 +74,7 @@ class BanBattler(commands.Bot):
 
     def __init__(self):
 
-        allowed_mentions = discord.AllowedMentions(
-            roles=True, everyone=False, users=True, replied_user=True
-        )
+        allowed_mentions = discord.AllowedMentions(roles=True, everyone=False, users=True, replied_user=True)
         intents = discord.Intents.all()
         intents.presences = False
 
@@ -182,20 +180,14 @@ class BanBattler(commands.Bot):
                 await self.user.edit(avatar=b)
 
     async def on_connect(self):
-        await self.change_presence(
-            status=discord.Status.idle, activity=discord.Game(name="Starting up...")
-        )
+        await self.change_presence(status=discord.Status.idle, activity=discord.Game(name="Starting up..."))
         await self.sync_commands()
 
     async def on_ready(self):
-        log.info(
-            f"Logged in as: {self.user.name} : {self.user.id}\n----- Cogs and Extensions -----\nMain bot online"
-        )
+        log.info(f"Logged in as: {self.user.name} : {self.user.id}\n----- Cogs and Extensions -----\nMain bot online")
         async for doc in self.games.find({}):
             await self.games.delete_one(doc)
-        await self.change_presence(
-            activity=discord.Streaming(name="Ban Battles", url=self.stream_url)
-        )
+        await self.change_presence(activity=discord.Streaming(name="Ban Battles", url=self.stream_url))
 
         try:
             secondary_config["chan_id"]
@@ -290,9 +282,7 @@ class BanBattler(commands.Bot):
 
         if isinstance(error, commands.CommandOnCooldown):
             await ctx.respond(
-                content="This command is on cooldown, try again in `{:.2f}` seconds".format(
-                    error.retry_after
-                ),
+                content="This command is on cooldown, try again in `{:.2f}` seconds".format(error.retry_after),
                 ephemeral=True,
             )
             await self.log(ctx, error.retry_after)
@@ -312,9 +302,7 @@ class BanBattler(commands.Bot):
             errorEmbed.set_footer(text="no u")
             await ctx.respond(embed=errorEmbed)
             return
-        if isinstance(error, commands.NotOwner) or isinstance(
-            error, commands.MessageNotFound
-        ):
+        if isinstance(error, commands.NotOwner) or isinstance(error, commands.MessageNotFound):
             pass
 
         await super().on_application_command_error(ctx, error)
@@ -329,9 +317,7 @@ class BanBattler(commands.Bot):
         )
         embed.add_field(
             name="Account created at",
-            value="{0}".format(
-                ctx.author.created_at.__format__("%A, %d %B %Y\nAt %I:%M%p")
-            ),
+            value="{0}".format(ctx.author.created_at.__format__("%A, %d %B %Y\nAt %I:%M%p")),
             inline=True,
         )
         try:
@@ -347,9 +333,7 @@ class BanBattler(commands.Bot):
                 inline=True,
             )
         if ctx.command is not None:
-            embed.add_field(
-                name="Command", value=f"`/{ctx.command.qualified_name}`", inline=False
-            )
+            embed.add_field(name="Command", value=f"`/{ctx.command.qualified_name}`", inline=False)
             embed.add_field(
                 name="Time left on cooldown",
                 value="`{:.2f}` seconds".format(retry_after),
@@ -371,9 +355,7 @@ class BanBattler(commands.Bot):
     async def close(self, restart: bool = False):
         for pag in self.active_jishaku_paginators:
             await pag.message.edit(view=None)
-            self.active_jishaku_paginators.pop(
-                self.active_jishaku_paginators.index(pag)
-            )
+            self.active_jishaku_paginators.pop(self.active_jishaku_paginators.index(pag))
 
             if self.active_jishaku_paginators:
                 await asyncio.sleep(0.25)
@@ -415,9 +397,7 @@ class BanBattler(commands.Bot):
             try:
                 self.load_extension(cog)
             except commands.ExtensionAlreadyLoaded:
-                return await ctx.reply(
-                    content=f"`{cog[5:]}` is already loaded", mention_author=True
-                )
+                return await ctx.reply(content=f"`{cog[5:]}` is already loaded", mention_author=True)
             else:
                 await ctx.reply(content=f"Loaded `{cog[5:]}`", mention_author=True)
 
@@ -434,9 +414,7 @@ class BanBattler(commands.Bot):
             try:
                 self.unload_extension(cog)
             except commands.ExtensionNotLoaded:
-                return await ctx.reply(
-                    content=f"`{cog[5:]}` is not loaded", mention_author=True
-                )
+                return await ctx.reply(content=f"`{cog[5:]}` is not loaded", mention_author=True)
             else:
                 await ctx.reply(content=f"Unloaded `{cog[5:]}`", mention_author=True)
 
@@ -448,9 +426,7 @@ class BanBattler(commands.Bot):
                 for extension in list(self.extensions):
                     self.reload_extension(extension)
                     List.append(f"`{extension[5:]}`")
-                return await ctx.reply(
-                    content=f"Reloaded {', '.join(List)}", mention_author=True
-                )
+                return await ctx.reply(content=f"Reloaded {', '.join(List)}", mention_author=True)
             the_match = match.extractOne(extension, self.extensions)
             if the_match[1] < 0.1:
                 return await ctx.reply(

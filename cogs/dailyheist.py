@@ -33,9 +33,7 @@ class DailyHeist(commands.Cog):
                     heist_channel = await self.client.heist_channel.find_one({})
                     if message.channel.id == heist_channel["_id"]:
                         if not message.channel.name == "🟢・daily-heists":
-                            await message.channel.edit(
-                                name="🟢・daily-heists", reason="Heist started"
-                            )
+                            await message.channel.edit(name="🟢・daily-heists", reason="Heist started")
                             await message.add_reaction("🤑")
                             self.last_edit = datetime.utcnow()
 
@@ -51,9 +49,7 @@ class DailyHeist(commands.Cog):
                 heist_channel = await self.client.heist_channel.find_one({})
                 if after.channel.id == heist_channel["_id"]:
                     if not after.channel.name == "🔴・daily-heists":
-                        await after.channel.edit(
-                            name="🔴・daily-heists", reason="Heist ended"
-                        )
+                        await after.channel.edit(name="🔴・daily-heists", reason="Heist ended")
                         self.last_edit = datetime.utcnow()
 
     @commands.group(
@@ -64,9 +60,7 @@ class DailyHeist(commands.Cog):
         case_insensitive=True,
         invoke_without_command=True,
     )
-    @commands.check_any(
-        commands.is_owner(), commands.has_guild_permissions(administrator=True)
-    )
+    @commands.check_any(commands.is_owner(), commands.has_guild_permissions(administrator=True))
     async def dailyheistchannels(self, ctx: commands.Context):
         the_channel = ""
 
@@ -80,30 +74,20 @@ class DailyHeist(commands.Cog):
         )
         await ctx.reply(embed=e)
 
-    @dailyheistchannels.command(
-        name="set", aliases=["setchan"], brief="Set the Daily Heist channel"
-    )
-    @commands.check_any(
-        commands.is_owner(), commands.has_guild_permissions(administrator=True)
-    )
+    @dailyheistchannels.command(name="set", aliases=["setchan"], brief="Set the Daily Heist channel")
+    @commands.check_any(commands.is_owner(), commands.has_guild_permissions(administrator=True))
     async def set_channel(self, ctx: commands.Context, channel: discord.TextChannel):
         async with ctx.typing():
-            await self.client.heist_channel.update_one(
-                {"_id": channel.id}, {"$set": {"_id": channel.id}}, upsert=True
-            )
+            await self.client.heist_channel.update_one({"_id": channel.id}, {"$set": {"_id": channel.id}}, upsert=True)
 
-        await ctx.reply(
-            content=f"Successfully set {channel.mention} as the daily heist channel"
-        )
+        await ctx.reply(content=f"Successfully set {channel.mention} as the daily heist channel")
 
     @dailyheistchannels.command(
         name="clear",
         aliases=["reset"],
         brief="Reset the Daily Heist channel",
     )
-    @commands.check_any(
-        commands.is_owner(), commands.has_guild_permissions(administrator=True)
-    )
+    @commands.check_any(commands.is_owner(), commands.has_guild_permissions(administrator=True))
     async def clear_channel(self, ctx: commands.Context):
         async with ctx.typing():
             await self.client.heist_channel.delete_one({})

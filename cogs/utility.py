@@ -19,16 +19,12 @@ class InviteButtons(discord.ui.View):
         self.stop()
 
     @discord.ui.button(label="Bot Invite", style=discord.ButtonStyle.url)
-    async def bot_invite(
-        self, button: discord.Button, interaction: discord.Interaction
-    ):
+    async def bot_invite(self, button: discord.Button, interaction: discord.Interaction):
         """Button for bot invite"""
         self.stop()
 
     @discord.ui.button(label="Bot Support", style=discord.ButtonStyle.url)
-    async def bot_support(
-        self, button: discord.Button, interaction: discord.Interaction
-    ):
+    async def bot_support(self, button: discord.Button, interaction: discord.Interaction):
         """Button for bot support"""
         self.stop()
 

@@ -31,17 +31,13 @@ wraps = r"\(\)\[\]\{\}"
 expression = rf"[\w\./\\:=<>!{wraps}{quote}', ]"
 
 REGEX_LIST: list[re.Pattern[str]] = [
-    re.compile(
-        rf"^(?:async )?def \w+\({expression}*\)(?::| *-> [\w\[\]\(\), ]*:) *$"
-    ),  # FUNCTION
+    re.compile(rf"^(?:async )?def \w+\({expression}*\)(?::| *-> [\w\[\]\(\), ]*:) *$"),  # FUNCTION
     re.compile(r"^class \w+(?:\(.*\))?:"),  # CLASS
     re.compile(rf"^if {expression}+: *$"),  # IF
     re.compile(rf"^elif {expression}+: *$"),  # ELIF
     re.compile(r"^else: *$"),  # ELSE
     re.compile(r"^try: *$"),  # TRY
-    re.compile(
-        r"^except(?: (?:\(?(?:[\w\.]*)(?:, ?)?\)?(?:| as \w+))| \w)?: *$"
-    ),  # EXCEPT
+    re.compile(r"^except(?: (?:\(?(?:[\w\.]*)(?:, ?)?\)?(?:| as \w+))| \w)?: *$"),  # EXCEPT
     re.compile(r"^finally: *$"),  # FINALLY
     re.compile(rf"^(?:async )?with [\w\.]+\({expression}*\)(?: as \w+)?: *$"),  # WITH
     re.compile(rf"^(?:async )?for \w+ in {expression}+: *$"),  # FOR
@@ -64,9 +60,7 @@ class SuppressTraceback(discord.ui.View):
     async def interaction_check(self, interaction: discord.Interaction):
         """Check that determines whether this interaction should be honored"""
         if interaction.user.id != self.owner.id:
-            await interaction.response.send_message(
-                content=random.choice(CHOICES), ephemeral=True
-            )
+            await interaction.response.send_message(content=random.choice(CHOICES), ephemeral=True)
             return False
         return True
 
@@ -79,9 +73,7 @@ class SuppressTraceback(discord.ui.View):
         style=discord.ButtonStyle.danger,
         emoji=NewEmote.from_name("<:x_:822656892538191872>"),
     )
-    async def close_menu(
-        self, button: discord.Button, interaction: discord.Interaction
-    ):
+    async def close_menu(self, button: discord.Button, interaction: discord.Interaction):
         self.delete_me = True
         self.stop()
 
@@ -97,9 +89,7 @@ class Eval(BattlerCog):
 
     @staticmethod
     def async_compile(source: str, filename: str, mode: Literal["eval", "exec"]):
-        return compile(
-            source, filename, mode, flags=ast.PyCF_ALLOW_TOP_LEVEL_AWAIT, optimize=0
-        )
+        return compile(source, filename, mode, flags=ast.PyCF_ALLOW_TOP_LEVEL_AWAIT, optimize=0)
 
     @staticmethod
     async def maybe_await(coro: Any):
@@ -134,18 +124,10 @@ class Eval(BattlerCog):
                         in_indent = True
                         break
 
-            if (
-                in_indent
-                and re.search(r"^[ ]*$", line) is not None
-                or in_indent
-                and line.startswith(" ")
-            ):
+            if in_indent and re.search(r"^[ ]*$", line) is not None or in_indent and line.startswith(" "):
                 prefix = "..."
 
-            if (
-                prefix == "..."
-                and re.search(r"^[ ]*$", src_lines[index - 1]) is not None
-            ):
+            if prefix == "..." and re.search(r"^[ ]*$", src_lines[index - 1]) is not None:
                 prefix = ">>>"
 
             if re.search(r"^[ ]*$", line) is not None and prefix == "...":
@@ -166,11 +148,7 @@ class Eval(BattlerCog):
     @staticmethod
     def cleanup_code(content: str):
         # remove ```py\n```
-        if (
-            content.startswith("```")
-            and content.endswith("```")
-            and content.count("\n") > 0
-        ):
+        if content.startswith("```") and content.endswith("```") and content.count("\n") > 0:
             return "\n".join(content.split("\n")[1:-1])
         # remove `foo`
         return content.strip("` \n")
@@ -232,9 +210,7 @@ class Eval(BattlerCog):
         except Exception as e:
             stuff = "".join(traceback.format_exception(e, e, e.__traceback__))
             view = SuppressTraceback(ctx=ctx)
-            embed = discord.Embed(
-                title="FUCK!", description=f"```py\n{stuff}```", color=0x2E3135
-            )
+            embed = discord.Embed(title="FUCK!", description=f"```py\n{stuff}```", color=0x2E3135)
             embed.description = embed.description.replace(self.client.token, "[TOKEN]")
             message = await ctx.reply(embed=embed, mention_author=True, view=view)
 
@@ -254,9 +230,7 @@ class Eval(BattlerCog):
                     description=f"```py\n{page}\n```",
                     color=0x2E3135,
                 )
-                embed.description = embed.description.replace(
-                    self.client.token, "[TOKEN]"
-                )
+                embed.description = embed.description.replace(self.client.token, "[TOKEN]")
                 list_of_embeds.append(embed)
                 break
             embed = discord.Embed(description=f"```py\n{page}\n```", color=0x2E3135)
@@ -340,8 +314,7 @@ class Eval(BattlerCog):
                 response = await self.client.wait_for(
                     "message",
                     timeout=600,
-                    check=lambda m: str(m.content).startswith("`")
-                    and m.author == ctx.author,
+                    check=lambda m: str(m.content).startswith("`") and m.author == ctx.author,
                 )
 
                 cleaned = self.cleanup_code(response.content)
@@ -393,9 +366,7 @@ class Eval(BattlerCog):
                     elif result is None:
                         try:
                             with redirect_stdout(stdout):
-                                result = await self.maybe_await(
-                                    eval(cleaned.split("\n")[-1], env)
-                                )
+                                result = await self.maybe_await(eval(cleaned.split("\n")[-1], env))
 
                                 if result is None:
                                     raise
@@ -408,9 +379,7 @@ class Eval(BattlerCog):
 
                 __input = self.simulate_repl(cleaned)
 
-                embed = discord.Embed(
-                    description=f"```py\n{__input}\n\n{msg}```", color=0x2E3135
-                )
+                embed = discord.Embed(description=f"```py\n{__input}\n\n{msg}```", color=0x2E3135)
 
                 try:
                     if len(msg) > 1000:
@@ -428,17 +397,11 @@ class Eval(BattlerCog):
                                     description=f"```py\n{page}\n```",
                                     color=0x2E3135,
                                 )
-                                embed.description = embed.description.replace(
-                                    self.client.token, "[TOKEN]"
-                                )
+                                embed.description = embed.description.replace(self.client.token, "[TOKEN]")
                                 list_of_embeds.append(embed)
                                 break
-                            embed = discord.Embed(
-                                description=f"```py\n{page}\n```", color=0x2E3135
-                            )
-                            embed.description = embed.description.replace(
-                                self.client.token, "[TOKEN]"
-                            )
+                            embed = discord.Embed(description=f"```py\n{page}\n```", color=0x2E3135)
+                            embed.description = embed.description.replace(self.client.token, "[TOKEN]")
                             list_of_embeds.append(embed)
                             if len(list_of_embeds) == 3:
                                 if len(paginated_text) == 3:
@@ -521,9 +484,7 @@ class Eval(BattlerCog):
             elif result is None:
                 try:
                     with redirect_stdout(stdout):
-                        result = await self.maybe_await(
-                            eval(cleaned.split("\n")[-1], env)
-                        )
+                        result = await self.maybe_await(eval(cleaned.split("\n")[-1], env))
 
                         if result is None:
                             raise
@@ -536,9 +497,7 @@ class Eval(BattlerCog):
 
         __input = self.simulate_repl(cleaned)
 
-        embed = discord.Embed(
-            description=f"```py\n{__input}\n\n{msg}```", color=0x2E3135
-        )
+        embed = discord.Embed(description=f"```py\n{__input}\n\n{msg}```", color=0x2E3135)
 
         try:
             if len(msg) > 1000:
@@ -556,17 +515,11 @@ class Eval(BattlerCog):
                             description=f"```py\n{page}\n```",
                             color=0x2E3135,
                         )
-                        embed.description = embed.description.replace(
-                            self.client.token, "[TOKEN]"
-                        )
+                        embed.description = embed.description.replace(self.client.token, "[TOKEN]")
                         list_of_embeds.append(embed)
                         break
-                    embed = discord.Embed(
-                        description=f"```py\n{page}\n```", color=0x2E3135
-                    )
-                    embed.description = embed.description.replace(
-                        self.client.token, "[TOKEN]"
-                    )
+                    embed = discord.Embed(description=f"```py\n{page}\n```", color=0x2E3135)
+                    embed.description = embed.description.replace(self.client.token, "[TOKEN]")
                     list_of_embeds.append(embed)
                     if len(list_of_embeds) == 3:
                         if len(paginated_text) == 3:
