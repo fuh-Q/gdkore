@@ -44,11 +44,6 @@ class RickrollBot(commands.Bot):
         self.r: discord.Role = self.g.get_role(879548917514117131)
         self.m: discord.Member = await self.g.fetch_member(596481615253733408)
         self.c: discord.DMChannel = await self.m.create_dm()
-        e: discord.Embed = discord.Embed(
-            title="RickHub Admin Panel",
-            description="Use this to give and remove admin permissions for yourself",
-            colour=0x2E3135,
-        )
 
         view = AdminControls()
         self.add_view(view=view, message_id=946524456451473418)
