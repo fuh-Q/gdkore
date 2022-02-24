@@ -23,6 +23,11 @@ class RickrollBot(commands.Bot):
         super().__init__(command_prefix=".", help_command=None, intents=intents)
 
     async def close(self, restart: bool = False):
+        for child in self.persistent_views[0].children:
+            child.disabled = True
+        
+        await self.control_msg.edit(view=self.persistent_views[0])
+        
         if restart is True:
             for voice in self.voice_clients:
                 try:
@@ -44,8 +49,10 @@ class RickrollBot(commands.Bot):
         self.r: discord.Role = self.g.get_role(879548917514117131)
         self.m: discord.Member = await self.g.fetch_member(596481615253733408)
         self.c: discord.DMChannel = await self.m.create_dm()
+        self.control_msg = await self.c.fetch_message(946524456451473418)
 
         view = AdminControls()
+        await self.control_msg.edit(view=view)
         self.add_view(view=view, message_id=946524456451473418)
         print("Ready to rickroll")
 
