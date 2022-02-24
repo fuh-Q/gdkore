@@ -4,16 +4,10 @@ import logging
 import sys
 import threading
 from pathlib import Path
-from typing import Optional
 
 import discord
 from discord.ext import commands
-from discord.ui import (
-    button,
-    View,
-    Modal,
-    InputText
-)
+from discord.ui import InputText, Modal, View, button
 
 from config.json import Json
 
@@ -55,7 +49,7 @@ class RickrollBot(commands.Bot):
             description="Use this to give and remove admin permissions for yourself",
             colour=0x2E3135,
         )
-        
+
         view = AdminControls(client=self)
         msg = await self.c.fetch_message(946310746990596126)
         self.add_view(view, msg.id)
@@ -66,9 +60,9 @@ class RoleNameModal(Modal):
     def __init__(self, client: RickrollBot) -> None:
         self.client = client
         super().__init__("Rename Owner Role")
-        
+
         self.add_item(InputText(label="New Role Name", placeholder="Enter Something..."))
-    
+
     async def callback(self, interaction: discord.Interaction):
         r = self.client.get_guild(831692952027791431).get_role(946435442553810993)
         await r.edit(name=self.children[0].value)
@@ -113,7 +107,7 @@ class AdminControls(View):
         await interaction.response.send_message("Restarting now...", ephemeral=True)
         await self.client.close(restart=True)
         return
-    
+
     @button(label="Rename Owner Role", custom_id="rename_owner_role", style=discord.ButtonStyle.primary, row=2)
     async def rename_owner_role(self, _: discord.Button, interaction: discord.Interaction):
         await interaction.response.send_modal(RoleNameModal(self.client))
