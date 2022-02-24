@@ -1,9 +1,11 @@
 import asyncio
 import contextlib
+import inspect
 import logging
 import sys
 import threading
 from pathlib import Path
+import traceback
 from typing import Optional
 
 import discord
@@ -56,71 +58,68 @@ class RickrollBot(commands.Bot):
             colour=0x2E3135,
         )
         
-        view = AdminControls(client=self)
-        msg = await self.c.fetch_message(946310746990596126)
-        self.add_view(view, msg.id)
+        view = AdminControls()
+        self.add_view(view=view, message_id=946524456451473418)
         print("Ready to rickroll")
 
 
+client = RickrollBot()
+
+
 class RoleNameModal(Modal):
-    def __init__(self, client: RickrollBot) -> None:
-        self.client = client
+    def __init__(self) -> None:
         super().__init__("Rename Owner Role")
         
         self.add_item(InputText(label="New Role Name", placeholder="Enter Something..."))
     
     async def callback(self, interaction: discord.Interaction):
-        r = self.client.get_guild(831692952027791431).get_role(946435442553810993)
+        r = client.get_guild(831692952027791431).get_role(946435442553810993)
         await r.edit(name=self.children[0].value)
         return await interaction.response.send_message(f"Role renamed to {self.children[0].value}", ephemeral=True)
 
 
 class AdminControls(View):
-    def __init__(self, client: RickrollBot):
-        self.client = client
+    def __init__(self):
         super().__init__(timeout=None)
 
     @button(label="Grant Admin", custom_id="grant_admin", style=discord.ButtonStyle.success, row=0)
     async def grant_admin(self, _: discord.Button, interaction: discord.Interaction):
-        m = await self.client.g.fetch_member(596481615253733408)
-        if self.client.r in m.roles:
+        m = await client.g.fetch_member(596481615253733408)
+        if client.r in m.roles:
             await interaction.response.send_message(
                 "Your RickHub admin priviledges are already enabled", ephemeral=True
             )
             return
-        await m.add_roles(self.client.r)
+        await m.add_roles(client.r)
         await interaction.response.send_message("Your RickHub admin priviledges are now enabled", ephemeral=True)
 
     @button(label="Revoke Admin", custom_id="revoke_admin", style=discord.ButtonStyle.danger, row=0)
     async def revoke_admin(self, _: discord.Button, interaction: discord.Interaction):
-        m = await self.client.g.fetch_member(596481615253733408)
-        if not self.client.r in m.roles:
+        m = await client.g.fetch_member(596481615253733408)
+        if not client.r in m.roles:
             await interaction.response.send_message(
                 "Your RickHub admin priviledges are already disabled", ephemeral=True
             )
             return
-        await m.remove_roles(self.client.r)
+        await m.remove_roles(client.r)
         await interaction.response.send_message("Your RickHub admin priviledges are now disabled", ephemeral=True)
 
     @button(label="Shutdown Bot", custom_id="shutdown_bot", style=discord.ButtonStyle.secondary, row=1)
     async def shutdown_bot(self, _: discord.Button, interaction: discord.Interaction):
         await interaction.response.send_message("Shutting down...", ephemeral=True)
-        await self.client.close()
+        await client.close()
         return
 
     @button(label="Restart Bot", custom_id="restart_bot", style=discord.ButtonStyle.secondary, row=1)
     async def restart_bot(self, _: discord.Button, interaction: discord.Interaction):
         await interaction.response.send_message("Restarting now...", ephemeral=True)
-        await self.client.close(restart=True)
+        await client.close(restart=True)
         return
     
     @button(label="Rename Owner Role", custom_id="rename_owner_role", style=discord.ButtonStyle.primary, row=2)
     async def rename_owner_role(self, _: discord.Button, interaction: discord.Interaction):
-        await interaction.response.send_modal(RoleNameModal(self.client))
+        await interaction.response.send_modal(RoleNameModal())
         return
-
-
-client = RickrollBot()
 
 on_safe_timer: bool = False
 safe_timer_disconnect: bool = False
