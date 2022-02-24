@@ -25,9 +25,9 @@ class RickrollBot(commands.Bot):
     async def close(self, restart: bool = False):
         for child in self.persistent_views[0].children:
             child.disabled = True
-        
+
         await self.control_msg.edit(view=self.persistent_views[0])
-        
+
         if restart is True:
             for voice in self.voice_clients:
                 try:
