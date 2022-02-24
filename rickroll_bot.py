@@ -4,9 +4,16 @@ import logging
 import sys
 import threading
 from pathlib import Path
+from typing import Optional
 
 import discord
 from discord.ext import commands
+from discord.ui import (
+    button,
+    View,
+    Modal,
+    InputText
+)
 
 from config.json import Json
 
@@ -22,12 +29,6 @@ class RickrollBot(commands.Bot):
         super().__init__(command_prefix=".", help_command=None, intents=intents)
 
     async def close(self, restart: bool = False):
-        async for message in self.c.history(limit=1):
-            try:
-                await message.delete()
-            except discord.HTTPException:
-                continue
-
         if restart is True:
             for voice in self.voice_clients:
                 try:
@@ -54,16 +55,32 @@ class RickrollBot(commands.Bot):
             description="Use this to give and remove admin permissions for yourself",
             colour=0x2E3135,
         )
-        await self.c.send(embed=e, view=AdminControls(client=self))
+        
+        view = AdminControls(client=self)
+        msg = await self.c.fetch_message(946310746990596126)
+        self.add_view(view, msg.id)
         print("Ready to rickroll")
 
 
-class AdminControls(discord.ui.View):
+class RoleNameModal(Modal):
+    def __init__(self, client: RickrollBot) -> None:
+        self.client = client
+        super().__init__("Rename Owner Role")
+        
+        self.add_item(InputText(label="New Role Name", placeholder="Enter Something..."))
+    
+    async def callback(self, interaction: discord.Interaction):
+        r = self.client.get_guild(831692952027791431).get_role(946435442553810993)
+        await r.edit(name=self.children[0].value)
+        return await interaction.response.send_message(f"Role renamed to {self.children[0].value}", ephemeral=True)
+
+
+class AdminControls(View):
     def __init__(self, client: RickrollBot):
         self.client = client
         super().__init__(timeout=None)
 
-    @discord.ui.button(label="Grant Admin", style=discord.ButtonStyle.success, row=0)
+    @button(label="Grant Admin", custom_id="grant_admin", style=discord.ButtonStyle.success, row=0)
     async def grant_admin(self, _: discord.Button, interaction: discord.Interaction):
         m = await self.client.g.fetch_member(596481615253733408)
         if self.client.r in m.roles:
@@ -74,7 +91,7 @@ class AdminControls(discord.ui.View):
         await m.add_roles(self.client.r)
         await interaction.response.send_message("Your RickHub admin priviledges are now enabled", ephemeral=True)
 
-    @discord.ui.button(label="Revoke Admin", style=discord.ButtonStyle.danger, row=0)
+    @button(label="Revoke Admin", custom_id="revoke_admin", style=discord.ButtonStyle.danger, row=0)
     async def revoke_admin(self, _: discord.Button, interaction: discord.Interaction):
         m = await self.client.g.fetch_member(596481615253733408)
         if not self.client.r in m.roles:
@@ -85,16 +102,21 @@ class AdminControls(discord.ui.View):
         await m.remove_roles(self.client.r)
         await interaction.response.send_message("Your RickHub admin priviledges are now disabled", ephemeral=True)
 
-    @discord.ui.button(label="Shutdown Bot", style=discord.ButtonStyle.secondary, row=1)
+    @button(label="Shutdown Bot", custom_id="shutdown_bot", style=discord.ButtonStyle.secondary, row=1)
     async def shutdown_bot(self, _: discord.Button, interaction: discord.Interaction):
         await interaction.response.send_message("Shutting down...", ephemeral=True)
         await self.client.close()
         return
 
-    @discord.ui.button(label="Restart Bot", style=discord.ButtonStyle.secondary, row=1)
+    @button(label="Restart Bot", custom_id="restart_bot", style=discord.ButtonStyle.secondary, row=1)
     async def restart_bot(self, _: discord.Button, interaction: discord.Interaction):
         await interaction.response.send_message("Restarting now...", ephemeral=True)
         await self.client.close(restart=True)
+        return
+    
+    @button(label="Rename Owner Role", custom_id="rename_owner_role", style=discord.ButtonStyle.primary, row=2)
+    async def rename_owner_role(self, _: discord.Button, interaction: discord.Interaction):
+        await interaction.response.send_modal(RoleNameModal(self.client))
         return
 
 
