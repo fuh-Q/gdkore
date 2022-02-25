@@ -26,7 +26,7 @@ class RickrollBot(commands.Bot):
     async def close(self, restart: bool = False):
         for child in self.persistent_views[0].children:
             child.disabled = True
-        
+
         e = self.control_msg.embeds[0].copy()
         e.colour = Botcolours.red
 
