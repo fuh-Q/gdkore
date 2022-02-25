@@ -3,7 +3,6 @@ import contextlib
 import logging
 import sys
 import threading
-import traceback
 from pathlib import Path
 
 import aiohttp
@@ -200,7 +199,7 @@ async def on_voice_state_update(member: discord.Member, before: discord.VoiceSta
 
                             except Exception:
                                 pass
-                            
+
                             if person in r.members or person.id in kick_whitelist:
                                 await person.move_to(channel=None)
                             else:
