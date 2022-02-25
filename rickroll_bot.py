@@ -10,6 +10,7 @@ from discord.ext import commands
 from discord.ui import InputText, Modal, View, button
 
 from config.json import Json
+from config.utils import Botcolours
 
 logging.basicConfig(level=logging.INFO)
 secrets: dict[str, str] = Json.read_json("secrets")
@@ -25,6 +26,9 @@ class RickrollBot(commands.Bot):
     async def close(self, restart: bool = False):
         for child in self.persistent_views[0].children:
             child.disabled = True
+        
+        e = self.control_msg.embeds[0].copy()
+        e.colour = Botcolours.red
 
         await self.control_msg.edit(view=self.persistent_views[0])
 
@@ -52,7 +56,9 @@ class RickrollBot(commands.Bot):
         self.control_msg = await self.c.fetch_message(946524456451473418)
 
         view = AdminControls()
-        await self.control_msg.edit(view=view)
+        e = self.control_msg.embeds[0].copy()
+        e.colour = Botcolours.green
+        await self.control_msg.edit(embed=e, view=view)
         self.add_view(view=view, message_id=946524456451473418)
         print("Ready to rickroll")
 
