@@ -198,8 +198,9 @@ async def on_voice_state_update(member: discord.Member, before: discord.VoiceSta
                                         headers=headers,
                                     )
 
-                            except Exception as e:
-                                print("".join(traceback.format_exception(e, e, e.__traceback__)))
+                            except Exception:
+                                pass
+                            
                             if person in r.members or person.id in kick_whitelist:
                                 await person.move_to(channel=None)
                             else:
