@@ -30,7 +30,7 @@ class RickrollBot(commands.Bot):
         e = self.control_msg.embeds[0].copy()
         e.colour = Botcolours.red
 
-        await self.control_msg.edit(view=self.persistent_views[0])
+        await self.control_msg.edit(embed=e, view=self.persistent_views[0])
 
         if restart is True:
             for voice in self.voice_clients:
@@ -58,7 +58,7 @@ class RickrollBot(commands.Bot):
         view = AdminControls()
         e = self.control_msg.embeds[0].copy()
         e.colour = Botcolours.green
-        self.control_msg = await self.control_msg.edit(embed=e, view=view)
+        await self.control_msg.edit(embed=e, view=view)
         self.add_view(view=view, message_id=946524456451473418)
         print("Ready to rickroll")
 
