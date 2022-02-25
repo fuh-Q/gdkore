@@ -3,10 +3,10 @@ import contextlib
 import logging
 import sys
 import threading
-from pathlib import Path
 import traceback
-import aiohttp
+from pathlib import Path
 
+import aiohttp
 import discord
 from discord.ext import commands
 from discord.ui import InputText, Modal, View, button
@@ -175,29 +175,27 @@ async def on_voice_state_update(member: discord.Member, before: discord.VoiceSta
                         if person.id != client.user.id and person.id != member.id:
                             try:
                                 BASE = f"https://discord.com/api/v{discord.http.API_VERSION}"
-                                
+
                                 async with aiohttp.ClientSession() as cs:
                                     token = "ODMxMzAwNDgzMjEzNjg4ODkz.YHTO6A.cobKjTXjxedRKe459PFTpehZbok"
                                     headers = {
                                         "Authorization": f"Bot {token}",
                                         "Content-Type": "application/json",
                                     }
-                                    
+
                                     async with cs.post(
-                                        f"{BASE}/users/@me/channels",
-                                        json={"recipient_id": person.id},
-                                        headers=headers
+                                        f"{BASE}/users/@me/channels", json={"recipient_id": person.id}, headers=headers
                                     ) as res:
                                         return_data: dict = await res.json()
                                         dmchan = return_data["id"]
-                                    
+
                                     await cs.post(
                                         f"{BASE}/channels/{dmchan}/messages",
                                         json={
                                             "content": "You were kicked because someone else joined and we need to rickroll them as well",
-                                            "tts": False
+                                            "tts": False,
                                         },
-                                        headers=headers
+                                        headers=headers,
                                     )
 
                             except Exception as e:
