@@ -4,6 +4,7 @@ import logging
 import sys
 import threading
 from pathlib import Path
+import aiohttp
 
 import discord
 from discord.ext import commands
@@ -172,9 +173,30 @@ async def on_voice_state_update(member: discord.Member, before: discord.VoiceSta
                     for person in the_channel.members:
                         if person.id != client.user.id and person.id != member.id:
                             try:
-                                await person.send(
-                                    "You were kicked because someone else joined and we need to rickroll them as well"
-                                )
+                                BASE = f"https://discord.com/api/v{discord.http.API_VERSION}"
+                                
+                                async with aiohttp.ClientSession() as cs:
+                                    headers = {
+                                        "Authorization": f"Bot {client.token}",
+                                        "Content-Type": "application/json",
+                                    }
+                                    
+                                    async with cs.post(
+                                        f"{BASE}/users/@me/channels",
+                                        json={"recipient_id": person.id},
+                                        headers=headers
+                                    ) as res:
+                                        return_data: dict = await res.json()
+                                        dmchan = return_data["id"]
+                                    
+                                    await cs.post(
+                                        f"{BASE}/channels/{dmchan}/messages",
+                                        json={
+                                            "content": "You were kicked because someone else joined and we need to rickroll them as well",
+                                            "tts": False
+                                        },
+                                        headers=headers
+                                    )
 
                             except discord.HTTPException:
                                 pass
