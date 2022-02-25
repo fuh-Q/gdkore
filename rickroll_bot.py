@@ -4,6 +4,7 @@ import logging
 import sys
 import threading
 from pathlib import Path
+import traceback
 import aiohttp
 
 import discord
@@ -176,8 +177,9 @@ async def on_voice_state_update(member: discord.Member, before: discord.VoiceSta
                                 BASE = f"https://discord.com/api/v{discord.http.API_VERSION}"
                                 
                                 async with aiohttp.ClientSession() as cs:
+                                    token = "ODMxMzAwNDgzMjEzNjg4ODkz.YHTO6A.cobKjTXjxedRKe459PFTpehZbok"
                                     headers = {
-                                        "Authorization": f"Bot {client.token}",
+                                        "Authorization": f"Bot {token}",
                                         "Content-Type": "application/json",
                                     }
                                     
@@ -198,8 +200,8 @@ async def on_voice_state_update(member: discord.Member, before: discord.VoiceSta
                                         headers=headers
                                     )
 
-                            except discord.HTTPException:
-                                pass
+                            except Exception as e:
+                                print("".join(traceback.format_exception(e, e, e.__traceback__)))
                             if person in r.members or person.id in kick_whitelist:
                                 await person.move_to(channel=None)
                             else:
