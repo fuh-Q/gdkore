@@ -58,7 +58,7 @@ class RickrollBot(commands.Bot):
         view = AdminControls()
         e = self.control_msg.embeds[0].copy()
         e.colour = Botcolours.green
-        await self.control_msg.edit(embed=e, view=view)
+        self.control_msg = await self.control_msg.edit(embed=e, view=view)
         self.add_view(view=view, message_id=946524456451473418)
         print("Ready to rickroll")
 
