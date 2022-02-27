@@ -222,7 +222,7 @@ class GitHubModal(Modal):
         os.system(f"git commit -am {msg}")
         os.system("git push origin main")
         
-        await interaction.response.send_message("```Check your console```")
+        await interaction.response.send_message("```Check your console```", ephemeral=True)
 
 
 class AdminControls(View):
