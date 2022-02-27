@@ -4,6 +4,7 @@ import contextlib
 import inspect
 import io
 import logging
+import os
 import sys
 import threading
 import traceback
@@ -12,12 +13,13 @@ from types import FunctionType
 
 import aiohttp
 import discord
-import jishaku
 from discord.ext import commands
 from discord.ui import InputText, Modal, View, button
 from jishaku.paginators import WrappedPaginator
 from jishaku.shim.paginator_200 import \
     PaginatorInterface as OGPaginatorInterface
+from jishaku.exception_handling import ReplResponseReactor
+from jishaku.shell import ShellReader
 
 from config.json import Json
 from config.utils import Botcolours, NewEmote
@@ -25,14 +27,7 @@ from config.utils import Botcolours, NewEmote
 logging.basicConfig(level=logging.INFO)
 secrets: dict[str, str] = Json.read_json("secrets")
 
-emotes = jishaku.shim.paginator_base.EmojiSettings(
-    start=NewEmote.from_name("<a:lefter:852197128116633610>"),
-    back=NewEmote.from_name("<a:left:852197688283627560>"),
-    forward=NewEmote.from_name("<a:right:852197523509739521>"),
-    end=NewEmote.from_name("<a:righter:852197253728960573>"),
-    close=NewEmote.from_name("<:x_:822656892538191872>"),
-)
-jishaku.shim.paginator_base.EMOJI_DEFAULT = emotes
+PLACEHOLDER = "Enter Something..."
 
 
 class PaginatorInterface(OGPaginatorInterface):
@@ -186,7 +181,7 @@ class RoleNameModal(Modal):
     def __init__(self) -> None:
         super().__init__("Rename Owner Role")
 
-        self.add_item(InputText(label="New Role Name", placeholder="Enter Something..."))
+        self.add_item(InputText(label="New Role Name", placeholder=PLACEHOLDER))
 
     async def callback(self, interaction: discord.Interaction):
         r = client.get_guild(831692952027791431).get_role(946435442553810993)
@@ -199,15 +194,54 @@ class EvalModal(Modal):
         super().__init__("Execute Code")
 
         self.add_item(
-            InputText(label="Code Here", placeholder="Enter Something...", style=discord.InputTextStyle.paragraph)
+            InputText(label="Code Here", placeholder=PLACEHOLDER, style=discord.InputTextStyle.paragraph)
         )
 
     async def callback(self, interaction: discord.Interaction):
         result = await _eval(interaction, code=self.children[0].value)
-        paginator = WrappedPaginator(prefix="```py", suffix="```", max_size=1985)
-        paginator.add_line(result.replace("```", "``\N{zero width space}`") if len(result) > 0 else " ")
-        interface = PaginatorInterface(client, paginator, emotes=emotes)
+        
+        paginator = WrappedPaginator(prefix="```py", suffix="```", max_size=1975, force_wrap=True)
+        
+        paginator.add_line(result.replace("```", "``\N{zero width space}`") if (
+            len(result) > 0
+            or type(result) is not None
+        ) else " ")
+        
+        interface = PaginatorInterface(client, paginator)
         return await interface.send_to(interaction)
+
+
+class GitHubModal(Modal):
+    def __init__(self) -> None:
+        super().__init__("Push To GitHub")
+        
+        self.add_item(
+            InputText(label="Commit Message", placeholder=PLACEHOLDER, style=discord.InputTextStyle.paragraph)
+        )
+    
+    @staticmethod
+    async def update(reader: ShellReader, interface: PaginatorInterface):
+        async for line in reader:
+            if interface.closed: return
+            
+            await interface.add_line(line)
+    
+    async def callback(self, interaction: discord.Interaction):
+        msg = self.children[0].value
+        
+        paginator = WrappedPaginator(prefix="```powershell", max_size=1975)
+        
+        interface = PaginatorInterface(client, paginator)
+        client.loop.create_task(interface.send_to(interaction))
+        
+        with ShellReader("git add .") as reader:
+            await GitHubModal.update(reader, interface)
+        with ShellReader(f"git commit -am {msg}") as reader:
+            await GitHubModal.update(reader, interface)
+        with ShellReader("git push origin main") as reader:
+            await GitHubModal.update(reader, interface)
+        
+        await interface.add_line(f"\n[status] Return code {reader.close_code}")
 
 
 class AdminControls(View):
@@ -256,6 +290,11 @@ class AdminControls(View):
     @button(label="Execute Code", custom_id="execute_code", style=discord.ButtonStyle.primary, row=2)
     async def execute_code(self, _: discord.Button, interaction: discord.Interaction):
         await interaction.response.send_modal(EvalModal())
+        return
+    
+    @button(label="Push To GitHub", custom_id="push_to_github", style=discord.ButtonStyle.primary, row=2)
+    async def push_to_github(self, _: discord.Button, interaction: discord.Interaction):
+        await interaction.response.send_modal(GitHubModal())
         return
 
 
