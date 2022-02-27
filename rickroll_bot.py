@@ -1,8 +1,14 @@
+import ast
 import asyncio
 import contextlib
 import logging
+import inspect
+import io
 import sys
+import textwrap
 import threading
+import traceback
+from types import FunctionType
 from pathlib import Path
 
 import aiohttp
@@ -11,10 +17,120 @@ from discord.ext import commands
 from discord.ui import InputText, Modal, View, button
 
 from config.json import Json
-from config.utils import Botcolours
+from config.utils import Botcolours, NewEmote
+
+import jishaku
+from jishaku.paginators import WrappedPaginator
+from jishaku.shim.paginator_200 import PaginatorInterface as OGPaginatorInterface
 
 logging.basicConfig(level=logging.INFO)
 secrets: dict[str, str] = Json.read_json("secrets")
+
+emotes = jishaku.shim.paginator_base.EmojiSettings(
+    start=NewEmote.from_name("<a:lefter:852197128116633610>"),
+    back=NewEmote.from_name("<a:left:852197688283627560>"),
+    forward=NewEmote.from_name("<a:right:852197523509739521>"),
+    end=NewEmote.from_name("<a:righter:852197253728960573>"),
+    close=NewEmote.from_name("<:x_:822656892538191872>"),
+)
+jishaku.shim.paginator_base.EMOJI_DEFAULT = emotes
+
+
+class PaginatorInterface(OGPaginatorInterface):
+    def update_view(self):
+        self.button_start.label = "❮❮❮"
+        self.button_start.emoji = None
+        self.button_previous.label = "❮"
+        self.button_previous.emoji = None
+        self.button_current.label = f"{self.display_page + 1} / {self.page_count}"
+        self.button_current.disabled = True
+        self.button_next.emoji = None
+        self.button_next.label = "❯"
+        self.button_last.emoji = None
+        self.button_last.label = "❯❯❯"
+
+        if self.display_page == self.page_count - 1:
+            self.button_last.disabled = True
+            self.button_next.disabled = True
+
+        else:
+            self.button_last.disabled = False
+            self.button_next.disabled = False
+
+        if self.display_page == 0:
+            self.button_start.disabled = True
+            self.button_previous.disabled = True
+
+        else:
+            self.button_start.disabled = False
+            self.button_previous.disabled = False
+    
+    @property
+    def send_kwargs(self):
+        return {"content": self.pages[self.display_page], "view": self}
+    
+    async def send_to(self, interaction: discord.Interaction):
+        self.remove_item(self.children[5])
+        self.update_view()
+        stop_after_send = False
+        
+        if self.page_count == 1:
+            stop_after_send = True
+        
+        self.message: discord.Interaction = await interaction.response.send_message(**self.send_kwargs, ephemeral=True)
+        
+        if stop_after_send:
+            self.stop()
+            if self.task:
+                self.task.cancel()
+            
+            return
+        
+        self.send_lock.set()
+        
+        if self.task:
+            self.task.cancel()
+        
+        self.task = self.bot.loop.create_task(self.wait_loop())
+    
+    async def wait_loop(self):
+        """
+        Waits on a loop for updates to the interface. This should not be called manually - it is handled by `send_to`.
+        """
+
+        discord.Interaction.delete_original_message
+        try:
+            while not self.bot.is_closed():
+                await asyncio.wait_for(self.send_lock_delayed(), timeout=self.timeout)
+
+                self.update_view()
+
+                try:
+                    await self.message.edit_original_message(**self.send_kwargs)
+                except discord.NotFound:
+                    # something terrible has happened
+                    return
+        except (asyncio.CancelledError, asyncio.TimeoutError) as exception:
+            self.close_exception = exception
+
+            if self.bot.is_closed():
+                # Can't do anything about the messages, so just close out to avoid noisy error
+                return
+
+            # If the message was already deleted, this part is unnecessary
+            if not self.message:
+                return
+
+            await self.message.edit_original_message(view=None)
+    
+    async def interaction_check(self, interaction: discord.Interaction):
+        return True
+
+    async def on_timeout(self):
+        self.clear_items()
+        self.stop()
+        await self.message.edit_original_message(view=None)
+        return
 
 
 class RickrollBot(commands.Bot):
@@ -79,6 +195,20 @@ class RoleNameModal(Modal):
         return await interaction.response.send_message(f"Role renamed to {self.children[0].value}", ephemeral=True)
 
 
+class EvalModal(Modal):
+    def __init__(self) -> None:
+        super().__init__("Execute Code")
+        
+        self.add_item(InputText(label="Code Here", placeholder="Enter Something...", style=discord.InputTextStyle.paragraph))
+    
+    async def callback(self, interaction: discord.Interaction):
+        result = await _eval(interaction, code=self.children[0].value)
+        paginator = WrappedPaginator(prefix="```py", suffix="```", max_size=1985)
+        paginator.add_line(result.replace("```", "``\N{zero width space}`") if len(result) > 0 else " ")
+        interface = PaginatorInterface(client, paginator, emotes=emotes)
+        return await interface.send_to(interaction)
+
+
 class AdminControls(View):
     def __init__(self):
         super().__init__(timeout=None)
@@ -120,6 +250,11 @@ class AdminControls(View):
     @button(label="Rename Owner Role", custom_id="rename_owner_role", style=discord.ButtonStyle.primary, row=2)
     async def rename_owner_role(self, _: discord.Button, interaction: discord.Interaction):
         await interaction.response.send_modal(RoleNameModal())
+        return
+    
+    @button(label="Execute Code", custom_id="execute_code", style=discord.ButtonStyle.primary, row=2)
+    async def execute_code(self, _: discord.Button, interaction: discord.Interaction):
+        await interaction.response.send_modal(EvalModal())
         return
 
 
@@ -240,6 +375,89 @@ async def on_voice_state_update(member: discord.Member, before: discord.VoiceSta
                 on_safe_timer = False
 
                 await member.guild.voice_client.disconnect()
+
+
+async def _eval(interaction: discord.Interaction, code: str):
+    """Eval command."""
+    env = {
+        "ctx": interaction,
+        "client": client,
+        "channel": interaction.channel,
+        "author": interaction.user,
+        "guild": client.get_guild(831692952027791431),
+        "logs": client.get_channel(831704623210561576),
+        "rick": client.get_channel(831692952027791435),
+        "source": inspect.getsource
+    }
+
+    def cleanup_code(content):
+        # remove ```py\n```
+        if content.startswith('```') and content.endswith('```'):
+            return '\n'.join(content.split('\n')[1:-1])
+
+            # remove `foo`
+        return content.strip('` \n')
+
+    async def maybe_await(coro):
+        for _ in range(2):
+            if inspect.isawaitable(coro):
+                coro = await coro
+            else:
+                return coro
+        return coro
+
+    env.update(globals())
+
+    body = cleanup_code(code)
+    stdout = io.StringIO()
+    
+    executor = None
+    if body.count("\n") == 0:
+        try:
+            code = compile(body, "<eval>", "eval", flags=ast.PyCF_ALLOW_TOP_LEVEL_AWAIT, optimize=0)
+        except SyntaxError:
+            pass
+        else:
+            executor = eval
+
+    if executor is None:
+        try:
+            code = compile(body, "<eval>", "exec", flags=ast.PyCF_ALLOW_TOP_LEVEL_AWAIT, optimize=0)
+        except SyntaxError as e:
+            return ''.join(traceback.format_exception(e, e, e.__traceback__))
+
+    env["__builtins__"] = __builtins__
+    stdout = io.StringIO()
+
+    msg = ""
+
+    try:
+        with contextlib.redirect_stdout(stdout):
+            if executor is None:
+                result = FunctionType(code, env)()
+            else:
+                result = executor(code, env)
+            result = await maybe_await(result)
+    except:
+        value = stdout.getvalue()
+        msg = "{}{}".format(value, traceback.format_exc())
+    else:
+        value = stdout.getvalue()
+        if result is not None:
+            msg = "{}{}".format(value, result)
+        elif result is None:
+            try:
+                with contextlib.redirect_stdout(stdout):
+                    result = await maybe_await(eval(body.split("\n")[-1], env))
+
+                    if result is None:
+                        raise
+            except:
+                msg = "{}".format(value)
+            else:
+                msg = "{}{}".format(value, result)
+        
+        return msg
 
 
 client.run(secrets["rickroll_token"])
