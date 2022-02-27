@@ -4,6 +4,7 @@ import contextlib
 import inspect
 import io
 import logging
+import os
 import sys
 import threading
 import traceback
@@ -221,7 +222,8 @@ class GitHubModal(Modal):
             if interface.closed:
                 return
 
-            await interface.add_line(line)
+            try:await interface.add_line(line)
+            except Exception as e:print("".join(traceback.format_exception(e, e, e.__traceback__)))
 
     async def callback(self, interaction: discord.Interaction):
         msg = self.children[0].value
@@ -232,14 +234,14 @@ class GitHubModal(Modal):
         interface = PaginatorInterface(client, paginator)
         client.loop.create_task(interface.send_to(interaction))
 
-        with ShellReader("git add .") as reader:
-            await GitHubModal.update(reader, interface)
+        os.system("git add .")
+        
         with ShellReader(f"git commit -am {msg}") as readerr:
             await GitHubModal.update(readerr, interface)
         #with ShellReader("git push origin main") as readerrr:
         #    await GitHubModal.update(readerrr, interface)
 
-        await interface.add_line(f"\n[status] Return code {reader.close_code}")
+        await interface.add_line(f"\n[status] Return code {readerr.close_code}")
 
 
 class AdminControls(View):
