@@ -233,10 +233,10 @@ class GitHubModal(Modal):
 
         with ShellReader("git add .") as reader:
             await GitHubModal.update(reader, interface)
-        with ShellReader(f"git commit -am {msg}") as reader:
-            await GitHubModal.update(reader, interface)
-        with ShellReader("git push origin main") as reader:
-            await GitHubModal.update(reader, interface)
+        with ShellReader(f"git commit -am {msg}") as readerr:
+            await GitHubModal.update(readerr, interface)
+        with ShellReader("git push origin main") as readerrr:
+            await GitHubModal.update(readerrr, interface)
 
         await interface.add_line(f"\n[status] Return code {reader.close_code}")
 
