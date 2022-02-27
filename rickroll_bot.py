@@ -16,7 +16,6 @@ import discord
 from discord.ext import commands
 from discord.ui import InputText, Modal, View, button
 from jishaku.paginators import WrappedPaginator
-from jishaku.shell import ShellReader
 from jishaku.shim.paginator_200 import \
     PaginatorInterface as OGPaginatorInterface
 
