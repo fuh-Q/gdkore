@@ -222,7 +222,7 @@ class GitHubModal(Modal):
         
         with ShellReader(f"git commit -am {msg}") as readerr:
             paginator = WrappedPaginator(prefix="```powershell", max_size=1975)
-            paginator.add_line("\u200b")
+            paginator.add_line(f"{readerr.ps1} git commit -am {msg}```\n```{readerr.highlight}\n")
 
             interface = PaginatorInterface(client, paginator)
             client.loop.create_task(interface.send_to(interaction))
