@@ -227,7 +227,7 @@ class GitHubModal(Modal):
 
         paginator = WrappedPaginator(prefix="```powershell", max_size=1975)
         paginator.add_line("\u200b")
-        
+
         interface = PaginatorInterface(client, paginator)
         client.loop.create_task(interface.send_to(interaction))
 
