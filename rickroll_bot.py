@@ -219,23 +219,10 @@ class GitHubModal(Modal):
         msg = self.children[0].value
 
         os.system("git add .")
+        os.system(f"git commit -am {msg}")
+        os.system("git push origin main")
         
-        with ShellReader(f"git commit -am {msg}") as readerr:
-            paginator = WrappedPaginator(prefix="```powershell", max_size=1975)
-            paginator.add_line(f"{readerr.ps1} git commit -am {msg}```\n```{readerr.highlight}\n")
-
-            interface = PaginatorInterface(client, paginator)
-            client.loop.create_task(interface.send_to(interaction))
-            
-            async for line in readerr:
-                if interface.closed:
-                    return
-                
-                await interface.add_line(line)
-        #with ShellReader("git push origin main") as readerrr:
-        #    await GitHubModal.update(readerrr, interface)
-
-        await interface.add_line(f"\n[status] Return code {readerr.close_code}")
+        await interaction.response.send_message("```Check your console```")
 
 
 class AdminControls(View):
