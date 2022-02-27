@@ -217,6 +217,7 @@ class GitHubModal(Modal):
     @staticmethod
     async def update(reader: ShellReader, interface: PaginatorInterface):
         async for line in reader:
+            print(line)
             if interface.closed:
                 return
 
@@ -235,8 +236,8 @@ class GitHubModal(Modal):
             await GitHubModal.update(reader, interface)
         with ShellReader(f"git commit -am {msg}") as readerr:
             await GitHubModal.update(readerr, interface)
-        with ShellReader("git push origin main") as readerrr:
-            await GitHubModal.update(readerrr, interface)
+        #with ShellReader("git push origin main") as readerrr:
+        #    await GitHubModal.update(readerrr, interface)
 
         await interface.add_line(f"\n[status] Return code {reader.close_code}")
 
