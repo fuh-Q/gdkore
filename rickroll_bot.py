@@ -1,27 +1,26 @@
 import ast
 import asyncio
 import contextlib
-import logging
 import inspect
 import io
+import logging
 import sys
-import textwrap
 import threading
 import traceback
-from types import FunctionType
 from pathlib import Path
+from types import FunctionType
 
 import aiohttp
 import discord
+import jishaku
 from discord.ext import commands
 from discord.ui import InputText, Modal, View, button
+from jishaku.paginators import WrappedPaginator
+from jishaku.shim.paginator_200 import \
+    PaginatorInterface as OGPaginatorInterface
 
 from config.json import Json
 from config.utils import Botcolours, NewEmote
-
-import jishaku
-from jishaku.paginators import WrappedPaginator
-from jishaku.shim.paginator_200 import PaginatorInterface as OGPaginatorInterface
 
 logging.basicConfig(level=logging.INFO)
 secrets: dict[str, str] = Json.read_json("secrets")
@@ -64,35 +63,35 @@ class PaginatorInterface(OGPaginatorInterface):
         else:
             self.button_start.disabled = False
             self.button_previous.disabled = False
-    
+
     @property
     def send_kwargs(self):
         return {"content": self.pages[self.display_page], "view": self}
-    
+
     async def send_to(self, interaction: discord.Interaction):
         self.remove_item(self.children[5])
         self.update_view()
         stop_after_send = False
-        
+
         if self.page_count == 1:
             stop_after_send = True
-        
+
         self.message: discord.Interaction = await interaction.response.send_message(**self.send_kwargs, ephemeral=True)
-        
+
         if stop_after_send:
             self.stop()
             if self.task:
                 self.task.cancel()
-            
+
             return
-        
+
         self.send_lock.set()
-        
+
         if self.task:
             self.task.cancel()
-        
+
         self.task = self.bot.loop.create_task(self.wait_loop())
-    
+
     async def wait_loop(self):
         """
         Waits on a loop for updates to the interface. This should not be called manually - it is handled by `send_to`.
@@ -122,7 +121,7 @@ class PaginatorInterface(OGPaginatorInterface):
                 return
 
             await self.message.edit_original_message(view=None)
-    
+
     async def interaction_check(self, interaction: discord.Interaction):
         return True
 
@@ -198,9 +197,11 @@ class RoleNameModal(Modal):
 class EvalModal(Modal):
     def __init__(self) -> None:
         super().__init__("Execute Code")
-        
-        self.add_item(InputText(label="Code Here", placeholder="Enter Something...", style=discord.InputTextStyle.paragraph))
-    
+
+        self.add_item(
+            InputText(label="Code Here", placeholder="Enter Something...", style=discord.InputTextStyle.paragraph)
+        )
+
     async def callback(self, interaction: discord.Interaction):
         result = await _eval(interaction, code=self.children[0].value)
         paginator = WrappedPaginator(prefix="```py", suffix="```", max_size=1985)
@@ -251,7 +252,7 @@ class AdminControls(View):
     async def rename_owner_role(self, _: discord.Button, interaction: discord.Interaction):
         await interaction.response.send_modal(RoleNameModal())
         return
-    
+
     @button(label="Execute Code", custom_id="execute_code", style=discord.ButtonStyle.primary, row=2)
     async def execute_code(self, _: discord.Button, interaction: discord.Interaction):
         await interaction.response.send_modal(EvalModal())
@@ -387,16 +388,16 @@ async def _eval(interaction: discord.Interaction, code: str):
         "guild": client.get_guild(831692952027791431),
         "logs": client.get_channel(831704623210561576),
         "rick": client.get_channel(831692952027791435),
-        "source": inspect.getsource
+        "source": inspect.getsource,
     }
 
     def cleanup_code(content):
         # remove ```py\n```
-        if content.startswith('```') and content.endswith('```'):
-            return '\n'.join(content.split('\n')[1:-1])
+        if content.startswith("```") and content.endswith("```"):
+            return "\n".join(content.split("\n")[1:-1])
 
             # remove `foo`
-        return content.strip('` \n')
+        return content.strip("` \n")
 
     async def maybe_await(coro):
         for _ in range(2):
@@ -410,7 +411,7 @@ async def _eval(interaction: discord.Interaction, code: str):
 
     body = cleanup_code(code)
     stdout = io.StringIO()
-    
+
     executor = None
     if body.count("\n") == 0:
         try:
@@ -424,7 +425,7 @@ async def _eval(interaction: discord.Interaction, code: str):
         try:
             code = compile(body, "<eval>", "exec", flags=ast.PyCF_ALLOW_TOP_LEVEL_AWAIT, optimize=0)
         except SyntaxError as e:
-            return ''.join(traceback.format_exception(e, e, e.__traceback__))
+            return "".join(traceback.format_exception(e, e, e.__traceback__))
 
     env["__builtins__"] = __builtins__
     stdout = io.StringIO()
@@ -456,7 +457,7 @@ async def _eval(interaction: discord.Interaction, code: str):
                 msg = "{}".format(value)
             else:
                 msg = "{}{}".format(value, result)
-        
+
         return msg
 
 
