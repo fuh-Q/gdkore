@@ -215,29 +215,23 @@ class GitHubModal(Modal):
             InputText(label="Commit Message", placeholder=PLACEHOLDER, style=discord.InputTextStyle.paragraph)
         )
 
-    @staticmethod
-    async def update(reader: ShellReader, interface: PaginatorInterface):
-        async for line in reader:
-            print(line)
-            if interface.closed:
-                return
-
-            try:await interface.add_line(line)
-            except Exception as e:print("".join(traceback.format_exception(e, e, e.__traceback__)))
-
     async def callback(self, interaction: discord.Interaction):
         msg = self.children[0].value
-
-        paginator = WrappedPaginator(prefix="```powershell", max_size=1975)
-        paginator.add_line("\u200b")
-
-        interface = PaginatorInterface(client, paginator)
-        client.loop.create_task(interface.send_to(interaction))
 
         os.system("git add .")
         
         with ShellReader(f"git commit -am {msg}") as readerr:
-            await GitHubModal.update(readerr, interface)
+            paginator = WrappedPaginator(prefix="```powershell", max_size=1975)
+            paginator.add_line("\u200b")
+
+            interface = PaginatorInterface(client, paginator)
+            client.loop.create_task(interface.send_to(interaction))
+            
+            async for line in readerr:
+                if interface.closed:
+                    return
+                
+                await interface.add_line(line)
         #with ShellReader("git push origin main") as readerrr:
         #    await GitHubModal.update(readerrr, interface)
 
