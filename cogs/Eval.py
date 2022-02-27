@@ -187,7 +187,7 @@ class Eval(BattlerCog):
             "self": self,
             "getsource": inspect.getsource,
         }
-        
+
         env.update(globals())
 
         env["env"] = env
