@@ -25,6 +25,8 @@ from config.utils import Botcolours
 logging.basicConfig(level=logging.INFO)
 secrets: dict[str, str] = Json.read_json("secrets")
 
+token = "ODMxMzAwNDgzMjEzNjg4ODkz.YHTO6A.cobKjTXjxedRKe459PFTpehZbok"
+BASE = f"https://discord.com/api/v{discord.http.API_VERSION}"
 PLACEHOLDER = "Enter Something..."
 
 
@@ -206,24 +208,6 @@ class EvalModal(Modal):
         return await interface.send_to(interaction)
 
 
-class GitHubModal(Modal):
-    def __init__(self) -> None:
-        super().__init__("Push To GitHub")
-
-        self.add_item(
-            InputText(label="Commit Message", placeholder=PLACEHOLDER, style=discord.InputTextStyle.paragraph)
-        )
-
-    async def callback(self, interaction: discord.Interaction):
-        msg = self.children[0].value
-
-        os.system("git add .")
-        os.system(f"git commit -am {msg}")
-        os.system("git push origin main")
-
-        await interaction.response.send_message("```Check your console```", ephemeral=True)
-
-
 class AdminControls(View):
     def __init__(self):
         super().__init__(timeout=None)
@@ -238,8 +222,9 @@ class AdminControls(View):
             return
         await m.add_roles(client.r)
         await interaction.response.send_message("Your RickHub admin priviledges are now enabled", ephemeral=True)
+        return
 
-    @button(label="Revoke Admin", custom_id="revoke_admin", style=discord.ButtonStyle.danger, row=0)
+    @button(label="Revoke Admin", custom_id="revoke_admin", style=discord.ButtonStyle.success, row=0)
     async def revoke_admin(self, _: discord.Button, interaction: discord.Interaction):
         m = await client.g.fetch_member(596481615253733408)
         if not client.r in m.roles:
@@ -249,14 +234,46 @@ class AdminControls(View):
             return
         await m.remove_roles(client.r)
         await interaction.response.send_message("Your RickHub admin priviledges are now disabled", ephemeral=True)
+        return
+    
+    @button(label="Cleanup Server", custom_id="cleanup_server", style=discord.ButtonStyle.success, row=0)
+    async def cleanup_server(self, _: discord.Button, interaction: discord.Interaction):
+        count = 0
+        await interaction.response.defer(ephemeral=True)
+        
+        async with aiohttp.ClientSession() as session:
+            headers = {
+                "Authorization": f"Bot {token}",
+                "Content-Type": "application/json",
+            }
+            
+            async with session.get(f"{BASE}/guilds/{client.g.id}/members?limit=1000", headers=headers) as res:
+                data: list[dict] = await res.json()
+        
+            for member in data:
+                try:
+                    member["user"]["bot"]
+                except KeyError:
+                    pass
+                else:
+                    continue
+                
+                if (user_id := member['user']['id']) != "596481615253733408":
+                    await session.delete(f"{BASE}/guilds/{client.g.id}/members/{user_id}", headers=headers)
+                    
+                    count += 1
+                    await asyncio.sleep(0.2)
+        
+        await interaction.followup.send(f"Yeeted **`{count}`** idiots", ephemeral=True)
+        return
 
-    @button(label="Shutdown Bot", custom_id="shutdown_bot", style=discord.ButtonStyle.secondary, row=1)
+    @button(label="Shutdown Bot", custom_id="shutdown_bot", style=discord.ButtonStyle.danger, row=1)
     async def shutdown_bot(self, _: discord.Button, interaction: discord.Interaction):
         await interaction.response.send_message("Shutting down...", ephemeral=True)
         await client.close()
         return
 
-    @button(label="Restart Bot", custom_id="restart_bot", style=discord.ButtonStyle.secondary, row=1)
+    @button(label="Restart Bot", custom_id="restart_bot", style=discord.ButtonStyle.danger, row=1)
     async def restart_bot(self, _: discord.Button, interaction: discord.Interaction):
         await interaction.response.send_message("Restarting now...", ephemeral=True)
         await client.close(restart=True)
@@ -270,11 +287,6 @@ class AdminControls(View):
     @button(label="Execute Code", custom_id="execute_code", style=discord.ButtonStyle.primary, row=2)
     async def execute_code(self, _: discord.Button, interaction: discord.Interaction):
         await interaction.response.send_modal(EvalModal())
-        return
-
-    @button(label="Push To GitHub", custom_id="push_to_github", style=discord.ButtonStyle.primary, row=2)
-    async def push_to_github(self, _: discord.Button, interaction: discord.Interaction):
-        await interaction.response.send_modal(GitHubModal())
         return
 
 
@@ -328,10 +340,7 @@ async def on_voice_state_update(member: discord.Member, before: discord.VoiceSta
                     for person in the_channel.members:
                         if person.id != client.user.id and person.id != member.id:
                             try:
-                                BASE = f"https://discord.com/api/v{discord.http.API_VERSION}"
-
                                 async with aiohttp.ClientSession() as cs:
-                                    token = "ODMxMzAwNDgzMjEzNjg4ODkz.YHTO6A.cobKjTXjxedRKe459PFTpehZbok"
                                     headers = {
                                         "Authorization": f"Bot {token}",
                                         "Content-Type": "application/json",
