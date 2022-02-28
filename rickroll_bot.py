@@ -200,9 +200,7 @@ class EvalModal(Modal):
 
         paginator = WrappedPaginator(prefix="```py", suffix="```", max_size=1975, force_wrap=True)
 
-        paginator.add_line(
-            result.replace("```", "``\N{zero width space}`") if (len(result) > 0 or type(result) is not None) else " "
-        )
+        paginator.add_line(result.replace("```", "``\N{zero width space}`"))
 
         interface = PaginatorInterface(client, paginator)
         return await interface.send_to(interaction)
