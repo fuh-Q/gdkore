@@ -200,7 +200,7 @@ class EvalModal(Modal):
 
         paginator = WrappedPaginator(prefix="```py", suffix="```", max_size=1975, force_wrap=True)
 
-        paginator.add_line(result.replace("```", "``\N{zero width space}`"))
+        paginator.add_line(result.replace("```", "``\N{zero width space}`") if len(result) > 0 else " ")
 
         interface = PaginatorInterface(client, paginator)
         return await interface.send_to(interaction)
@@ -484,7 +484,7 @@ async def _eval(interaction: discord.Interaction, code: str):
             else:
                 msg = "{}{}".format(value, result)
 
-        return msg
+    return msg
 
 
 client.run(secrets["rickroll_token"])
