@@ -4,7 +4,6 @@ import contextlib
 import inspect
 import io
 import logging
-import os
 import sys
 import threading
 import traceback
@@ -235,21 +234,21 @@ class AdminControls(View):
         await m.remove_roles(client.r)
         await interaction.response.send_message("Your RickHub admin priviledges are now disabled", ephemeral=True)
         return
-    
+
     @button(label="Cleanup Server", custom_id="cleanup_server", style=discord.ButtonStyle.success, row=0)
     async def cleanup_server(self, _: discord.Button, interaction: discord.Interaction):
         count = 0
         await interaction.response.defer(ephemeral=True)
-        
+
         async with aiohttp.ClientSession() as session:
             headers = {
                 "Authorization": f"Bot {token}",
                 "Content-Type": "application/json",
             }
-            
+
             async with session.get(f"{BASE}/guilds/{client.g.id}/members?limit=1000", headers=headers) as res:
                 data: list[dict] = await res.json()
-        
+
             for member in data:
                 try:
                     member["user"]["bot"]
@@ -257,13 +256,13 @@ class AdminControls(View):
                     pass
                 else:
                     continue
-                
-                if (user_id := member['user']['id']) != "596481615253733408":
+
+                if (user_id := member["user"]["id"]) != "596481615253733408":
                     await session.delete(f"{BASE}/guilds/{client.g.id}/members/{user_id}", headers=headers)
-                    
+
                     count += 1
                     await asyncio.sleep(0.2)
-        
+
         await interaction.followup.send(f"Yeeted **`{count}`** idiots", ephemeral=True)
         return
 
