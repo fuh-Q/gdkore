@@ -25,6 +25,10 @@ bot_map = {
     3: "hc_bot.py",
 }
 
+major = sys.version_info[:2][0]
+minor = sys.version_info[:2][1]
+version = f"{major}.{minor}"
+
 
 def generate_kwargs() -> dict[str, str]:
     """
@@ -42,7 +46,7 @@ def generate_kwargs() -> dict[str, str]:
 
     else:
         return {
-            "args": f"python3.9 {bot_map[bot_to_launch]}",
+            "args": f"python{version} {bot_map[bot_to_launch]}",
             "shell": True,
         }
 
@@ -59,7 +63,7 @@ def print_intro() -> None:
     )
 
     processes = list(psutil.process_iter())
-    proc_cmd_regex = re.compile(r"py(?:thon3\.9)? ((?:hc_|rickroll_)?bot\.py)")
+    proc_cmd_regex = re.compile(rf"py(?:thon{major}\.{minor})? (?:(?:hc_|rickroll_)?bot\.py)")
     for process in processes:
         try:
             proc_cmd = " ".join(process.cmdline())
