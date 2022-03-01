@@ -63,7 +63,7 @@ def print_intro() -> None:
     )
 
     processes = list(psutil.process_iter())
-    proc_cmd_regex = re.compile(rf"py(?:thon{major}\.{minor})? (?:(?:hc_|rickroll_)?bot\.py)")
+    proc_cmd_regex = re.compile(rf"py(?:thon{major}\.{minor})? ((?:hc_|rickroll_)?bot\.py)")
     for process in processes:
         try:
             proc_cmd = " ".join(process.cmdline())
