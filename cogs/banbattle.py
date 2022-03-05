@@ -97,10 +97,6 @@ async def check_perms(ctx: ApplicationContext):
     return -1
 
 
-async def setting_argument(ctx: AutocompleteContext):
-    return [setting for setting in SETTINGS if setting.startswith(ctx.value.lower())]
-
-
 async def argument_argument(ctx: AutocompleteContext):
     if not ctx.options["setting"] or not ctx.interaction.guild:
         return []
@@ -1336,7 +1332,17 @@ class BanBattle(BattlerCog):
             name="setting",
             description="The setting you want to change",
             required=False,
-            autocomplete=setting_argument,
+            choices=[
+                OptionChoice("Game starter", "gamestarter"),
+                OptionChoice("Time to join", "timetojoin"),
+                OptionChoice("Game timeout", "gametimeout"),
+                OptionChoice("Player role", "playerrole"),
+                OptionChoice("Custom emoji", "customemoji"),
+                OptionChoice("Selfban chance", "selfbanchance"),
+                OptionChoice("Ban DM", "bandm"),
+                OptionChoice("Selfban DM", "selfbandm"),
+                OptionChoice("Clear", "clear"),
+            ],
         ) = None,
         argument: Option(
             str,
