@@ -111,10 +111,10 @@ class PaginatorInterFace(OGPaginatorInterface):
         else:
             self.button_start.disabled = False
             self.button_previous.disabled = False
-    
+
     async def send_to(self, destination: discord.abc.Messageable):
         self.update_view()
-        
+
         return await super().send_to(destination)
 
     async def interaction_check(self, interaction: discord.Interaction):
