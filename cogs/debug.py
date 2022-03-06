@@ -44,15 +44,6 @@ JISHAKU_NO_UNDERSCORE = Flags.NO_UNDERSCORE
 JISHAKU_USE_BRAILLE_J = Flags.USE_BRAILLE_J
 SCOPE_PREFIX = Flags.SCOPE_PREFIX
 
-emotes = jishaku.shim.paginator_base.EmojiSettings(
-    start=NewEmote.from_name("<a:lefter:852197128116633610>"),
-    back=NewEmote.from_name("<a:left:852197688283627560>"),
-    forward=NewEmote.from_name("<a:right:852197523509739521>"),
-    end=NewEmote.from_name("<a:righter:852197253728960573>"),
-    close=NewEmote.from_name("<:x_:822656892538191872>"),
-)
-jishaku.shim.paginator_base.EMOJI_DEFAULT = emotes
-
 
 def natural_size(size_in_bytes: int) -> str:
     """
@@ -91,16 +82,17 @@ class PaginatorInterFace(OGPaginatorInterface):
         super().__init__(bot, paginator, **kwargs)
 
     def update_view(self):
-        self.button_start.label = "Page 1"
-        self.button_start.emoji = self.emojis.start
-        self.button_previous.emoji = self.emojis.back
+        self.button_start.label = "❮❮❮"
+        self.button_previous.label = "❮"
         self.button_current.label = f"{self.display_page + 1} / {self.page_count}"
         self.button_current.disabled = True
-        self.button_next.emoji = self.emojis.forward
-        self.button_last.emoji = self.emojis.end
-        self.button_last.label = f"Page {self.page_count}"
-        self.button_close.emoji = self.emojis.close
+        self.button_next.label = "❯"
+        self.button_last.label = f"❯❯❯"
         self.button_close.label = "Close paginator"
+        
+        for child in self.children:
+            try: child.emoji = None
+            except Exception: pass
 
         if self.display_page == self.page_count - 1:
             self.button_last.disabled = True
@@ -303,7 +295,7 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
                     paginator = WrappedPaginator(prefix=prefix, max_size=1975)
                     paginator.add_line(f"{reader.ps1} {argument.content}```\n```{reader.highlight}\n")
 
-                    interface = PaginatorInterFace(ctx.bot, paginator, owner=ctx.author, emoji=emotes)
+                    interface = PaginatorInterFace(ctx.bot, paginator, owner=ctx.author)
                     self.bot.loop.create_task(interface.send_to(ctx))
 
                     async for line in reader:
@@ -361,7 +353,7 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
 
             paginator.add_line(source_text.replace("```", "``\N{zero width space}`"))
 
-            interface = PaginatorInterFace(ctx.bot, paginator, owner=ctx.author, emoji=emotes)
+            interface = PaginatorInterFace(ctx.bot, paginator, owner=ctx.author)
             await interface.send_to(ctx)
 
     @Feature.Command(parent="jsk", name="cat")
@@ -433,7 +425,7 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
                         await ctx.send(file=discord.File(filename=pathlib.Path(file.name).name, fp=file))
                 else:
                     paginator = WrappedFilePaginator(file, line_span=line_span, max_size=1985)
-                    interface = PaginatorInterFace(ctx.bot, paginator, owner=ctx.author, emoji=emotes)
+                    interface = PaginatorInterFace(ctx.bot, paginator, owner=ctx.author)
                     await interface.send_to(ctx)
         except UnicodeDecodeError:
             return await ctx.send(f"`{path}`: Couldn't determine the encoding of this file.")
@@ -496,7 +488,7 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
                 except ValueError as exc:
                     return await ctx.send(f"Couldn't read response (status code {code}), {exc}")
 
-                interface = PaginatorInterFace(ctx.bot, paginator, owner=ctx.author, emoji=emotes)
+                interface = PaginatorInterFace(ctx.bot, paginator, owner=ctx.author)
                 await interface.send_to(ctx)
 
     @Feature.Command(parent="jsk", name="dis", aliases=["disassemble"])
@@ -533,7 +525,7 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
 
                 paginator.add_line(text)
 
-                interface = PaginatorInterFace(ctx.bot, paginator, owner=ctx.author, emoji=emotes)
+                interface = PaginatorInterFace(ctx.bot, paginator, owner=ctx.author)
                 await interface.send_to(ctx)
 
     @Feature.Command(parent="jsk", name="py", aliases=["python"])
@@ -622,8 +614,7 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
                                     interface = PaginatorInterFace(
                                         ctx.bot,
                                         paginator,
-                                        owner=ctx.author,
-                                        emoji=emotes,
+                                        owner=ctx.author
                                     )
                                     send(await interface.send_to(ctx))
 
@@ -682,7 +673,7 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
 
                             paginator.add_line(text)
 
-                            interface = PaginatorInterFace(ctx.bot, paginator, owner=ctx.author, emoji=emotes)
+                            interface = PaginatorInterFace(ctx.bot, paginator, owner=ctx.author)
                             send(await interface.send_to(ctx))
         finally:
             scope.clear_intersection(arg_dict)
@@ -704,7 +695,7 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
                 f"{task.ctx.message.created_at.strftime('%Y-%m-%d %H:%M:%S')} UTC"
             )
 
-        interface = PaginatorInterFace(ctx.bot, paginator, owner=ctx.author, emoji=emotes)
+        interface = PaginatorInterFace(ctx.bot, paginator, owner=ctx.author)
         return await interface.send_to(ctx)
 
 
