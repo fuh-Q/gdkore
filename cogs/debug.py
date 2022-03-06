@@ -89,10 +89,12 @@ class PaginatorInterFace(OGPaginatorInterface):
         self.button_next.label = "❯"
         self.button_last.label = f"❯❯❯"
         self.button_close.label = "Close paginator"
-        
+
         for child in self.children:
-            try: child.emoji = None
-            except Exception: pass
+            try:
+                child.emoji = None
+            except Exception:
+                pass
 
         if self.display_page == self.page_count - 1:
             self.button_last.disabled = True
@@ -611,11 +613,7 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
                                         )
                                         paginator.add_line(result[:1975])
 
-                                    interface = PaginatorInterFace(
-                                        ctx.bot,
-                                        paginator,
-                                        owner=ctx.author
-                                    )
+                                    interface = PaginatorInterFace(ctx.bot, paginator, owner=ctx.author)
                                     send(await interface.send_to(ctx))
 
         finally:
