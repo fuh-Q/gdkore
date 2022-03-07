@@ -151,7 +151,7 @@ class NotGDKID(commands.Bot):
         await self.change_presence(status=discord.Status.idle, activity=discord.Game(name="Connecting..."))
 
     async def on_ready(self):
-        await self.change_presence(status=discord.Status.online, activity=None)
+        await self.change_presence(status=discord.Status.online, activity=discord.Game(name="Cookie Clicker"))
 
     async def start(self):
         await super().start(self.token)
