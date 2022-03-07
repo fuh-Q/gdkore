@@ -27,8 +27,6 @@ from jishaku.paginators import WrappedFilePaginator, WrappedPaginator
 from jishaku.shell import ShellReader as ShellReader
 from jishaku.shim.paginator_200 import \
     PaginatorInterface as OGPaginatorInterface
-
-from bot import BanBattler
 from config.utils import *
 
 try:
@@ -69,7 +67,7 @@ class PaginatorInterFace(OGPaginatorInterface):
 
     def __init__(
         self,
-        bot: Union[BanBattler, commands.Bot],
+        bot: commands.Bot,
         paginator: commands.Paginator,
         **kwargs,
     ):
@@ -702,7 +700,7 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
         return await interface.send_to(ctx)
 
 
-def setup(bot: BanBattler):
+def setup(bot: commands.Bot):
     """
     The setup function defining the jishaku.cog and jishaku extensions.
     """

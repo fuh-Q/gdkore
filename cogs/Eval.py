@@ -13,17 +13,7 @@ from typing import *
 import aiohttp
 import discord
 from discord.ext import commands
-from motor.motor_asyncio import AsyncIOMotorClient
-
-from bot import BanBattler
-from config.json import Json
 from config.utils import *
-
-secrets = Json.read_json("secrets")
-
-mongoURI = secrets["mongoURI"]
-mongoCluster = AsyncIOMotorClient(mongoURI)
-db = mongoCluster["BanDB"]
 
 
 quote = r'"'
@@ -79,7 +69,7 @@ class SuppressTraceback(discord.ui.View):
 
 
 class Eval(BattlerCog):
-    def __init__(self, client: BanBattler):
+    def __init__(self, client: commands.Bot):
         self.client = client
         self.emoji = ""
 
@@ -180,7 +170,6 @@ class Eval(BattlerCog):
             "message": ctx.message,
             "os": os,
             "re": re,
-            "db": db if isinstance(self.client, BanBattler) else None,
             "random": random,
             "guilds": len(self.client.guilds),
             "description": self.client.description,
@@ -542,5 +531,5 @@ class Eval(BattlerCog):
             await ctx.send("Unexpected error: `{}`").format(e)
 
 
-def setup(client: BanBattler):
+def setup(client: commands.Bot):
     client.add_cog(Eval(client=client))

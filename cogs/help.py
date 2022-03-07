@@ -5,7 +5,6 @@ import discord
 from discord.ext import commands
 from discord.ext.commands import Cog, Command, Group
 
-from bot import BanBattler
 from config.utils import BattlerCog, Botcolours
 
 commands_module = commands  # This word clashes a lot throughout the subclass
@@ -264,7 +263,7 @@ class HelpCommand(commands.HelpCommand):
 
         await self.prepare_help_command(ctx, command)
 
-        bot: BanBattler = ctx.bot
+        bot: commands.Bot = ctx.bot
 
         if command is None:
             mapping = self.get_bot_mapping()
@@ -304,7 +303,7 @@ class HelpCommand(commands.HelpCommand):
 
 
 class help(BattlerCog):
-    def __init__(self, client: BanBattler):
+    def __init__(self, client: commands.Bot):
         self.description = "Gives help on the bot"
         self.client = client
         self._original_help_command = client.help_command
@@ -320,5 +319,5 @@ class help(BattlerCog):
         print("Help cog loaded")
 
 
-def setup(client: BanBattler):
+def setup(client: commands.Bot):
     client.add_cog(help(client=client))

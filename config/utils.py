@@ -6,11 +6,6 @@ from typing import Optional, SupportsInt, Union
 import discord
 from discord.ext import commands
 
-try:
-    from bot import BanBattler
-except ImportError:
-    pass
-
 from hc_bot import HeistingCultBot
 
 CHOICES = [
@@ -146,7 +141,7 @@ class Botcolours:
 
 class BattlerCog(commands.Cog):
     def __init__(self, *args, **kwargs):
-        self.client: Union[BanBattler, HeistingCultBot] = kwargs.pop("client")
+        self.client: Union[commands.Bot, HeistingCultBot] = kwargs.pop("client")
         super().__init__(*args, **kwargs)
 
     @property
