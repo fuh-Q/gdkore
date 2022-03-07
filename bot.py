@@ -1,13 +1,3 @@
-import discord
-from discord.ext import commands
-from discord.gateway import DiscordWebSocket
-
-from config.json import Json
-
-from typing import Dict
-from jishaku.shim.paginator_200 import PaginatorInterface
-from fuzzy_match import match
-
 import asyncio
 import datetime
 import logging
@@ -15,9 +5,19 @@ import os
 import sys
 import time
 import traceback
+from typing import Dict
+
+import discord
+from discord.ext import commands
+from discord.gateway import DiscordWebSocket
+from fuzzy_match import match
+from jishaku.shim.paginator_200 import PaginatorInterface
+
+from config.json import Json
 
 secrets: Dict[str, str] = Json.read_json("secrets")
 secondary_config: Dict[str, str] = Json.read_json("restart")
+
 
 def new_call_soon(self: asyncio.BaseEventLoop, callback, *args, context=None):
     if not self._closed:
@@ -32,6 +32,7 @@ def new_call_soon(self: asyncio.BaseEventLoop, callback, *args, context=None):
 
 asyncio.BaseEventLoop.call_soon = new_call_soon
 
+
 async def mobile(self: DiscordWebSocket):
     payload = {
         "op": self.IDENTIFY,
@@ -42,36 +43,33 @@ async def mobile(self: DiscordWebSocket):
                 "$browser": "Discord iOS",
                 "$device": "pycord",
                 "$referrer": "",
-                "$referring_domain": ""
+                "$referring_domain": "",
             },
             "compress": True,
             "large_threshold": 250,
-            "v": 3
-        }
+            "v": 3,
+        },
     }
-    
+
     if self.shard_id is not None and self.shard_count is not None:
         payload["d"]["shard"] = [self.shard_id, self.shard_count]
-    
+
     state = self._connection
     if state._activity is not None or state._status is not None:
-        payload["d"]["presence"] = {
-            "status": state._status,
-            "game": state._activity,
-            "since": 0,
-            "afk": False
-        }
-    
+        payload["d"]["presence"] = {"status": state._status, "game": state._activity, "since": 0, "afk": False}
+
     if state._intents is not None:
         payload["d"]["intents"] = state._intents.value
-    
+
     await self.call_hooks("before_identify", self.shard_id, initial=self._initial_identify)
     await self.send_as_json(payload)
-    
+
+
 DiscordWebSocket.identify = mobile
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("Bot")
+
 
 class NotGDKID(commands.Bot):
     def __init__(self):
@@ -79,50 +77,46 @@ class NotGDKID(commands.Bot):
         intents = discord.Intents.all()
         intents.presences = False
         intents.message_content = False
-        
+
         super().__init__(
-            command_prefix = ["<@!859104775429947432> ", "<@859104775429947432> "],
-            allowed_mentions = allowed_mentions,
+            command_prefix=["<@!859104775429947432> ", "<@859104775429947432> "],
+            allowed_mentions=allowed_mentions,
             intents=intents,
-            case_insensitive = True,
-            auto_sync_commands = False
+            case_insensitive=True,
+            auto_sync_commands=False,
         )
-        
+
         os.environ["JISHAKU_HIDE"] = "True"
         os.environ["JISHAKU_NO_UNDERSCORE"] = "True"
         os.environ["JISHAKU_NO_DM_TRACEBACK"] = "True"
         os.environ["JISHAKU_USE_BRAILLE_J"] = "True"
 
-        extensions = [
-            "cogs.debug",
-            "cogs.dev",
-            "cogs.Eval"
-        ]
-        
+        extensions = ["cogs.debug", "cogs.dev", "cogs.Eval"]
+
         self.owner_ids = [596481615253733408, 650882112655720468]
         self.yes = "<:yes_tick:842078179833151538>"  # Checkmark
         self.no = "<:no_cross:842078253032407120>"  # X
         self.active_jishaku_paginators: list[PaginatorInterface] = []
-        
+
         self.token = secrets["token"]
-        
+
         self.uptime = datetime.datetime.utcnow()
-        
+
         ready_task = self.loop.create_task(self.first_ready())
-        ready_task.add_done_callback(lambda exc: (
-            traceback.format_exception(e, e, e.__traceback__) if (e:=exc.exception()) else None
-        ))
-        
+        ready_task.add_done_callback(
+            lambda exc: (traceback.format_exception(e, e, e.__traceback__) if (e := exc.exception()) else None)
+        )
+
         for extension in extensions:
             self.load_extension(extension)
-        
+
         self.add_commands()
-    
+
     async def first_ready(self):
         await self.wait_until_ready()
-        
+
         log.info(f"Logged in as: {self.user.name} : {self.user.id}\n----- Cogs and Extensions -----\nMain bot online")
-        
+
         try:
             secondary_config["chan_id"]
             secondary_config["id"]
@@ -142,54 +136,50 @@ class NotGDKID(commands.Bot):
             await msg.edit(embed=e)
             end = time.monotonic() + 0.5
             await asyncio.sleep(0.5)
-            e.description = (
-                f"❯❯  Aight brb\n"
-                f"❯❯  k im back\n"
-                f"❯❯  reboot took around `{round(end - start, 1)}s`"
-            )
+            e.description = f"❯❯  Aight brb\n" f"❯❯  k im back\n" f"❯❯  reboot took around `{round(end - start, 1)}s`"
             await msg.edit(embed=e)
 
             Json.clear_json("restart")
-    
+
     async def on_message(self, message: discord.Message):
         if message.content in [f"<@!{self.user.id}>", f"<@{self.user.id}>"]:
             await message.reply(content=message.author.mention)
-        
+
         await self.process_commands(message)
-    
+
     async def on_connect(self):
         await self.change_presence(status=discord.Status.idle, activity=discord.Game(name="Connecting..."))
-    
+
     async def on_ready(self):
         await self.change_presence(status=discord.Status.online, activity=None)
-    
+
     async def start(self):
         await super().start(self.token)
-    
+
     async def close(self, restart: bool = False):
         for pag in self.active_jishaku_paginators:
             await pag.message.edit(view=None)
             self.active_jishaku_paginators.pop(self.active_jishaku_paginators.index(pag))
-            
+
             if self.active_jishaku_paginators:
                 await asyncio.sleep(0.25)
-        
+
         if restart is True:
             for voice in self.voice_clients:
                 try:
                     await voice.disconnect()
-                
+
                 except Exception:
                     continue
-            
+
             if self.ws is not None and self.ws.open:
                 await self.ws.close(code=1000)
-            
+
             sys.exit(69)
-        
+
         else:
             await super().close()
-    
+
     def add_commands(self):
         @self.command(name="load", brief="Load cogs", hidden=True)
         @commands.is_owner()
@@ -243,6 +233,7 @@ class NotGDKID(commands.Bot):
             cog = str(the_match[0])
             self.reload_extension(cog)
             await ctx.reply(content=f"Reloaded `{cog[5:]}`", mention_author=True)
+
 
 if __name__ == "__main__":
     NotGDKID().run()

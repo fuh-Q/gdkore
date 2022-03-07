@@ -13,8 +13,8 @@ from typing import *
 import aiohttp
 import discord
 from discord.ext import commands
-from config.utils import *
 
+from config.utils import *
 
 quote = r'"'
 wraps = r"\(\)\[\]\{\}"

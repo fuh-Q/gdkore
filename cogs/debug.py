@@ -27,6 +27,7 @@ from jishaku.paginators import WrappedFilePaginator, WrappedPaginator
 from jishaku.shell import ShellReader as ShellReader
 from jishaku.shim.paginator_200 import \
     PaginatorInterface as OGPaginatorInterface
+
 from config.utils import *
 
 try:
