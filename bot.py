@@ -113,9 +113,10 @@ class NotGDKID(commands.Bot):
 
     async def first_ready(self):
         await self.wait_until_ready()
-        await self.sync_commands()
-
         log.info(f"Logged in as: {self.user.name} : {self.user.id}\n----- Cogs and Extensions -----\nMain bot online")
+
+        await self.sync_commands()
+        log.info("Finished syncing all interaction commands!")
 
         try:
             secondary_config["chan_id"]
