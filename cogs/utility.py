@@ -1,5 +1,5 @@
 import discord
-from discord.commands import ApplicationContext, user_command, slash_command
+from discord.commands import ApplicationContext, user_command
 from discord.ext import commands
 
 
