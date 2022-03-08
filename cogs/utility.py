@@ -132,10 +132,10 @@ class Utility(commands.Cog):
         output = markdownify(text)
         
         try:
-            await ctx.respond(f"```{output}```\n**Copy paste the stuff in the codeblock above**", ephemeral=True)
+            await ctx.respond(f"```{output}```\n**Copy paste the stuff in the codeblock above**")
             
         except discord.HTTPException:
-            await ctx.respond("Something went wrong, most likely the output exceeded my character limit in sending messages or smth like that", ephemeral=True)
+            await ctx.respond("Something went wrong, most likely the output exceeded my character limit in sending messages or smth like that")
 
 
 def setup(client: commands.Bot):
