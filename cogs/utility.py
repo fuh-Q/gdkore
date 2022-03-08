@@ -1,18 +1,20 @@
+import random
+
 import discord
-from discord.commands import ApplicationContext, user_command, slash_command, Option
+from discord.commands import (ApplicationContext, Option, slash_command,
+                              user_command)
 from discord.ext import commands
 
-import random
 
 class Actions:
     @staticmethod
     def bold(arg: str):
         return "**" + arg + "**"
-    
+
     @staticmethod
     def italics(arg: str):
         return "*" + arg + "*"
-    
+
     @staticmethod
     def strikethrough(arg: str):
         return "~~" + arg + "~~"
@@ -24,23 +26,20 @@ class Actions:
     @staticmethod
     def codeblockify(arg: str):
         return "`" + arg + "`"
-    
+
     @staticmethod
     def shuffle(arg: str):
         groups: dict[int, str] = {}
 
         counter = 0
         while arg != "":
-            takeaway = random.choices(
-                population = [1, 2],
-                weights = (70, 30),
-                k = 20
-            )[random.randint(0, 19)]
+            takeaway = random.choices(population=[1, 2], weights=(70, 30), k=20)[random.randint(0, 19)]
             groups[counter] = arg[:takeaway]
             arg = arg[takeaway:]
             counter += 1
 
         return list(groups.values())
+
 
 def markdownify(string: str):
     group_list = Actions.shuffle(string)
@@ -55,11 +54,11 @@ def markdownify(string: str):
 
     for group in group_list:
         code: bool = random.choices(
-            population = [True, False],
-            weights = (40, 60),
-            k = 20,
+            population=[True, False],
+            weights=(40, 60),
+            k=20,
         )[random.randint(0, 19)]
-        
+
         if code:
             group_list[group_list.index(group)] = group = Actions.codeblockify(group)
 
@@ -72,11 +71,7 @@ def markdownify(string: str):
 
         popped_action = actions_list.pop(actions_list.index(action))
 
-        again: bool = random.choices(
-            population = [True, False],
-            weights = (20, 80),
-            k = 20
-        )[random.randint(0, 19)]
+        again: bool = random.choices(population=[True, False], weights=(20, 80), k=20)[random.randint(0, 19)]
 
         if again:
             action = random.choice(actions_list)
@@ -85,7 +80,7 @@ def markdownify(string: str):
 
             if popped_action:
                 actions_list.append(popped_action)
-            
+
             popped_action = actions_list.pop(actions_list.index(action))
 
     string = "\u200b".join(group_list)
@@ -95,8 +90,9 @@ def markdownify(string: str):
     string = string.replace("`\:b:`", "🅱️")
     string = string.replace("` \:b:`", "🅱️")
     string = string.replace(" * ", "* ")
-    
+
     return string
+
 
 class Utility(commands.Cog):
     def __init__(self, client: commands.Bot):
@@ -117,25 +113,19 @@ class Utility(commands.Cog):
             f"[Click here to invite {member.name}]({url}) (feel free to toggle the invite's permissions as needed)",
             ephemeral=True,
         )
-    
+
     @slash_command(name="markdown")
-    async def markdown(
-        self,
-        ctx: ApplicationContext,
-        text: Option(
-            str,
-            "the text you want to nuke",
-            required=True
-        )
-    ):
+    async def markdown(self, ctx: ApplicationContext, text: Option(str, "the text you want to nuke", required=True)):
         """make you look high or smth idk (works best on desktop)"""
         output = markdownify(text)
-        
+
         try:
             await ctx.respond(f"```{output}```\n**Copy paste the stuff in the codeblock above**")
-            
+
         except discord.HTTPException:
-            await ctx.respond("Something went wrong, most likely the output exceeded my character limit in sending messages or smth like that")
+            await ctx.respond(
+                "Something went wrong, most likely the output exceeded my character limit in sending messages or smth like that"
+            )
 
 
 def setup(client: commands.Bot):
