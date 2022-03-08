@@ -83,7 +83,6 @@ class NotGDKID(commands.Bot):
             allowed_mentions=allowed_mentions,
             intents=intents,
             case_insensitive=True,
-            auto_sync_commands=False,
         )
 
         os.environ["JISHAKU_HIDE"] = "True"
@@ -91,7 +90,7 @@ class NotGDKID(commands.Bot):
         os.environ["JISHAKU_NO_DM_TRACEBACK"] = "True"
         os.environ["JISHAKU_USE_BRAILLE_J"] = "True"
 
-        extensions = ["cogs.debug", "cogs.dev", "cogs.Eval"]
+        extensions = ["cogs.debug", "cogs.dev", "cogs.Eval", "cogs.utility"]
 
         self.owner_ids = [596481615253733408, 650882112655720468]
         self.yes = "<:yes_tick:842078179833151538>"  # Checkmark
@@ -114,6 +113,7 @@ class NotGDKID(commands.Bot):
 
     async def first_ready(self):
         await self.wait_until_ready()
+        await self.sync_commands()
 
         log.info(f"Logged in as: {self.user.name} : {self.user.id}\n----- Cogs and Extensions -----\nMain bot online")
 
