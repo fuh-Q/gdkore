@@ -133,7 +133,7 @@ class NotGDKID(commands.Bot):
             e = msg.embeds[0].copy()
             e.description = f"❯❯ Aight brb"
             e.description += f"\n❯❯ k im back"
-            e.description += "  ❯❯ calculating reboot time"
+            e.description += "\n  ❯❯ calculating reboot time"
             await msg.edit(embed=e)
             end = time.monotonic() + 0.5
             await asyncio.sleep(0.5)
