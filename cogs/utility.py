@@ -116,11 +116,11 @@ class Utility(commands.Cog):
 
     @slash_command(name="markdown")
     async def markdown(self, ctx: ApplicationContext, text: Option(str, "the text you want to nuke", required=True)):
-        """make you look high or smth idk (works best on desktop)"""
+        """nuke some text"""
         output = markdownify(text)
 
         try:
-            await ctx.respond(f"```{output}```\n**Copy paste the stuff in the codeblock above**", ephemeral=True)
+            await ctx.respond(f"```{output}```\n**Copy paste the stuff above into the chat or smth**", ephemeral=True)
 
         except discord.HTTPException:
             await ctx.respond(
