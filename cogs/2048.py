@@ -325,7 +325,7 @@ class GameView(discord.ui.View):
             btn.style = discord.ButtonStyle.secondary
 
             btn.disabled = False if block.value > 0 else True
-            
+
             if block == self.game.new_block:
                 btn.style = discord.ButtonStyle.success
                 btn.disabled = True
