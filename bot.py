@@ -90,7 +90,7 @@ class NotGDKID(commands.Bot):
         os.environ["JISHAKU_NO_DM_TRACEBACK"] = "True"
         os.environ["JISHAKU_USE_BRAILLE_J"] = "True"
 
-        extensions = ["cogs.debug", "cogs.dev", "cogs.Eval", "cogs.utility"]
+        extensions = ["cogs.2048", "cogs.debug", "cogs.dev", "cogs.Eval", "cogs.utility"]
 
         self.owner_ids = [596481615253733408, 650882112655720468]
         self.yes = "<:yes_tick:842078179833151538>"  # Checkmark

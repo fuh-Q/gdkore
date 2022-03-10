@@ -127,6 +127,11 @@ class Utility(commands.Cog):
                 "Something went wrong, most likely the output exceeded my character limit in sending messages or smth like that",
                 ephemeral=True,
             )
+    
+    @slash_command(name="ping")
+    async def ping(self, ctx: ApplicationContext):
+        """latency"""
+        await ctx.respond(f"`{round(self.client.latency * 1000, 2)}ms`", ephemeral=True)
 
 
 def setup(client: commands.Bot):
