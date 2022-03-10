@@ -337,11 +337,11 @@ class GameView(discord.ui.View):
     async def hit_2048(self):
         msg = await self.message.original_message()
         await msg.reply("nice one")
-    
+
     async def loss(self, interaction: discord.Interaction):
         for btn in self.children:
             btn.disabled = True
-        
+
             if btn.style == discord.ButtonStyle.success:
                 btn.style = discord.ButtonStyle.secondary
 
