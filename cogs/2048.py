@@ -337,6 +337,17 @@ class GameView(discord.ui.View):
     async def hit_2048(self):
         msg = await self.message.original_message()
         await msg.reply("nice one")
+    
+    async def loss(self, interaction: discord.Interaction):
+        for btn in self.children:
+            btn.disabled = True
+        
+            if btn.style == discord.ButtonStyle.success:
+                btn.style = discord.ButtonStyle.secondary
+
+        await interaction.response.send_message("you lose. imagine losing.")
+        await self.message.edit_original_message(view=self)
+        return self.stop()
 
     @discord.ui.button(label="left", style=discord.ButtonStyle.primary, row=grid_size)
     async def left(self, _: discord.Button, interaction: discord.Interaction):
@@ -344,12 +355,7 @@ class GameView(discord.ui.View):
         loss = self.game.check_loss(self.game.blocks)
         await self.update()
         if loss:
-            for btn in self.children:
-                btn.disabled = True
-
-            await interaction.response.send_message("you lose. imagine losing.")
-            await self.message.edit_original_message(view=self)
-            return self.stop()
+            await self.loss(interaction)
 
         await interaction.response.edit_message(view=self)
 
@@ -359,12 +365,7 @@ class GameView(discord.ui.View):
         loss = self.game.check_loss(self.game.blocks)
         await self.update()
         if loss:
-            for btn in self.children:
-                btn.disabled = True
-
-            await interaction.response.send_message("you lose. imagine losing.")
-            await self.message.edit_original_message(view=self)
-            return self.stop()
+            await self.loss(interaction)
 
         await interaction.response.edit_message(view=self)
 
@@ -374,12 +375,7 @@ class GameView(discord.ui.View):
         loss = self.game.check_loss(self.game.blocks)
         await self.update()
         if loss:
-            for btn in self.children:
-                btn.disabled = True
-
-            await interaction.response.send_message("you lose. imagine losing.")
-            await self.message.edit_original_message(view=self)
-            return self.stop()
+            await self.loss(interaction)
 
         await interaction.response.edit_message(view=self)
 
@@ -389,12 +385,7 @@ class GameView(discord.ui.View):
         loss = self.game.check_loss(self.game.blocks)
         await self.update()
         if loss:
-            for btn in self.children:
-                btn.disabled = True
-
-            await interaction.response.send_message("you lose. imagine losing.")
-            await self.message.edit_original_message(view=self)
-            return self.stop()
+            await self.loss(interaction)
 
         await interaction.response.edit_message(view=self)
 
@@ -437,7 +428,7 @@ class TwentyFortyEight(commands.Cog):
 
         view = GameView(ctx, grid_size)
 
-        msg = await ctx.respond(view=view)
+        msg = await ctx.respond("(newly spawned blocks are highlighted in green)", view=view)
         setattr(view, "message", msg)
 
 
