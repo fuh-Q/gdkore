@@ -26,6 +26,7 @@ class Game:
     def __init__(self, grid_size: int = 4):
         self.blocks: list[Block] = []
         self.grid_size = grid_size
+        self.new_block = None
         self.player: discord.User = None
 
         self.moved: bool = False
@@ -140,6 +141,7 @@ class Game:
             new_block = blocks[blocks.index(new)]
             new_block.value = ch([2, 4], weights=weights, k=1)[0]
             new_block.display = new_block.value
+            self.new_block = new_block
 
         self.moved = False
         self.blocks = blocks
@@ -320,8 +322,13 @@ class GameView(discord.ui.View):
         for block in self.game.blocks:
             btn: discord.ui.Button = self.children[block.list_index]
             btn.label = block.display
+            btn.style = discord.ButtonStyle.secondary
 
             btn.disabled = False if block.value > 0 else True
+            
+            if block == self.game.new_block:
+                btn.style = discord.ButtonStyle.success
+                btn.disabled = True
 
             if block.value == 2048 and not self._hit_2048:
                 self._hit_2048 = True
@@ -337,13 +344,12 @@ class GameView(discord.ui.View):
         loss = self.game.check_loss(self.game.blocks)
         await self.update()
         if loss:
-            del self.game
             for btn in self.children:
-                if isinstance(btn, discord.ui.Button):
-                    btn.disabled = True
+                btn.disabled = True
 
             await interaction.response.send_message("you lose. imagine losing.")
             await self.message.edit_original_message(view=self)
+            return self.stop()
 
         await interaction.response.edit_message(view=self)
 
@@ -353,13 +359,12 @@ class GameView(discord.ui.View):
         loss = self.game.check_loss(self.game.blocks)
         await self.update()
         if loss:
-            del self.game
             for btn in self.children:
-                if isinstance(btn, discord.ui.Button):
-                    btn.disabled = True
+                btn.disabled = True
 
             await interaction.response.send_message("you lose. imagine losing.")
             await self.message.edit_original_message(view=self)
+            return self.stop()
 
         await interaction.response.edit_message(view=self)
 
@@ -369,13 +374,12 @@ class GameView(discord.ui.View):
         loss = self.game.check_loss(self.game.blocks)
         await self.update()
         if loss:
-            del self.game
             for btn in self.children:
-                if isinstance(btn, discord.ui.Button):
-                    btn.disabled = True
+                btn.disabled = True
 
             await interaction.response.send_message("you lose. imagine losing.")
             await self.message.edit_original_message(view=self)
+            return self.stop()
 
         await interaction.response.edit_message(view=self)
 
@@ -385,13 +389,12 @@ class GameView(discord.ui.View):
         loss = self.game.check_loss(self.game.blocks)
         await self.update()
         if loss:
-            del self.game
             for btn in self.children:
-                if isinstance(btn, discord.ui.Button):
-                    btn.disabled = True
+                btn.disabled = True
 
             await interaction.response.send_message("you lose. imagine losing.")
             await self.message.edit_original_message(view=self)
+            return self.stop()
 
         await interaction.response.edit_message(view=self)
 
@@ -399,10 +402,9 @@ class GameView(discord.ui.View):
     async def end(self, _: discord.Button, interaction: discord.Interaction):
         del self.game
         for btn in self.children:
-            if isinstance(btn, discord.ui.Button):
-                btn.disabled = True
-                btn.label = "\u200b"
-                btn.style = discord.ButtonStyle.secondary
+            btn.disabled = True
+            btn.label = "\u200b"
+            btn.style = discord.ButtonStyle.secondary
 
         await self.message.edit_original_message(view=self)
         await interaction.response.send_message("kbai", ephemeral=True)
