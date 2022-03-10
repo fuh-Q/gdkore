@@ -379,7 +379,8 @@ async def on_voice_state_update(member: discord.Member, before: discord.VoiceSta
                 )
                 vc = await after.channel.connect()
                 if member.id != 596481615253733408:
-                    await c.send(f"{member.name}#{member.discriminator} [{member.mention}] has been rickrolled!")
+                    msg = await c.send(f"{member.name}#{member.discriminator} [{member.mention}] has been rickrolled!")
+                    await msg.publish()
 
                 on_safe_timer = True
                 t: threading.Thread = threading.Thread(target=vc.play(audio)).start()
