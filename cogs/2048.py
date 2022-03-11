@@ -315,6 +315,7 @@ class GameView(discord.ui.View):
             if isinstance(btn, discord.ui.Button):
                 btn.disabled = True
                 btn.emoji = None
+                btn.label = "\u200b"
                 btn.style = discord.ButtonStyle.secondary
 
         channel = self.client.get_channel(self.ctx.channel.id)
@@ -483,6 +484,7 @@ class GameView(discord.ui.View):
             for btn in self.children:
                 btn.disabled = True
                 btn.emoji = None
+                btn.label = "\u200b"
                 btn.style = discord.ButtonStyle.secondary
 
             await interaction.response.send_message("kbai", ephemeral=True)
