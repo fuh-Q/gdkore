@@ -1,9 +1,9 @@
 import time
+import traceback
 from enum import Enum
 from random import choice as c
 from random import choices as ch
 from random import randint as r
-import traceback
 from typing import Iterable, Optional
 
 import discord
