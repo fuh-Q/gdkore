@@ -79,7 +79,7 @@ class NotGDKID(commands.Bot):
         intents.message_content = False
 
         super().__init__(
-            command_prefix=["<@!859104775429947432> ", "<@859104775429947432> "],
+            command_prefix=["<@!859104775429947432> ", "<@859104775429947432> ", "B!", "b!"],
             allowed_mentions=allowed_mentions,
             intents=intents,
             case_insensitive=True,
@@ -93,9 +93,12 @@ class NotGDKID(commands.Bot):
         extensions = ["cogs.2048", "cogs.debug", "cogs.dev", "cogs.Eval", "cogs.utility"]
 
         self.owner_ids = [596481615253733408, 650882112655720468]
+        self.wl_guilds = [749892811905564672, 764592577575911434, 814963690498424832, 890355226517860433]
         self.yes = "<:yes_tick:842078179833151538>"  # Checkmark
         self.no = "<:no_cross:842078253032407120>"  # X
         self.active_jishaku_paginators: list[PaginatorInterface] = []
+        
+        self.games = []
 
         self.token = secrets["token"]
 
@@ -141,6 +144,11 @@ class NotGDKID(commands.Bot):
             await msg.edit(embed=e)
 
             Json.clear_json("restart")
+    
+    async def on_guild_join(self, guild: discord.Guild):
+        if guild.id not in self.wl_guilds:
+            await asyncio.sleep(0.5)
+            await guild.leave()
 
     async def on_message(self, message: discord.Message):
         if message.content in [f"<@!{self.user.id}>", f"<@{self.user.id}>"]:

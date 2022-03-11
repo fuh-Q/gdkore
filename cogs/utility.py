@@ -110,7 +110,7 @@ class Utility(commands.Cog):
         url = f"https://discord.com/oauth2/authorize?client_id={member.id}&permissions=1099511627775&scope=bot%20applications.commands"
 
         return await ctx.respond(
-            f"[Click here to invite {member.name}]({url}) (feel free to toggle the invite's permissions as needed)",
+            f"[click here to invite {member.name}]({url}) (feel free to toggle the invite's permissions as needed)",
             ephemeral=True,
         )
 
@@ -120,11 +120,11 @@ class Utility(commands.Cog):
         output = markdownify(text)
 
         try:
-            await ctx.respond(f"```{output}```\n**Copy paste the stuff above into the chat or smth**", ephemeral=True)
+            await ctx.respond(f"```{output}```\n**copy paste the stuff above into the chat or smth**", ephemeral=True)
 
         except discord.HTTPException:
             await ctx.respond(
-                "Something went wrong, most likely the output exceeded my character limit in sending messages or smth like that",
+                "something went wrong, most likely the output exceeded my character limit in sending messages or smth like that",
                 ephemeral=True,
             )
 
