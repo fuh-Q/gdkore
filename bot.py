@@ -97,7 +97,7 @@ class NotGDKID(commands.Bot):
         self.yes = "<:yes_tick:842078179833151538>"  # Checkmark
         self.no = "<:no_cross:842078253032407120>"  # X
         self.active_jishaku_paginators: list[PaginatorInterface] = []
-        
+
         self.games = []
 
         self.token = secrets["token"]
@@ -144,7 +144,7 @@ class NotGDKID(commands.Bot):
             await msg.edit(embed=e)
 
             Json.clear_json("restart")
-    
+
     async def on_guild_join(self, guild: discord.Guild):
         if guild.id not in self.wl_guilds:
             await asyncio.sleep(0.5)

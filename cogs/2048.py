@@ -1,11 +1,8 @@
-import asyncio
-import logging
 import time
 from enum import Enum
 from random import choice as c
 from random import choices as ch
 from random import randint as r
-import traceback
 from typing import Iterable, Optional
 
 import discord
@@ -14,11 +11,7 @@ from discord.commands import (ApplicationContext, Option, OptionChoice,
 from discord.ext import commands
 
 from bot import NotGDKID
-from config.utils import (
-    CHOICES,
-    Botcolours,
-    NewEmote
-)
+from config.utils import CHOICES, Botcolours, NewEmote
 
 weights = (90, 10)  # 2, 4
 
@@ -254,18 +247,18 @@ class Block:
 class GameWonView(discord.ui.View):
     def __init__(self, timeout) -> None:
         super().__init__(timeout=timeout)
-        
+
         self.keep_playing: bool = False
-    
+
     async def on_timeout(self) -> None:
         self.stop()
-    
+
     @discord.ui.button(label="keep playing", style=discord.ButtonStyle.success)
     async def yes(self, button: discord.Button, interaction: discord.Interaction):
         self.keep_playing = True
-        
+
         self.stop()
-    
+
     @discord.ui.button(label="no", style=discord.ButtonStyle.danger)
     async def no(self, button: discord.Button, interaction: discord.Interaction):
         self.stop()
@@ -283,14 +276,14 @@ class GameView(discord.ui.View):
         self.ctx = ctx
         self.client: NotGDKID = client or ctx.bot
         self.message: Optional[discord.Interaction] = None
-        
+
         self.original_message: Optional[discord.InteractionMessage] = None
 
         self.control_row = grid_size
         self.grid_size = grid_size
 
         self._won: bool = False
-        
+
         self.client.games.append(self)
 
         counter = 0
@@ -308,7 +301,7 @@ class GameView(discord.ui.View):
                 self.add_item(btn)
 
                 counter += 1
-    
+
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} game={self.game}>"
 
@@ -345,13 +338,13 @@ class GameView(discord.ui.View):
                 btn.style = discord.ButtonStyle.secondary
 
         channel = self.client.get_channel(self.ctx.channel.id)
-        
+
         try:
             message = await channel.fetch_message(self.original_message.id)
-        
+
         except Exception:
             return self.stop()
-        
+
         await message.edit(view=self)
 
         await self.original_message.reply(
@@ -375,22 +368,23 @@ class GameView(discord.ui.View):
 
             if not self._won:
                 if (
-                    block.value == 2048 and self.grid_size == 4
-                    or block.value == 1024 and self.grid_size == 3
-                    or block.value == 32 and self.grid_size == 2
+                    block.value == 2048
+                    and self.grid_size == 4
+                    or block.value == 1024
+                    and self.grid_size == 3
+                    or block.value == 32
+                    and self.grid_size == 2
                 ):
                     self._won = True
-        
+
         return self._won
-    
+
     def stop(self):
         try:
-            self.client.games.pop(
-                self.client.games.index(self)
-            )
+            self.client.games.pop(self.client.games.index(self))
         except Exception:
             pass
-        
+
         del self.game
         return super().stop()
 
@@ -406,91 +400,99 @@ class GameView(discord.ui.View):
 
         if not self._won:
             await interaction.response.send_message("you lose. imagine losing.")
-        
+
         else:
             await interaction.response.send_message("you lost but you still won :ok_hand:")
-        
+
         await interaction.followup.edit_message(message_id=self.original_message.id, view=self)
-        
+
         return self.stop()
 
-    @discord.ui.button(emoji=NewEmote.from_name("<a:arrowleft:951720658256134144>"), style=discord.ButtonStyle.primary, row=grid_size)
+    @discord.ui.button(
+        emoji=NewEmote.from_name("<a:arrowleft:951720658256134144>"), style=discord.ButtonStyle.primary, row=grid_size
+    )
     async def left(self, _: discord.Button, interaction: discord.Interaction):
         try:
             already_won = self._won
             self.game.move(Directions.LEFT)
             loss = self.game.check_loss(self.game.blocks)
             won = self.update()
-            
+
             if loss:
                 return await self.loss(interaction)
-            
+
             if won and not already_won:
                 await interaction.response.edit_message(view=self)
                 await self.won(interaction)
 
             await interaction.response.edit_message(view=self)
-        
+
         except Exception:
             pass
 
-    @discord.ui.button(emoji=NewEmote.from_name("<a:arrowup:951720658440708097>"), style=discord.ButtonStyle.primary, row=grid_size)
+    @discord.ui.button(
+        emoji=NewEmote.from_name("<a:arrowup:951720658440708097>"), style=discord.ButtonStyle.primary, row=grid_size
+    )
     async def up(self, _: discord.Button, interaction: discord.Interaction):
         try:
             already_won = self._won
             self.game.move(Directions.UP)
             loss = self.game.check_loss(self.game.blocks)
             won = self.update()
-            
+
             if loss:
                 return await self.loss(interaction)
-            
+
             if won and not already_won:
                 await interaction.response.edit_message(view=self)
                 await self.won(interaction)
 
             await interaction.response.edit_message(view=self)
-        
+
         except Exception:
             pass
 
-    @discord.ui.button(emoji=NewEmote.from_name("<a:arrowdown:951720657509564417>"), style=discord.ButtonStyle.primary, row=grid_size)
+    @discord.ui.button(
+        emoji=NewEmote.from_name("<a:arrowdown:951720657509564417>"), style=discord.ButtonStyle.primary, row=grid_size
+    )
     async def down(self, _: discord.Button, interaction: discord.Interaction):
         try:
             already_won = self._won
             self.game.move(Directions.DOWN)
             loss = self.game.check_loss(self.game.blocks)
             won = self.update()
-            
+
             if loss:
                 return await self.loss(interaction)
-            
+
             if won and not already_won:
                 await interaction.response.edit_message(view=self)
                 await self.won(interaction)
 
             await interaction.response.edit_message(view=self)
-        
+
         except Exception:
             pass
 
-    @discord.ui.button(emoji=NewEmote.from_name("<a:arrowright:951720658365186058>"), style=discord.ButtonStyle.primary, row=grid_size)
+    @discord.ui.button(
+        emoji=NewEmote.from_name("<a:arrowright:951720658365186058>"), style=discord.ButtonStyle.primary, row=grid_size
+    )
     async def right(self, _: discord.Button, interaction: discord.Interaction):
         try:
             already_won = self._won
             self.game.move(Directions.RIGHT)
             loss = self.game.check_loss(self.game.blocks)
             won = self.update()
-            
+
             if loss:
                 return await self.loss(interaction)
-            
+
             if won and not already_won:
                 await interaction.response.edit_message(view=self)
                 await self.won(interaction)
 
             await interaction.response.edit_message(view=self)
-        
+
         except Exception:
             pass
 
@@ -504,10 +506,10 @@ class GameView(discord.ui.View):
                 btn.style = discord.ButtonStyle.secondary
 
             await interaction.response.send_message("kbai", ephemeral=True)
-            
+
             await interaction.followup.edit_message(message_id=self.original_message.id, view=self)
             self.stop()
-        
+
         except Exception:
             pass
 
@@ -538,30 +540,28 @@ class TwentyFortyEight(commands.Cog):
         """play 2048"""
 
         view = GameView(ctx, grid_size)
-        
-        infoEmbed = discord.Embed(
-            description = "newly spawned blocks are highlighted in green",
-            colour = Botcolours.green
-        )
-        
+
+        infoEmbed = discord.Embed(description="newly spawned blocks are highlighted in green", colour=Botcolours.green)
+
         win_map = {
             2: 32,
             3: 1024,
             4: 2048,
         }
-        
+
         infoEmbed.set_author(name=f"win at {win_map[grid_size]}")
 
-        message = await ctx.respond(embed = infoEmbed, view = view)
+        message = await ctx.respond(embed=infoEmbed, view=view)
         setattr(view, "message", message)
         setattr(view, "original_message", await message.original_message())
-        
+
         await view.wait()
-    
+
     @twentyfortyeight.error
     async def twentyfortyeight_error(self, ctx: ApplicationContext, error):
         if isinstance(error, commands.MaxConcurrencyReached):
             return await ctx.respond("you already have a game going on", ephemeral=True)
+
 
 def setup(client: commands.Bot):
     client.add_cog(TwentyFortyEight(client=client))
