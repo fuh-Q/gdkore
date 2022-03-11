@@ -3,6 +3,7 @@ from enum import Enum
 from random import choice as c
 from random import choices as ch
 from random import randint as r
+import traceback
 from typing import Iterable, Optional
 
 import discord
@@ -244,26 +245,6 @@ class Block:
         other.list_index = list_index
 
 
-class GameWonView(discord.ui.View):
-    def __init__(self, timeout) -> None:
-        super().__init__(timeout=timeout)
-
-        self.keep_playing: bool = False
-
-    async def on_timeout(self) -> None:
-        self.stop()
-
-    @discord.ui.button(label="keep playing", style=discord.ButtonStyle.success)
-    async def yes(self, button: discord.Button, interaction: discord.Interaction):
-        self.keep_playing = True
-
-        self.stop()
-
-    @discord.ui.button(label="no", style=discord.ButtonStyle.danger)
-    async def no(self, button: discord.Button, interaction: discord.Interaction):
-        self.stop()
-
-
 class GameView(discord.ui.View):
     grid_size = 4
 
@@ -333,7 +314,6 @@ class GameView(discord.ui.View):
         for btn in self.children:
             if isinstance(btn, discord.ui.Button):
                 btn.disabled = True
-                btn.label = "\u200b"
                 btn.emoji = None
                 btn.style = discord.ButtonStyle.secondary
 
@@ -342,7 +322,8 @@ class GameView(discord.ui.View):
         try:
             message = await channel.fetch_message(self.original_message.id)
 
-        except Exception:
+        except Exception as e:
+            print("".join(traceback.format_exception(e, e, e.__traceback__)))
             return self.stop()
 
         await message.edit(view=self)
@@ -427,8 +408,8 @@ class GameView(discord.ui.View):
 
             await interaction.response.edit_message(view=self)
 
-        except Exception:
-            pass
+        except Exception as e:
+            print("".join(traceback.format_exception(e, e, e.__traceback__)))
 
     @discord.ui.button(
         emoji=NewEmote.from_name("<a:arrowup:951720658440708097>"), style=discord.ButtonStyle.primary, row=grid_size
@@ -449,8 +430,8 @@ class GameView(discord.ui.View):
 
             await interaction.response.edit_message(view=self)
 
-        except Exception:
-            pass
+        except Exception as e:
+            print("".join(traceback.format_exception(e, e, e.__traceback__)))
 
     @discord.ui.button(
         emoji=NewEmote.from_name("<a:arrowdown:951720657509564417>"), style=discord.ButtonStyle.primary, row=grid_size
@@ -471,8 +452,8 @@ class GameView(discord.ui.View):
 
             await interaction.response.edit_message(view=self)
 
-        except Exception:
-            pass
+        except Exception as e:
+            print("".join(traceback.format_exception(e, e, e.__traceback__)))
 
     @discord.ui.button(
         emoji=NewEmote.from_name("<a:arrowright:951720658365186058>"), style=discord.ButtonStyle.primary, row=grid_size
@@ -493,15 +474,14 @@ class GameView(discord.ui.View):
 
             await interaction.response.edit_message(view=self)
 
-        except Exception:
-            pass
+        except Exception as e:
+            print("".join(traceback.format_exception(e, e, e.__traceback__)))
 
     @discord.ui.button(label="bye", style=discord.ButtonStyle.danger, row=grid_size)
     async def end(self, _: discord.Button, interaction: discord.Interaction):
         try:
             for btn in self.children:
                 btn.disabled = True
-                btn.label = "\u200b"
                 btn.emoji = None
                 btn.style = discord.ButtonStyle.secondary
 
@@ -510,8 +490,8 @@ class GameView(discord.ui.View):
             await interaction.followup.edit_message(message_id=self.original_message.id, view=self)
             self.stop()
 
-        except Exception:
-            pass
+        except Exception as e:
+            print("".join(traceback.format_exception(e, e, e.__traceback__)))
 
 
 class TwentyFortyEight(commands.Cog):
