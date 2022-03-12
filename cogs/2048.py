@@ -526,7 +526,7 @@ class TwentyFortyEight(commands.Cog):
             4: 2048,
         }
 
-        infoEmbed.set_author(name=f"win at {win_map[grid_size]}")
+        infoEmbed.set_author(name=f"win at -> {win_map[grid_size]}")
 
         message = await ctx.respond(embed=infoEmbed, view=view)
         setattr(view, "message", message)
