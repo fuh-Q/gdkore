@@ -314,20 +314,17 @@ class GameView(discord.ui.View):
         for btn in self.children:
             if isinstance(btn, discord.ui.Button):
                 btn.disabled = True
-                btn.emoji = None
-                btn.label = "\u200b"
                 btn.style = discord.ButtonStyle.secondary
 
         channel = self.client.get_channel(self.ctx.channel.id)
 
         try:
             message = await channel.fetch_message(self.original_message.id)
+            await message.edit(view=self)
 
         except Exception as e:
             print("".join(traceback.format_exception(e, e, e.__traceback__)))
             return self.stop()
-
-        await message.edit(view=self)
 
         await self.original_message.reply(
             f"ok im guessing you just <a:peace:951323779756326912>'d out on me cuz you havent clicked anything for 2 minutes"
@@ -391,7 +388,9 @@ class GameView(discord.ui.View):
         return self.stop()
 
     @discord.ui.button(
-        emoji=NewEmote.from_name("<a:arrowleft:951720658256134144>"), style=discord.ButtonStyle.primary, row=grid_size
+        emoji=NewEmote.from_name("<a:arrowleft:951720658256134144>"),
+        style=discord.ButtonStyle.primary,
+        row=grid_size
     )
     async def left(self, _: discord.Button, interaction: discord.Interaction):
         try:
@@ -413,7 +412,9 @@ class GameView(discord.ui.View):
             print("".join(traceback.format_exception(e, e, e.__traceback__)))
 
     @discord.ui.button(
-        emoji=NewEmote.from_name("<a:arrowup:951720658440708097>"), style=discord.ButtonStyle.primary, row=grid_size
+        emoji=NewEmote.from_name("<a:arrowup:951720658440708097>"),
+        style=discord.ButtonStyle.primary,
+        row=grid_size
     )
     async def up(self, _: discord.Button, interaction: discord.Interaction):
         try:
@@ -435,7 +436,9 @@ class GameView(discord.ui.View):
             print("".join(traceback.format_exception(e, e, e.__traceback__)))
 
     @discord.ui.button(
-        emoji=NewEmote.from_name("<a:arrowdown:951720657509564417>"), style=discord.ButtonStyle.primary, row=grid_size
+        emoji=NewEmote.from_name("<a:arrowdown:951720657509564417>"),
+        style=discord.ButtonStyle.primary,
+        row=grid_size
     )
     async def down(self, _: discord.Button, interaction: discord.Interaction):
         try:
@@ -457,7 +460,9 @@ class GameView(discord.ui.View):
             print("".join(traceback.format_exception(e, e, e.__traceback__)))
 
     @discord.ui.button(
-        emoji=NewEmote.from_name("<a:arrowright:951720658365186058>"), style=discord.ButtonStyle.primary, row=grid_size
+        emoji=NewEmote.from_name("<a:arrowright:951720658365186058>"),
+        style=discord.ButtonStyle.primary,
+        row=grid_size
     )
     async def right(self, _: discord.Button, interaction: discord.Interaction):
         try:
@@ -483,8 +488,6 @@ class GameView(discord.ui.View):
         try:
             for btn in self.children:
                 btn.disabled = True
-                btn.emoji = None
-                btn.label = "\u200b"
                 btn.style = discord.ButtonStyle.secondary
 
             await interaction.response.send_message("kbai", ephemeral=True)
