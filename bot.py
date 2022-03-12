@@ -41,7 +41,7 @@ async def mobile(self: DiscordWebSocket):
             "properties": {
                 "$os": sys.platform,
                 "$browser": "Discord iOS",
-                "$device": "pycord",
+                "$device": "iPhone 8",
                 "$referrer": "",
                 "$referring_domain": "",
             },
