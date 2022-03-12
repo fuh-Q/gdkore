@@ -500,7 +500,7 @@ class GameView(discord.ui.View):
 
 
 class TwentyFortyEight(commands.Cog):
-    def __init__(self, client: commands.Bot) -> None:
+    def __init__(self, client: NotGDKID) -> None:
         self.client = client
 
     @commands.Cog.listener()
@@ -545,7 +545,18 @@ class TwentyFortyEight(commands.Cog):
     @twentyfortyeight.error
     async def twentyfortyeight_error(self, ctx: ApplicationContext, error):
         if isinstance(error, commands.MaxConcurrencyReached):
-            return await ctx.respond("you already have a game going on", ephemeral=True)
+            author_game = None
+            
+            for gameview in self.client.games:
+                gameview: GameView
+                
+                if gameview.game.player.id == ctx.author.id:
+                    author_game = gameview.original_message.jump_url
+            
+            return await ctx.respond(
+                f"you already have a game going on\n{'[jump to game](' + author_game + ')' if author_game is not None else ''})",
+                ephemeral=True
+            )
 
 
 def setup(client: commands.Bot):
