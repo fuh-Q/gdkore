@@ -546,7 +546,7 @@ class TwentyFortyEight(commands.Cog):
                     author_game = gameview.original_message.jump_url
 
             return await ctx.respond(
-                f"you already have a game going on\n{'[jump to game message](' + author_game + ')' if author_game is not None else ''})",
+                f"you already have a game going on\n{'[jump to game message](<' + author_game + '>)' if author_game is not None else ''}",
                 ephemeral=True,
             )
 
