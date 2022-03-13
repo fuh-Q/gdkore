@@ -480,7 +480,7 @@ class GameView(discord.ui.View):
         try:
             for btn in self.children:
                 btn.disabled = True
-                
+
                 if btn.style == discord.ButtonStyle.success:
                     btn.style = discord.ButtonStyle.secondary
 
@@ -552,7 +552,7 @@ class TwentyFortyEight(commands.Cog):
                 f"you already have a game going on\n{'[jump to game message](<' + author_game + '>)' if author_game is not None else ''}",
                 ephemeral=True,
             )
-        
+
         if isinstance(error, commands.CommandOnCooldown):
             return await ctx.respond(f"youre on cooldown, try again in `{error.retry_after:.2f}s`", ephemeral=True)
 
