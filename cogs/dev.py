@@ -6,6 +6,8 @@ from discord.ext import commands
 from config.json import Json
 from config.utils import BattlerCog
 
+from jishaku.codeblocks import codeblock_converter
+
 
 class Dev(BattlerCog):
     def __init__(self, client: commands.Bot):
@@ -15,6 +17,16 @@ class Dev(BattlerCog):
     @commands.Cog.listener()
     async def on_ready(self):
         print("Dev cog loaded")
+    
+    @commands.command(hidden=True, brief="Git")
+    @commands.is_owner()
+    async def git(self, ctx: commands.Context, *, cmd):
+        await ctx.invoke(self.client.get_command("battler git"), argument=codeblock_converter(cmd))
+    
+    @commands.command(hidden=True, brief="Pip")
+    @commands.is_owner()
+    async def pip(self, ctx: commands.Context, *, cmd):
+        await ctx.invoke(self.client.get_command("battler pip"), argument=codeblock_converter(cmd))
 
     @commands.command(aliases=["servers"], hidden=True, brief="Get the bot's server count")
     @commands.is_owner()

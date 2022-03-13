@@ -368,7 +368,7 @@ class GameView(discord.ui.View):
         return super().stop()
 
     async def won(self, interaction: discord.Interaction):
-        await interaction.followup.send("Ggs you won ig")
+        await interaction.followup.send(f"Ggs you won ig {self.game.player.mention}")
 
     async def loss(self, interaction: discord.Interaction):
         for btn in self.children:
@@ -378,10 +378,10 @@ class GameView(discord.ui.View):
                 btn.style = discord.ButtonStyle.secondary
 
         if not self._won:
-            await interaction.response.send_message("you lose. imagine losing.")
+            await interaction.response.send_message(f"you lose. imagine losing. {self.game.player.mention}")
 
         else:
-            await interaction.response.send_message("you lost but you still won :ok_hand:")
+            await interaction.response.send_message(f"you lost but you still won :ok_hand: {self.game.player.mention}")
 
         await interaction.followup.edit_message(message_id=self.original_message.id, view=self)
 
@@ -480,7 +480,9 @@ class GameView(discord.ui.View):
         try:
             for btn in self.children:
                 btn.disabled = True
-                btn.style = discord.ButtonStyle.secondary
+                
+                if btn.style == discord.ButtonStyle.success:
+                    btn.style = discord.ButtonStyle.secondary
 
             await interaction.response.send_message("kbai", ephemeral=True)
 
@@ -500,6 +502,7 @@ class TwentyFortyEight(commands.Cog):
         print("2048 cog loaded")
 
     @slash_command(name="2048")
+    @commands.cooldown(1, 10, commands.BucketType.user)
     @commands.max_concurrency(1, commands.BucketType.user)
     async def twentyfortyeight(
         self,
@@ -549,6 +552,9 @@ class TwentyFortyEight(commands.Cog):
                 f"you already have a game going on\n{'[jump to game message](<' + author_game + '>)' if author_game is not None else ''}",
                 ephemeral=True,
             )
+        
+        if isinstance(error, commands.CommandOnCooldown):
+            return await ctx.respond(f"youre on cooldown, try again in `{error.retry_after:.2f}s`", ephemeral=True)
 
 
 def setup(client: commands.Bot):
