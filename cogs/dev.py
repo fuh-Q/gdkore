@@ -2,7 +2,6 @@ import time
 
 import discord
 from discord.ext import commands
-from jishaku.codeblocks import codeblock_converter
 
 from config.json import Json
 from config.utils import BattlerCog
