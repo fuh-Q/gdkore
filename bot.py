@@ -1,5 +1,5 @@
 import asyncio
-import datetime
+from datetime import datetime, timezone, timedelta
 import logging
 import os
 import sys
@@ -8,7 +8,7 @@ import traceback
 from typing import Dict
 
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 from discord.gateway import DiscordWebSocket
 from fuzzy_match import match
 from jishaku.shim.paginator_200 import PaginatorInterface
@@ -67,6 +67,15 @@ async def mobile(self: DiscordWebSocket):
 
 DiscordWebSocket.identify = mobile
 
+
+@tasks.loop(seconds=1)
+async def status_task(client: "NotGDKID"):
+    now = datetime.now(timezone(timedelta(hours=-7)))
+    if now.second == 0:
+        fmt = now.strftime("%I:%M")
+        
+        await client.change_presence(status=discord.Status.online, activity=discord.Game(name=f"{fmt} in an unusual timezone"))
+
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("Bot")
 
@@ -102,7 +111,7 @@ class NotGDKID(commands.Bot):
 
         self.token = secrets["token"]
 
-        self.uptime = datetime.datetime.utcnow()
+        self.uptime = datetime.utcnow()
 
         ready_task = self.loop.create_task(self.first_ready())
         ready_task.add_done_callback(
@@ -160,7 +169,11 @@ class NotGDKID(commands.Bot):
         await self.change_presence(status=discord.Status.idle, activity=discord.Game(name="Connecting..."))
 
     async def on_ready(self):
-        await self.change_presence(status=discord.Status.online, activity=discord.Game(name="Cookie Clicker"))
+        now = datetime.now(timezone(timedelta(hours=-7)))
+        fmt = now.strftime("%I:%M")
+        
+        await self.change_presence(status=discord.Status.online, activity=discord.Game(name=f"{fmt} in an unusual timezone"))
+        status_task.start(self)
 
     async def start(self):
         await super().start(self.token)
