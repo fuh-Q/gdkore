@@ -1,10 +1,10 @@
 import asyncio
-from datetime import datetime, timezone, timedelta
 import logging
 import os
 import sys
 import time
 import traceback
+from datetime import datetime, timedelta, timezone
 from typing import Dict
 
 import discord
@@ -73,8 +73,11 @@ async def status_task(client: "NotGDKID"):
     now = datetime.now(timezone(timedelta(hours=-7)))
     if now.second == 0:
         fmt = now.strftime("%I:%M")
-        
-        await client.change_presence(status=discord.Status.online, activity=discord.Game(name=f"{fmt} in an unusual timezone"))
+
+        await client.change_presence(
+            status=discord.Status.online, activity=discord.Game(name=f"{fmt} in an unusual timezone")
+        )
+
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("Bot")
@@ -171,8 +174,10 @@ class NotGDKID(commands.Bot):
     async def on_ready(self):
         now = datetime.now(timezone(timedelta(hours=-7)))
         fmt = now.strftime("%I:%M")
-        
-        await self.change_presence(status=discord.Status.online, activity=discord.Game(name=f"{fmt} in an unusual timezone"))
+
+        await self.change_presence(
+            status=discord.Status.online, activity=discord.Game(name=f"{fmt} in an unusual timezone")
+        )
         status_task.start(self)
 
     async def start(self):
