@@ -314,17 +314,14 @@ class GameView(discord.ui.View):
         for btn in self.children:
             if isinstance(btn, discord.ui.Button):
                 btn.disabled = True
-                btn.style = discord.ButtonStyle.secondary
+                
+                if btn.style == discord.ButtonStyle.success:
+                    btn.style = discord.ButtonStyle.secondary
 
         channel = self.client.get_channel(self.ctx.channel.id)
 
-        try:
-            message = await channel.fetch_message(self.original_message.id)
-            await message.edit(view=self)
-
-        except Exception as e:
-            print("".join(traceback.format_exception(e, e, e.__traceback__)))
-            return self.stop()
+        message = await channel.fetch_message(self.original_message.id)
+        await message.edit(view=self)
 
         await self.original_message.reply(
             f"ok im guessing you just <a:peace:951323779756326912>'d out on me cuz you havent clicked anything for 2 minutes {self.game.player.mention}"
