@@ -314,7 +314,7 @@ class GameView(discord.ui.View):
         for btn in self.children:
             if isinstance(btn, discord.ui.Button):
                 btn.disabled = True
-                
+
                 if btn.style == discord.ButtonStyle.success:
                     btn.style = discord.ButtonStyle.secondary
 
