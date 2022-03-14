@@ -327,7 +327,7 @@ class GameView(discord.ui.View):
             return self.stop()
 
         await self.original_message.reply(
-            f"ok im guessing you just <a:peace:951323779756326912>'d out on me cuz you havent clicked anything for 2 minutes"
+            f"ok im guessing you just <a:peace:951323779756326912>'d out on me cuz you havent clicked anything for 2 minutes {self.game.player.mention}"
         )
 
         self.stop()
@@ -368,7 +368,7 @@ class GameView(discord.ui.View):
         return super().stop()
 
     async def won(self, interaction: discord.Interaction):
-        await interaction.followup.send(f"Ggs you won ig {self.game.player.mention}")
+        await interaction.followup.send(f"Ggs you won ig")
 
     async def loss(self, interaction: discord.Interaction):
         for btn in self.children:
@@ -378,10 +378,10 @@ class GameView(discord.ui.View):
                 btn.style = discord.ButtonStyle.secondary
 
         if not self._won:
-            await interaction.response.send_message(f"you lose. imagine losing. {self.game.player.mention}")
+            await interaction.response.send_message(f"you lose. imagine losing.")
 
         else:
-            await interaction.response.send_message(f"you lost but you still won :ok_hand: {self.game.player.mention}")
+            await interaction.response.send_message(f"you lost but you still won :ok_hand:")
 
         await interaction.followup.edit_message(message_id=self.original_message.id, view=self)
 
