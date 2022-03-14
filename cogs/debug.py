@@ -337,8 +337,7 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
 
         return await ctx.invoke(self.jsk_shell, argument=Codeblock(argument.language, "pip " + argument.content))
 
-    @Feature.Command(parent="",
-    standalone_ok=True, name="source", aliases=["src"])
+    @Feature.Command(parent="", standalone_ok=True, name="source", aliases=["src"])
     async def jsk_source(self, ctx: commands.Context, *, command_name: str):
         """
         Displays the source code for a command.
@@ -389,8 +388,7 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
             interface = PaginatorInterFace(ctx.bot, paginator, owner=ctx.author)
             await interface.send_to(ctx)
 
-    @Feature.Command(parent="",
-    standalone_ok=True, name="cat")
+    @Feature.Command(parent="", standalone_ok=True, name="cat")
     async def jsk_cat(self, ctx: commands.Context, argument: str):  # pylint: disable=too-many-locals
         """
         Read out a file, using syntax highlighting if detected.
@@ -466,8 +464,7 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
         except ValueError as exc:
             return await ctx.send(f"`{path}`: Couldn't read this file, {exc}")
 
-    @Feature.Command(parent="",
-    standalone_ok=True, name="curl")
+    @Feature.Command(parent="", standalone_ok=True, name="curl")
     async def jsk_curl(self, ctx: commands.Context, url: str):
         """
         Download and display a text file from the internet.
@@ -526,8 +523,7 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
                 interface = PaginatorInterFace(ctx.bot, paginator, owner=ctx.author)
                 await interface.send_to(ctx)
 
-    @Feature.Command(parent="",
-    standalone_ok=True, name="dis", aliases=["disassemble"])
+    @Feature.Command(parent="", standalone_ok=True, name="dis", aliases=["disassemble"])
     async def jsk_disassemble(self, ctx: commands.Context, *, argument: codeblock_converter):
         """
         Disassemble Python code into bytecode.
@@ -564,8 +560,7 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
                 interface = PaginatorInterFace(ctx.bot, paginator, owner=ctx.author)
                 await interface.send_to(ctx)
 
-    @Feature.Command(parent="",
-    standalone_ok=True, name="py", aliases=["python"])
+    @Feature.Command(parent="", standalone_ok=True, name="py", aliases=["python"])
     async def jsk_python(self, ctx: commands.Context, *, argument: codeblock_converter):
         """
         Direct evaluation of Python code.
@@ -712,8 +707,7 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
         finally:
             scope.clear_intersection(arg_dict)
 
-    @Feature.Command(parent="",
-    standalone_ok=True, name="tasks")
+    @Feature.Command(parent="", standalone_ok=True, name="tasks")
     async def jsk_tasks(self, ctx: commands.Context):
         """
         Shows the currently running jishaku tasks.
