@@ -12,7 +12,7 @@ import aiohttp
 import discord
 import jishaku.shim.paginator_base
 from discord.ext import commands
-from jishaku.codeblocks import codeblock_converter, Codeblock
+from jishaku.codeblocks import Codeblock, codeblock_converter
 from jishaku.cog import OPTIONAL_FEATURES, STANDARD_FEATURES
 from jishaku.features.baseclass import Feature
 from jishaku.features.filesystem import guess_file_traits
@@ -312,24 +312,16 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
                         await interface.add_line(line)
 
                 await interface.add_line(f"\n[status] Return code {reader.close_code}")
-    
-    @Feature.Command(
-        parent="",
-        standalone_ok=True,
-        name="git"
-    )
+
+    @Feature.Command(parent="", standalone_ok=True, name="git")
     async def jsk_git(self, ctx: commands.Context, *, argument: codeblock_converter):
         """
         Shortcut for 'jsk sh git'. Invokes the system shell.
         """
-        
+
         return await ctx.invoke(self.jsk_shell, argument=Codeblock(argument.language, "git " + argument.content))
-    
-    @Feature.Command(
-        parent="",
-        standalone_ok=True,
-        name="pip"
-    )
+
+    @Feature.Command(parent="", standalone_ok=True, name="pip")
     async def jsk_pip(self, ctx: commands.Context, *, argument: codeblock_converter):
         """
         Shortcut for 'jsk sh pip'. Invokes the system shell.
