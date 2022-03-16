@@ -12,13 +12,11 @@ from discord.ext import commands, tasks
 from discord.gateway import DiscordWebSocket
 from fuzzy_match import match
 from jishaku.shim.paginator_200 import PaginatorInterface
-
-from config.json import Json
-
 from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo import MongoClient
 from pymongo.database import Database
-from pymongo.collection import Collection
+
+from config.json import Json
 
 secrets: Dict[str, str] = Json.read_json("secrets")
 secondary_config: Dict[str, str] = Json.read_json("restart")
@@ -103,9 +101,8 @@ class NotGDKID(commands.Bot):
                 "<@!859104775429947432> ",
                 "<@859104775429947432> ",
                 "<@!865596669999054910> ",
-                "<@865596669999054910> "
-                "B!",
-                "b!"
+                "<@865596669999054910> " "B!",
+                "b!",
             ],
             allowed_mentions=allowed_mentions,
             intents=intents,
@@ -123,9 +120,9 @@ class NotGDKID(commands.Bot):
         self.yes = "<:yes_tick:842078179833151538>"  # Checkmark
         self.no = "<:no_cross:842078253032407120>"  # X
         self.active_jishaku_paginators: list[PaginatorInterface] = []
-        
+
         self.games_db = db["Games"]
-        
+
         self.games = []
 
         self.cache = {"games": []}
@@ -151,7 +148,7 @@ class NotGDKID(commands.Bot):
 
         await self.sync_commands()
         log.info("Finished syncing all interaction commands!")
-        
+
         async for doc in self.games_db.find():
             self.cache["games"].append(doc["item"])
 
@@ -178,7 +175,7 @@ class NotGDKID(commands.Bot):
             await msg.edit(embed=e)
 
             Json.clear_json("restart")
-    
+
     async def on_application_command_error(self, ctx: discord.ApplicationContext, e: Exception) -> None:
         print("".join(traceback.format_exception(e, e, e.__traceback__)))
 
@@ -204,32 +201,23 @@ class NotGDKID(commands.Bot):
     async def start(self):
         if str(__file__).lower() == r"d:\ban-battler\bot.py":
             await super().start(self.testing_token)
-        
+
         else:
             await super().start(self.token)
 
     async def close(self, restart: bool = False):
         for k, v in self.cache.items():
             if isinstance(v, dict):
-                await db[k].update_one(
-                    {"_id": v["_id"]},
-                    {"$set": v},
-                    upsert=True
-                )
-            
+                await db[k].update_one({"_id": v["_id"]}, {"$set": v}, upsert=True)
+
             if isinstance(v, list):
                 counter = 0
                 await db[k].delete_many({})
                 for i in v:
-                    await db[k].insert_one(
-                        {
-                            "_id": counter,
-                            "item": i
-                        }
-                    )
-                    
+                    await db[k].insert_one({"_id": counter, "item": i})
+
                     counter += 1
-        
+
         for pag in self.active_jishaku_paginators:
             await pag.message.edit(view=None)
             self.active_jishaku_paginators.pop(self.active_jishaku_paginators.index(pag))

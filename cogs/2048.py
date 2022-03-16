@@ -62,24 +62,24 @@ class Game:
 
             first_block.display = first_block.value
             second_block.display = second_block.value
-        
+
         elif blocks:
             for b in self.blocks:
                 if b.value == win_map[grid_size]:
                     self._won = True
-    
+
     @classmethod
     def from_values(cls, blocks: list[int]):
         new_blocks: list[Block] = []
-        
+
         counter = 0
         grid_size = round(math.sqrt(len(blocks)))
-        
+
         for y in range(grid_size):
             for x in range(grid_size):
                 new_blocks.append(Block(x, y, counter, blocks[counter]))
                 counter += 1
-        
+
         return cls(grid_size, new_blocks)
 
     def __repr__(self) -> str:
@@ -277,32 +277,24 @@ class QuitConfirmation(discord.ui.Select):
     def __init__(self, game: "GameView", parent: discord.ui.View) -> None:
         self.game = game
         self.parent = parent
-        
+
         options = [
             discord.SelectOption(
                 label="ye",
                 description="keep playing later with /2048 and set load to true",
-                emoji=NewEmote.from_name("<:yes_tick:842078179833151538>")
+                emoji=NewEmote.from_name("<:yes_tick:842078179833151538>"),
             ),
             discord.SelectOption(
                 label="nu",
                 description="trash out this current game",
-                emoji=NewEmote.from_name("<:no_cross:842078253032407120>")
-            )
+                emoji=NewEmote.from_name("<:no_cross:842078253032407120>"),
+            ),
         ]
-        
-        super().__init__(
-            placeholder="ye / nu",
-            max_values=1,
-            min_values=1,
-            options=options
-        )
-    
+
+        super().__init__(placeholder="ye / nu", max_values=1, min_values=1, options=options)
+
     async def callback(self, interaction: discord.Interaction):
-        bool_map = {
-            "ye": True,
-            "nu": False
-        }
+        bool_map = {"ye": True, "nu": False}
         self.game.stop(save=bool_map[self.values[0]])
         self.parent.stop()
         return await interaction.response.send_message("kbai", ephemeral=True)
@@ -312,12 +304,12 @@ class QuitConfirmationView(discord.ui.View):
     def __init__(self, game: "GameView"):
         super().__init__(timeout=120)
         self.game = game
-        
+
         self.add_item(QuitConfirmation(game, self))
-    
+
     async def on_timeout(self) -> None:
         return self.game.stop()
-    
+
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if interaction.user.id != self.game.game.player.id:
             await interaction.response.send_message(content=c(CHOICES), ephemeral=True)
@@ -328,9 +320,15 @@ class QuitConfirmationView(discord.ui.View):
 class GameView(discord.ui.View):
     grid_size = 4
 
-    def __init__(self, ctx: ApplicationContext, grid_size: Optional[int] = None, blocks: list[int] = None, client: NotGDKID = None):
+    def __init__(
+        self,
+        ctx: ApplicationContext,
+        grid_size: Optional[int] = None,
+        blocks: list[int] = None,
+        client: NotGDKID = None,
+    ):
         super().__init__(timeout=120)
-        
+
         self.game = Game.from_values(blocks) if blocks is not None and grid_size is None else Game(grid_size=grid_size)
         self.game.player = ctx.user
 
@@ -344,15 +342,14 @@ class GameView(discord.ui.View):
         self.grid_size = grid_size or self.game.grid_size
 
         self.client.games.append(self)
-        
+
         for game in self.client.cache["games"]:
             if game["player"] == self.game.player.id:
                 self.client.cache["games"].pop(self.client.cache["games"].index(game))
-        
-        self.client.cache["games"].append({
-            "player": self.game.player.id,
-            "blocks": [b.value for b in self.game.blocks]
-        })
+
+        self.client.cache["games"].append(
+            {"player": self.game.player.id, "blocks": [b.value for b in self.game.blocks]}
+        )
 
         counter = 0
 
@@ -411,11 +408,13 @@ class GameView(discord.ui.View):
         await message.edit(view=self)
 
         await self.original_message.reply(
-            "\n".join([
-                f"ok im guessing you just <a:peace:951323779756326912>'d out on me cuz you havent clicked anything for 2 minutes {self.game.player.mention}",
-                "",
-                "(i saved your game btw, you can keep playing with `/2048`, setting `load` to true)"
-            ])
+            "\n".join(
+                [
+                    f"ok im guessing you just <a:peace:951323779756326912>'d out on me cuz you havent clicked anything for 2 minutes {self.game.player.mention}",
+                    "",
+                    "(i saved your game btw, you can keep playing with `/2048`, setting `load` to true)",
+                ]
+            )
         )
 
         self.stop(save=True)
@@ -449,23 +448,23 @@ class GameView(discord.ui.View):
     def stop(self, save: bool = True):
         try:
             self.client.games.pop(self.client.games.index(self))
-            
+
             index = 0
             for game in self.client.cache["games"]:
                 if game["player"] == self.game.player.id:
                     if save is not True:
                         self.client.cache["games"].pop(self.client.cache["games"].index(game))
                         continue
-                    
+
                     else:
                         self.client.cache["games"][index] = {
                             "player": self.game.player.id,
-                            "blocks": [b.value for b in self.game.blocks]
+                            "blocks": [b.value for b in self.game.blocks],
                         }
                         break
-                
+
                 index += 1
-                
+
         except Exception as e:
             print("".join(traceback.format_exception(e, e, e.__traceback__)))
 
@@ -590,11 +589,7 @@ class GameView(discord.ui.View):
                     btn.style = discord.ButtonStyle.secondary
 
             await interaction.response.edit_message(view=self)
-            await interaction.followup.send(
-                "wanna save your game?",
-                view=QuitConfirmationView(self),
-                ephemeral=True
-            )
+            await interaction.followup.send("wanna save your game?", view=QuitConfirmationView(self), ephemeral=True)
 
         except Exception as e:
             print("".join(traceback.format_exception(e, e, e.__traceback__)))
@@ -621,7 +616,7 @@ class TwentyFortyEight(commands.Cog):
                 OptionChoice(name="4x4", value=4),
                 OptionChoice(name="3x3 (win at 1024)", value=3),
                 OptionChoice(name="2x2 (win at 32)", value=2),
-            ]
+            ],
         ) = 4,
         load: Option(
             bool,
@@ -629,17 +624,17 @@ class TwentyFortyEight(commands.Cog):
         ) = False,
     ):
         """play 2048"""
-        
+
         if load is True:
             found = False
-            
+
             for game in self.client.cache["games"]:
                 if game["player"] == ctx.author.id:
                     found = True
                     grid_size = round(math.sqrt(len(game["blocks"])))
                     view = GameView(ctx, blocks=game["blocks"])
                     break
-            
+
             if not found:
                 return await ctx.respond("couldnt find a saved game", ephemeral=True)
 
