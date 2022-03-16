@@ -121,7 +121,7 @@ class NotGDKID(commands.Bot):
         self.no = "<:no_cross:842078253032407120>"  # X
         self.active_jishaku_paginators: list[PaginatorInterface] = []
 
-        self.games_db = db["Games"]
+        self.games_db = db["games"]
 
         self.games = []
 
