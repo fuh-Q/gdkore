@@ -1,3 +1,4 @@
+import math
 import time
 import traceback
 from enum import Enum
@@ -16,6 +17,12 @@ from config.utils import CHOICES, Botcolours, NewEmote
 
 weights = (90, 10)  # 2, 4
 
+win_map = {
+    2: 32,
+    3: 1024,
+    4: 2048,
+}
+
 
 class Directions(Enum):
     LEFT = 1
@@ -25,34 +32,55 @@ class Directions(Enum):
 
 
 class Game:
-    def __init__(self, grid_size: int = 4):
-        self.blocks: list[Block] = []
+    def __init__(self, grid_size: Optional[int] = 4, blocks: list["Block"] = None):
+        self.blocks: list[Block] = blocks or []
         self.grid_size = grid_size
         self.new_block = None
         self.player: discord.User = None
 
         self.moved: bool = False
+        self._won: bool = False
 
-        counter = 0
+        if not blocks:
+            counter = 0
 
-        for ro in range(self.grid_size):
-            for co in range(self.grid_size):
-                self.blocks.append(Block(co, ro, counter))
-                counter += 1
+            for ro in range(self.grid_size):
+                for co in range(self.grid_size):
+                    self.blocks.append(Block(co, ro, counter))
+                    counter += 1
 
-        first_coords = (r(0, self.grid_size - 1), r(0, self.grid_size - 1))
-        second_coords = (r(0, self.grid_size - 1), r(0, self.grid_size - 1))
-        while second_coords == first_coords:
+            first_coords = (r(0, self.grid_size - 1), r(0, self.grid_size - 1))
             second_coords = (r(0, self.grid_size - 1), r(0, self.grid_size - 1))
+            while second_coords == first_coords:
+                second_coords = (r(0, self.grid_size - 1), r(0, self.grid_size - 1))
 
-        first_block = self._get_block(*first_coords)
-        second_block = self._get_block(*second_coords)
+            first_block = self._get_block(*first_coords)
+            second_block = self._get_block(*second_coords)
 
-        first_block.value = ch([2, 4], weights=weights, k=1)[0]
-        second_block.value = ch([2, 4], weights=weights, k=1)[0]
+            first_block.value = ch([2, 4], weights=weights, k=1)[0]
+            second_block.value = ch([2, 4], weights=weights, k=1)[0]
 
-        first_block.display = first_block.value
-        second_block.display = second_block.value
+            first_block.display = first_block.value
+            second_block.display = second_block.value
+        
+        elif blocks:
+            for b in self.blocks:
+                if b.value == win_map[grid_size]:
+                    self._won = True
+    
+    @classmethod
+    def from_values(cls, blocks: list[int]):
+        new_blocks: list[Block] = []
+        
+        counter = 0
+        grid_size = round(math.sqrt(len(blocks)))
+        
+        for y in range(grid_size):
+            for x in range(grid_size):
+                new_blocks.append(Block(x, y, counter, blocks[counter]))
+                counter += 1
+        
+        return cls(grid_size, new_blocks)
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} player={self.player} grid_size={self.grid_size}>"
@@ -245,13 +273,65 @@ class Block:
         other.list_index = list_index
 
 
+class QuitConfirmation(discord.ui.Select):
+    def __init__(self, game: "GameView", parent: discord.ui.View) -> None:
+        self.game = game
+        self.parent = parent
+        
+        options = [
+            discord.SelectOption(
+                label="ye",
+                description="keep playing later with /2048 and set load to true",
+                emoji=NewEmote.from_name("<:yes_tick:842078179833151538>")
+            ),
+            discord.SelectOption(
+                label="nu",
+                description="trash out this current game",
+                emoji=NewEmote.from_name("<:no_cross:842078253032407120>")
+            )
+        ]
+        
+        super().__init__(
+            placeholder="ye / nu",
+            max_values=1,
+            min_values=1,
+            options=options
+        )
+    
+    async def callback(self, interaction: discord.Interaction):
+        bool_map = {
+            "ye": True,
+            "nu": False
+        }
+        self.game.stop(save=bool_map[self.values[0]])
+        self.parent.stop()
+        return await interaction.response.send_message("kbai", ephemeral=True)
+
+
+class QuitConfirmationView(discord.ui.View):
+    def __init__(self, game: "GameView"):
+        super().__init__(timeout=120)
+        self.game = game
+        
+        self.add_item(QuitConfirmation(game, self))
+    
+    async def on_timeout(self) -> None:
+        return self.game.stop()
+    
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user.id != self.game.game.player.id:
+            await interaction.response.send_message(content=c(CHOICES), ephemeral=True)
+            return False
+        return True
+
+
 class GameView(discord.ui.View):
     grid_size = 4
 
-    def __init__(self, ctx: ApplicationContext, grid_size: int = 4, client: NotGDKID = None):
+    def __init__(self, ctx: ApplicationContext, grid_size: Optional[int] = None, blocks: list[int] = None, client: NotGDKID = None):
         super().__init__(timeout=120)
-
-        self.game = Game(grid_size=grid_size)
+        
+        self.game = Game.from_values(blocks) if blocks is not None and grid_size is None else Game(grid_size=grid_size)
         self.game.player = ctx.user
 
         self.ctx = ctx
@@ -260,17 +340,24 @@ class GameView(discord.ui.View):
 
         self.original_message: Optional[discord.InteractionMessage] = None
 
-        self.control_row = grid_size
-        self.grid_size = grid_size
-
-        self._won: bool = False
+        self.control_row = grid_size or self.game.grid_size
+        self.grid_size = grid_size or self.game.grid_size
 
         self.client.games.append(self)
+        
+        for game in self.client.cache["games"]:
+            if game["player"] == self.game.player.id:
+                self.client.cache["games"].pop(self.client.cache["games"].index(game))
+        
+        self.client.cache["games"].append({
+            "player": self.game.player.id,
+            "blocks": [b.value for b in self.game.blocks]
+        })
 
         counter = 0
 
-        for i in range(grid_size):
-            for _ in range(grid_size):
+        for i in range(self.grid_size):
+            for _ in range(self.grid_size):
                 btn = discord.ui.Button(
                     label=self.game.blocks[counter].display,
                     row=i,
@@ -324,10 +411,14 @@ class GameView(discord.ui.View):
         await message.edit(view=self)
 
         await self.original_message.reply(
-            f"ok im guessing you just <a:peace:951323779756326912>'d out on me cuz you havent clicked anything for 2 minutes {self.game.player.mention}"
+            "\n".join([
+                f"ok im guessing you just <a:peace:951323779756326912>'d out on me cuz you havent clicked anything for 2 minutes {self.game.player.mention}",
+                "",
+                "(i saved your game btw, you can keep playing with `/2048`, setting `load` to true)"
+            ])
         )
 
-        self.stop()
+        self.stop(save=True)
 
     def update(self):
         self.children = sorted(self.children, key=lambda o: o.row)
@@ -342,7 +433,7 @@ class GameView(discord.ui.View):
                 btn.style = discord.ButtonStyle.success
                 btn.disabled = True
 
-            if not self._won:
+            if not self.game._won:
                 if (
                     block.value == 2048
                     and self.grid_size == 4
@@ -351,15 +442,32 @@ class GameView(discord.ui.View):
                     or block.value == 32
                     and self.grid_size == 2
                 ):
-                    self._won = True
+                    self.game._won = True
 
-        return self._won
+        return self.game._won
 
-    def stop(self):
+    def stop(self, save: bool = True):
         try:
             self.client.games.pop(self.client.games.index(self))
-        except Exception:
-            pass
+            
+            index = 0
+            for game in self.client.cache["games"]:
+                if game["player"] == self.game.player.id:
+                    if save is not True:
+                        self.client.cache["games"].pop(self.client.cache["games"].index(game))
+                        continue
+                    
+                    else:
+                        self.client.cache["games"][index] = {
+                            "player": self.game.player.id,
+                            "blocks": [b.value for b in self.game.blocks]
+                        }
+                        break
+                
+                index += 1
+                
+        except Exception as e:
+            print("".join(traceback.format_exception(e, e, e.__traceback__)))
 
         del self.game
         return super().stop()
@@ -374,7 +482,7 @@ class GameView(discord.ui.View):
             if btn.style == discord.ButtonStyle.success:
                 btn.style = discord.ButtonStyle.secondary
 
-        if not self._won:
+        if not self.game._won:
             await interaction.response.send_message(f"you lose. imagine losing.")
 
         else:
@@ -382,14 +490,14 @@ class GameView(discord.ui.View):
 
         await interaction.followup.edit_message(message_id=self.original_message.id, view=self)
 
-        return self.stop()
+        return self.stop(save=False)
 
     @discord.ui.button(
         emoji=NewEmote.from_name("<a:arrowleft:951720658256134144>"), style=discord.ButtonStyle.primary, row=grid_size
     )
     async def left(self, _: discord.Button, interaction: discord.Interaction):
         try:
-            already_won = self._won
+            already_won = self.game._won
             self.game.move(Directions.LEFT)
             loss = self.game.check_loss(self.game.blocks)
             won = self.update()
@@ -411,7 +519,7 @@ class GameView(discord.ui.View):
     )
     async def up(self, _: discord.Button, interaction: discord.Interaction):
         try:
-            already_won = self._won
+            already_won = self.game._won
             self.game.move(Directions.UP)
             loss = self.game.check_loss(self.game.blocks)
             won = self.update()
@@ -433,7 +541,7 @@ class GameView(discord.ui.View):
     )
     async def down(self, _: discord.Button, interaction: discord.Interaction):
         try:
-            already_won = self._won
+            already_won = self.game._won
             self.game.move(Directions.DOWN)
             loss = self.game.check_loss(self.game.blocks)
             won = self.update()
@@ -455,7 +563,7 @@ class GameView(discord.ui.View):
     )
     async def right(self, _: discord.Button, interaction: discord.Interaction):
         try:
-            already_won = self._won
+            already_won = self.game._won
             self.game.move(Directions.RIGHT)
             loss = self.game.check_loss(self.game.blocks)
             won = self.update()
@@ -481,10 +589,12 @@ class GameView(discord.ui.View):
                 if btn.style == discord.ButtonStyle.success:
                     btn.style = discord.ButtonStyle.secondary
 
-            await interaction.response.send_message("kbai", ephemeral=True)
-
-            await interaction.followup.edit_message(message_id=self.original_message.id, view=self)
-            self.stop()
+            await interaction.response.edit_message(view=self)
+            await interaction.followup.send(
+                "wanna save your game?",
+                view=QuitConfirmationView(self),
+                ephemeral=True
+            )
 
         except Exception as e:
             print("".join(traceback.format_exception(e, e, e.__traceback__)))
@@ -499,7 +609,7 @@ class TwentyFortyEight(commands.Cog):
         print("2048 cog loaded")
 
     @slash_command(name="2048")
-    @commands.cooldown(1, 10, commands.BucketType.user)
+    @commands.cooldown(1, 5, commands.BucketType.user)
     @commands.max_concurrency(1, commands.BucketType.user)
     async def twentyfortyeight(
         self,
@@ -511,20 +621,32 @@ class TwentyFortyEight(commands.Cog):
                 OptionChoice(name="4x4", value=4),
                 OptionChoice(name="3x3 (win at 1024)", value=3),
                 OptionChoice(name="2x2 (win at 32)", value=2),
-            ],
+            ]
         ) = 4,
+        load: Option(
+            bool,
+            "load a previously saved game",
+        ) = False,
     ):
         """play 2048"""
+        
+        if load is True:
+            found = False
+            
+            for game in self.client.cache["games"]:
+                if game["player"] == ctx.author.id:
+                    found = True
+                    grid_size = round(math.sqrt(len(game["blocks"])))
+                    view = GameView(ctx, blocks=game["blocks"])
+                    break
+            
+            if not found:
+                return await ctx.respond("couldnt find a saved game", ephemeral=True)
 
-        view = GameView(ctx, grid_size)
+        else:
+            view = GameView(ctx, grid_size)
 
         infoEmbed = discord.Embed(description="newly spawned blocks are highlighted in green", colour=Botcolours.green)
-
-        win_map = {
-            2: 32,
-            3: 1024,
-            4: 2048,
-        }
 
         infoEmbed.set_author(name=f"win at -> {win_map[grid_size]}")
 

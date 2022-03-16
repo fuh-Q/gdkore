@@ -15,8 +15,15 @@ from jishaku.shim.paginator_200 import PaginatorInterface
 
 from config.json import Json
 
+from motor.motor_asyncio import AsyncIOMotorClient
+from pymongo import MongoClient
+from pymongo.database import Database
+from pymongo.collection import Collection
+
 secrets: Dict[str, str] = Json.read_json("secrets")
 secondary_config: Dict[str, str] = Json.read_json("restart")
+cluster: MongoClient = AsyncIOMotorClient(secrets["mongoURI"])
+db: Database = cluster["NotGDKIDDB"]
 
 
 def new_call_soon(self: asyncio.BaseEventLoop, callback, *args, context=None):
@@ -70,7 +77,7 @@ DiscordWebSocket.identify = mobile
 
 @tasks.loop(seconds=1)
 async def status_task(client: "NotGDKID"):
-    now = datetime.now(timezone(timedelta(hours=-7)))
+    now = datetime.now(timezone(timedelta(hours=-6)))
     if now.second == 0:
         fmt = now.strftime("%I:%M")
 
@@ -92,7 +99,14 @@ class NotGDKID(commands.Bot):
         intents.message_content = False
 
         super().__init__(
-            command_prefix=["<@!859104775429947432> ", "<@859104775429947432> ", "B!", "b!"],
+            command_prefix=[
+                "<@!859104775429947432> ",
+                "<@859104775429947432> ",
+                "<@!865596669999054910> ",
+                "<@865596669999054910> "
+                "B!",
+                "b!"
+            ],
             allowed_mentions=allowed_mentions,
             intents=intents,
             case_insensitive=True,
@@ -106,14 +120,18 @@ class NotGDKID(commands.Bot):
         extensions = ["cogs.2048", "cogs.debug", "cogs.dev", "cogs.Eval", "cogs.utility"]
 
         self.owner_ids = [596481615253733408, 650882112655720468]
-        self.wl_guilds = [749892811905564672, 764592577575911434, 814963690498424832, 890355226517860433]
         self.yes = "<:yes_tick:842078179833151538>"  # Checkmark
         self.no = "<:no_cross:842078253032407120>"  # X
         self.active_jishaku_paginators: list[PaginatorInterface] = []
-
+        
+        self.games_db = db["Games"]
+        
         self.games = []
 
+        self.cache = {"games": []}
+
         self.token = secrets["token"]
+        self.testing_token = secrets["testing_token"]
 
         self.uptime = datetime.utcnow()
 
@@ -133,6 +151,9 @@ class NotGDKID(commands.Bot):
 
         await self.sync_commands()
         log.info("Finished syncing all interaction commands!")
+        
+        async for doc in self.games_db.find():
+            self.cache["games"].append(doc["item"])
 
         try:
             secondary_config["chan_id"]
@@ -157,11 +178,9 @@ class NotGDKID(commands.Bot):
             await msg.edit(embed=e)
 
             Json.clear_json("restart")
-
-    async def on_guild_join(self, guild: discord.Guild):
-        if guild.id not in self.wl_guilds:
-            await asyncio.sleep(0.5)
-            await guild.leave()
+    
+    async def on_application_command_error(self, ctx: discord.ApplicationContext, e: Exception) -> None:
+        print("".join(traceback.format_exception(e, e, e.__traceback__)))
 
     async def on_message(self, message: discord.Message):
         if message.content in [f"<@!{self.user.id}>", f"<@{self.user.id}>"]:
@@ -173,7 +192,7 @@ class NotGDKID(commands.Bot):
         await self.change_presence(status=discord.Status.idle, activity=discord.Game(name="Connecting..."))
 
     async def on_ready(self):
-        now = datetime.now(timezone(timedelta(hours=-7)))
+        now = datetime.now(timezone(timedelta(hours=-6)))
         fmt = now.strftime("%I:%M")
 
         await self.change_presence(
@@ -183,9 +202,34 @@ class NotGDKID(commands.Bot):
         status_task.start(self)
 
     async def start(self):
-        await super().start(self.token)
+        if str(__file__).lower() == r"d:\ban-battler\bot.py":
+            await super().start(self.testing_token)
+        
+        else:
+            await super().start(self.token)
 
     async def close(self, restart: bool = False):
+        for k, v in self.cache.items():
+            if isinstance(v, dict):
+                await db[k].update_one(
+                    {"_id": v["_id"]},
+                    {"$set": v},
+                    upsert=True
+                )
+            
+            if isinstance(v, list):
+                counter = 0
+                await db[k].delete_many({})
+                for i in v:
+                    await db[k].insert_one(
+                        {
+                            "_id": counter,
+                            "item": i
+                        }
+                    )
+                    
+                    counter += 1
+        
         for pag in self.active_jishaku_paginators:
             await pag.message.edit(view=None)
             self.active_jishaku_paginators.pop(self.active_jishaku_paginators.index(pag))
