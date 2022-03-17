@@ -895,6 +895,7 @@ class TwentyFortyEight(commands.Cog):
     twentyfortyeight_config = SlashCommandGroup("2048-config", "configuration commands")
 
     @twentyfortyeight_config.command(name="controls")
+    @commands.max_concurrency(1, commands.BucketType.user)
     async def twentyfortyeight_config_controls(self, ctx: ApplicationContext):
         """edit controls"""
 
@@ -942,7 +943,6 @@ class TwentyFortyEight(commands.Cog):
         await ctx.respond(msg, ephemeral=True)
 
     @twentyfortyeight.error
-    @twentyfortyeight_config.error
     async def twentyfortyeight_error(self, ctx: ApplicationContext, error):
         if isinstance(error, commands.MaxConcurrencyReached):
             author_game = None

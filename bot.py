@@ -180,8 +180,9 @@ class NotGDKID(commands.Bot):
 
             Json.clear_json("restart")
 
-    async def on_application_command_error(self, ctx: discord.ApplicationContext, e: Exception) -> None:
-        print("".join(traceback.format_exception(e, e, e.__traceback__)))
+    async def on_application_command_error(self, ctx: discord.ApplicationContext, e) -> None:
+        if isinstance(e, commands.MaxConcurrencyReached):
+            return await ctx.respond(f"you can only have `{e.number}` instance of this command running at once")
 
     async def on_message(self, message: discord.Message):
         if message.content in [f"<@!{self.user.id}>", f"<@{self.user.id}>"]:
