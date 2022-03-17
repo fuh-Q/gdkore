@@ -921,7 +921,7 @@ class TwentyFortyEight(commands.Cog):
 
         await ctx.respond(msg, ephemeral=True)
 
-    @slash_command(name="2048-delete-save")
+    @twentyfortyeight_config.command(name="delete-save")
     async def twentyfortyeight_delete_save(self, ctx: ApplicationContext):
         """delete your saved game"""
         found = False
