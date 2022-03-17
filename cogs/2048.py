@@ -823,11 +823,13 @@ class EditControlsView(discord.ui.View):
         return await interaction.response.edit_message(view=self)
 
     @discord.ui.button(label="save changes", style=discord.ButtonStyle.success, row=2)
-    async def exit_menu(self, _: discord.ui.Button, interaction: discord.Interaction):
+    async def exit_menu(self, btn: discord.ui.Button, interaction: discord.Interaction):
         for c in self.children:
             c.disabled = True
             if isinstance(c, discord.ui.Button):
                 c.style = discord.ButtonStyle.secondary
+        
+        btn.style = discord.ButtonStyle.success
 
         await interaction.response.edit_message(view=self)
         await interaction.followup.send("done", ephemeral=True)
