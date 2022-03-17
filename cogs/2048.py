@@ -9,7 +9,7 @@ from typing import Iterable, Optional
 
 import discord
 from discord.commands import (ApplicationContext, Option, OptionChoice,
-                              slash_command, SlashCommandGroup)
+                              SlashCommandGroup, slash_command)
 from discord.ext import commands
 
 from bot import NotGDKID
@@ -301,7 +301,7 @@ class GameView(discord.ui.View):
         self.message: Optional[discord.Interaction] = None
 
         self.original_message: Optional[discord.InteractionMessage] = None
-        
+
         self.controls: list[str] = []
         self.control_row = grid_size or self.game.grid_size
         self.grid_size = grid_size or self.game.grid_size
@@ -331,14 +331,14 @@ class GameView(discord.ui.View):
                 self.add_item(btn)
 
                 counter += 1
-        
+
         for setup in self.client.cache["controls"]:
             if setup["user"] == self.ctx.author.id:
                 self.controls = setup["setup"]
-        
+
         if len(self.controls) == 0:
             self.controls = ["left", "up", "down", "right", "bye"]
-        
+
         for i in range(5):
             attr = getattr(self, self.controls[i], None)
             if attr is not None:
@@ -346,7 +346,7 @@ class GameView(discord.ui.View):
                 style = discord.ButtonStyle.primary
                 if self.controls[i] == "bye":
                     style = discord.ButtonStyle.danger
-                    
+
                 item = discord.ui.Button(emoji=emoji, style=style, row=self.control_row)
                 item.callback = attr
                 self.add_item(item)
@@ -451,7 +451,7 @@ class GameView(discord.ui.View):
 
         except Exception as e:
             print("".join(traceback.format_exception(e, e, e.__traceback__)))
-            
+
         return super().stop()
 
     async def won(self, interaction: discord.Interaction):
@@ -578,7 +578,7 @@ class QuitConfirmationView(discord.ui.View):
             await interaction.response.send_message(content=c(CHOICES), ephemeral=True)
             return False
         return True
-    
+
     @discord.ui.select(
         placeholder="ye / nu",
         max_values=1,
@@ -594,7 +594,7 @@ class QuitConfirmationView(discord.ui.View):
                 description="trash out this current game",
                 emoji=NewEmote.from_name("<:no_cross:842078253032407120>"),
             ),
-        ]
+        ],
     )
     async def select_callback(self, select: discord.ui.Select, interaction: discord.Interaction):
         bool_map = {"ye": True, "nu": False}
@@ -612,27 +612,27 @@ class EditControlsView(discord.ui.View):
         self.original_message: Optional[discord.InteractionMessage] = None
         self.changes = []
         self.editing = 0
-        
+
         for setup in self.client.cache["controls"]:
             if setup["user"] == self.ctx.author.id:
                 self.changes = setup["setup"]
-        
+
         if len(self.changes) == 0:
             self.changes = ["left", "up", "down", "right", "bye"]
-        
+
         super().__init__(timeout=120)
 
         for i in range(5):
             btn: discord.ui.Button = self.children[i]
-            
+
             emoji = getattr(DirectionEmotes, self.changes[i].upper(), None)
             if emoji is not None:
                 btn.emoji = emoji
                 btn.label = None
-            
+
             else:
                 btn.label = "none"
-    
+
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if interaction.user.id != self.ctx.author.id:
             await interaction.response.send_message(content=c(CHOICES), ephemeral=True)
@@ -644,24 +644,24 @@ class EditControlsView(discord.ui.View):
             c.disabled = True
             if isinstance(c, discord.ui.Button):
                 c.style = discord.ButtonStyle.secondary
-        
+
         msg = await self.original_message.channel.fetch_message(self.original_message.id)
-        
+
         await msg.edit(view=self)
         return self.stop()
-    
+
     def stop(self) -> None:
         _set = False
         for setup in self.client.cache["controls"]:
             if setup["user"] == self.ctx.author.id:
                 setup["setup"] = self.changes
                 _set = True
-        
+
         if not _set:
             self.client.cache["controls"].append({"user": self.ctx.author.id, "setup": self.changes})
-        
+
         return super().stop()
-    
+
     def generate_options(self):
         left = discord.SelectOption(emoji=DirectionEmotes.LEFT, label="left", description="button to move left")
         up = discord.SelectOption(emoji=DirectionEmotes.UP, label="up", description="button to move up")
@@ -669,28 +669,28 @@ class EditControlsView(discord.ui.View):
         right = discord.SelectOption(emoji=DirectionEmotes.RIGHT, label="right", description="button to move right")
         bye = discord.SelectOption(emoji=DirectionEmotes.BYE, label="bye", description="button to quit the game")
         none = discord.SelectOption(emoji=None, label="none", description="no button")
-        
+
         l = []
         c: Optional[discord.SelectOption] = None
         for o in [left, up, down, right, bye, none]:
             if o.label != self.changes[self.editing]:
                 l.append(o)
-            
+
             else:
                 c = o
-        
+
         return l, c
-    
+
     @discord.ui.button(label="slot 1", style=discord.ButtonStyle.secondary)
     async def slot_1(self, button: discord.ui.Button, interaction: discord.Interaction):
         for c in self.children:
             if isinstance(c, discord.ui.Button):
                 c.style = discord.ButtonStyle.secondary
                 c.disabled = False
-        
+
         for o in self.children[5].options:
             o.default = False
-            
+
         button.disabled = True
         button.style = discord.ButtonStyle.success
         self.editing = 0
@@ -701,19 +701,19 @@ class EditControlsView(discord.ui.View):
             o: Optional[discord.SelectOption]
             if o == generated[1]:
                 self.children[5].placeholder = o.label
-        
+
         return await interaction.response.edit_message(view=self)
-    
+
     @discord.ui.button(label="slot 2", style=discord.ButtonStyle.secondary)
     async def slot_2(self, button: discord.ui.Button, interaction: discord.Interaction):
         for c in self.children:
             if isinstance(c, discord.ui.Button):
                 c.style = discord.ButtonStyle.secondary
                 c.disabled = False
-        
+
         for o in self.children[5].options:
             o.default = False
-                
+
         button.disabled = True
         button.style = discord.ButtonStyle.success
         self.editing = 1
@@ -724,19 +724,19 @@ class EditControlsView(discord.ui.View):
             o: Optional[discord.SelectOption]
             if o == generated[1]:
                 self.children[5].placeholder = o.label
-        
+
         return await interaction.response.edit_message(view=self)
-    
+
     @discord.ui.button(label="slot 3", style=discord.ButtonStyle.secondary)
     async def slot_3(self, button: discord.ui.Button, interaction: discord.Interaction):
         for c in self.children:
             if isinstance(c, discord.ui.Button):
                 c.style = discord.ButtonStyle.secondary
                 c.disabled = False
-        
+
         for o in self.children[5].options:
             o.default = False
-                
+
         button.disabled = True
         button.style = discord.ButtonStyle.success
         self.editing = 2
@@ -747,19 +747,19 @@ class EditControlsView(discord.ui.View):
             o: Optional[discord.SelectOption]
             if o == generated[1]:
                 self.children[5].placeholder = o.label
-        
+
         return await interaction.response.edit_message(view=self)
-    
+
     @discord.ui.button(label="slot 4", style=discord.ButtonStyle.secondary)
     async def slot_4(self, button: discord.ui.Button, interaction: discord.Interaction):
         for c in self.children:
             if isinstance(c, discord.ui.Button):
                 c.style = discord.ButtonStyle.secondary
                 c.disabled = False
-        
+
         for o in self.children[5].options:
             o.default = False
-                
+
         button.disabled = True
         button.style = discord.ButtonStyle.success
         self.editing = 3
@@ -770,19 +770,19 @@ class EditControlsView(discord.ui.View):
             o: Optional[discord.SelectOption]
             if o == generated[1]:
                 self.children[5].placeholder = o.label
-        
+
         return await interaction.response.edit_message(view=self)
-    
+
     @discord.ui.button(label="slot 5", style=discord.ButtonStyle.secondary)
     async def slot_5(self, button: discord.ui.Button, interaction: discord.Interaction):
         for c in self.children:
             if isinstance(c, discord.ui.Button):
                 c.style = discord.ButtonStyle.secondary
                 c.disabled = False
-        
+
         for o in self.children[5].options:
             o.default = False
-                
+
         button.disabled = True
         button.style = discord.ButtonStyle.success
         self.editing = 4
@@ -793,36 +793,42 @@ class EditControlsView(discord.ui.View):
             o: Optional[discord.SelectOption]
             if o == generated[1]:
                 self.children[5].placeholder = o.label
-        
+
         return await interaction.response.edit_message(view=self)
-    
-    @discord.ui.select(placeholder="pick an option...", disabled=True, max_values=1, min_values=1, options=[discord.SelectOption(label="\u200b")])
+
+    @discord.ui.select(
+        placeholder="pick an option...",
+        disabled=True,
+        max_values=1,
+        min_values=1,
+        options=[discord.SelectOption(label="\u200b")],
+    )
     async def select(self, select: discord.ui.Select, interaction: discord.Interaction):
         changed_to = select.values[0]
         self.changes[self.editing] = changed_to
         select.options = self.generate_options()[0]
-        
+
         for i in range(5):
             btn: discord.ui.Button = self.children[i]
-            
+
             emoji = getattr(DirectionEmotes, self.changes[i].upper(), None)
             if emoji is not None:
                 btn.emoji = emoji
                 btn.label = None
-            
+
             else:
                 btn.label = "none"
                 btn.emoji = None
-        
+
         return await interaction.response.edit_message(view=self)
-    
+
     @discord.ui.button(label="save changes", style=discord.ButtonStyle.success, row=2)
     async def exit_menu(self, _: discord.ui.Button, interaction: discord.Interaction):
         for c in self.children:
             c.disabled = True
             if isinstance(c, discord.ui.Button):
                 c.style = discord.ButtonStyle.secondary
-        
+
         await interaction.response.edit_message(view=self)
         await interaction.followup.send("done", ephemeral=True)
         return self.stop()
@@ -883,35 +889,35 @@ class TwentyFortyEight(commands.Cog):
         setattr(view, "original_message", await message.original_message())
 
         await view.wait()
-    
+
     twentyfortyeight_config = SlashCommandGroup("2048-config", "configuration commands")
-    
+
     @twentyfortyeight_config.command(name="controls")
     async def twentyfortyeight_config_controls(self, ctx: ApplicationContext):
         """edit controls"""
-        
+
         view = EditControlsView(ctx, self.client)
-        
+
         message = await ctx.respond(view=view)
         setattr(view, "original_message", await message.original_message())
         await view.wait()
-    
+
     @slash_command(name="2048-delete-save")
     async def twentyfortyeight_delete_save(self, ctx: ApplicationContext):
         """delete your saved game"""
         found = False
-        
+
         for game in self.client.cache["games"]:
             if game["player"] == self.game.player.id:
                 self.client.cache["games"].pop(self.client.cache["games"].index(game))
                 found = True
-        
+
         if found:
             msg = "found your save <:heheboi:953811490304061440> its gone now :)"
-        
+
         else:
             msg = "no save found <a:hahalol:953811854201868340>"
-        
+
         await ctx.respond(msg, ephemeral=True)
 
     @twentyfortyeight.error

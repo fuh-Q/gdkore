@@ -126,10 +126,7 @@ class NotGDKID(commands.Bot):
 
         self.games = []
 
-        self.cache = {
-            "games": [],
-            "controls": []
-        }
+        self.cache = {"games": [], "controls": []}
 
         self.token = secrets["token"]
         self.testing_token = secrets["testing_token"]
@@ -155,7 +152,7 @@ class NotGDKID(commands.Bot):
 
         async for doc in self.games_db.find():
             self.cache["games"].append(doc["item"])
-        
+
         async for doc in self.controls_db.find():
             self.cache["controls"].append(doc["item"])
 
