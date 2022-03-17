@@ -901,6 +901,25 @@ class TwentyFortyEight(commands.Cog):
         message = await ctx.respond(view=view)
         setattr(view, "original_message", await message.original_message())
         await view.wait()
+    
+    @twentyfortyeight_config.command(name="reset-controls")
+    async def twentyfortyeight_config_reset_controls(self, ctx: ApplicationContext):
+        """resets your control setup"""
+        
+        found = False
+
+        for setup in self.client.cache["controls"]:
+            if setup["player"] == ctx.author.id:
+                self.client.cache["controls"].pop(self.client.cache["controls"].index(setup))
+                found = True
+
+        if found:
+            msg = "reset your control layout to default <:heheboi:953811490304061440>"
+
+        else:
+            msg = "couldnt find your control layout <a:hahalol:953811854201868340>"
+
+        await ctx.respond(msg, ephemeral=True)
 
     @slash_command(name="2048-delete-save")
     async def twentyfortyeight_delete_save(self, ctx: ApplicationContext):
@@ -908,7 +927,7 @@ class TwentyFortyEight(commands.Cog):
         found = False
 
         for game in self.client.cache["games"]:
-            if game["player"] == self.game.player.id:
+            if game["player"] == ctx.author.id:
                 self.client.cache["games"].pop(self.client.cache["games"].index(game))
                 found = True
 
