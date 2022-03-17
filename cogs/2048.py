@@ -911,7 +911,7 @@ class TwentyFortyEight(commands.Cog):
         found = False
 
         for setup in self.client.cache["controls"]:
-            if setup["player"] == ctx.author.id:
+            if setup["user"] == ctx.author.id:
                 self.client.cache["controls"].pop(self.client.cache["controls"].index(setup))
                 found = True
 
