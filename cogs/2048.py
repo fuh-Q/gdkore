@@ -644,7 +644,7 @@ class EditControlsView(discord.ui.View):
             c.disabled = True
             if isinstance(c, discord.ui.Button):
                 c.style = discord.ButtonStyle.secondary
-        
+
         self.children[-1].style = discord.ButtonStyle.success
 
         msg = await self.original_message.channel.fetch_message(self.original_message.id)
