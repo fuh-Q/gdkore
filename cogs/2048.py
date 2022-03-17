@@ -828,7 +828,7 @@ class EditControlsView(discord.ui.View):
             c.disabled = True
             if isinstance(c, discord.ui.Button):
                 c.style = discord.ButtonStyle.secondary
-        
+
         btn.style = discord.ButtonStyle.success
 
         await interaction.response.edit_message(view=self)
