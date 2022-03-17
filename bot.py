@@ -81,7 +81,9 @@ async def status_task(client: "NotGDKID"):
 
         await client.change_presence(
             status=discord.Status.online,
-            activity=discord.Activity(name=f"the time, its {fmt[1:] if fmt[0] == '0' else fmt}", type=discord.ActivityType.watching),
+            activity=discord.Activity(
+                name=f"the time, its {fmt[1:] if fmt[0] == '0' else fmt}", type=discord.ActivityType.watching
+            ),
         )
 
 
@@ -203,7 +205,9 @@ class NotGDKID(commands.Bot):
 
         await self.change_presence(
             status=discord.Status.online,
-            activity=discord.Activity(name=f"the time, its {fmt[1:] if fmt[0] == '0' else fmt}", type=discord.ActivityType.watching),
+            activity=discord.Activity(
+                name=f"the time, its {fmt[1:] if fmt[0] == '0' else fmt}", type=discord.ActivityType.watching
+            ),
         )
         status_task.start(self)
 
