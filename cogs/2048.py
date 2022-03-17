@@ -901,11 +901,11 @@ class TwentyFortyEight(commands.Cog):
         message = await ctx.respond(view=view)
         setattr(view, "original_message", await message.original_message())
         await view.wait()
-    
+
     @twentyfortyeight_config.command(name="reset-controls")
     async def twentyfortyeight_config_reset_controls(self, ctx: ApplicationContext):
         """resets your control setup"""
-        
+
         found = False
 
         for setup in self.client.cache["controls"]:
