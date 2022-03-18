@@ -6,8 +6,8 @@ from discord.commands import (ApplicationContext, Option, slash_command,
                               user_command)
 from discord.ext import commands
 
-from config.utils import CHOICES
 from bot import NotGDKID
+from config.utils import CHOICES
 
 
 class Actions:
@@ -102,9 +102,9 @@ class ClearConfirm(discord.ui.View):
     def __init__(self, owner_id: int):
         self.choice = False
         self.owner_id = owner_id
-        
+
         super().__init__(timeout=120)
-    
+
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if interaction.user.id != self.owner_id:
             await interaction.response.send_message(content=c(CHOICES), ephemeral=True)
@@ -113,12 +113,12 @@ class ClearConfirm(discord.ui.View):
 
     async def on_timeout(self) -> None:
         self.stop()
-    
+
     @discord.ui.button(label="ye")
     async def ye(self, btn: discord.ui.Button, interaction: discord.Interaction):
         for c in self.children:
             c.disabled = True
-        
+
         btn.style = discord.ButtonStyle.success
         self.choice = True
         await interaction.response.edit_message(view=self)
@@ -129,7 +129,7 @@ class ClearConfirm(discord.ui.View):
     async def nu(self, btn: discord.ui.Button, interaction: discord.Interaction):
         for c in self.children:
             c.disabled = True
-        
+
         btn.style = discord.ButtonStyle.success
         await interaction.response.edit_message(view=self)
         await interaction.followup.send("k nvm then", ephemeral=True)
@@ -174,21 +174,21 @@ class Utility(commands.Cog):
     async def ping(self, ctx: ApplicationContext):
         """latency"""
         await ctx.respond(f"`{round(self.client.latency * 1000, 2)}ms`", ephemeral=True)
-    
+
     @slash_command(name="forgetmydata")
     async def forgetmydata(self, ctx: ApplicationContext):
         """clears out any data i have stored on you"""
-        
+
         view = ClearConfirm(ctx.author.id)
         confirm_embed = discord.Embed(
             title="confirm data delete?",
             description="this will delete all of your saved games / saved configurations",
-            colour=0x09dfff
+            colour=0x09DFFF,
         )
-        
+
         await ctx.respond(embed=confirm_embed, view=view, ephemeral=True)
         await view.wait()
-        
+
         if view.choice is True:
             for i in self.client.cache.values():
                 for item in i:
