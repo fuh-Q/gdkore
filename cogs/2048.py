@@ -770,7 +770,7 @@ class EditControlsView(discord.ui.View):
     async def select(self, select: discord.ui.Select, interaction: discord.Interaction):
         changed_to = select.values[0]
         self.changes[self.editing] = changed_to
-        select.options = self.generate_options()[0]
+        select.options = self.generate_options()
 
         for i in range(5):
             btn: discord.ui.Button = self.children[i]
