@@ -5,7 +5,7 @@ import sys
 import time
 import traceback
 from datetime import datetime, timedelta, timezone
-from typing import Dict
+from typing import Any, Dict
 
 import discord
 from discord.ext import commands, tasks
@@ -128,7 +128,7 @@ class NotGDKID(commands.Bot):
 
         self.games = []
 
-        self.cache = {"games": [], "controls": []}
+        self.cache: dict[str, list[dict[str, Any]]] = {"games": [], "controls": []}
 
         self.token = secrets["token"]
         self.testing_token = secrets["testing_token"]
@@ -220,16 +220,12 @@ class NotGDKID(commands.Bot):
 
     async def close(self, restart: bool = False):
         for k, v in self.cache.items():
-            if isinstance(v, dict):
-                await db[k].update_one({"_id": v["_id"]}, {"$set": v}, upsert=True)
+            counter = 0
+            await db[k].delete_many({})
+            for i in v:
+                await db[k].insert_one({"_id": counter, "item": i})
 
-            if isinstance(v, list):
-                counter = 0
-                await db[k].delete_many({})
-                for i in v:
-                    await db[k].insert_one({"_id": counter, "item": i})
-
-                    counter += 1
+                counter += 1
 
         for pag in self.active_jishaku_paginators:
             await pag.message.edit(view=None)
