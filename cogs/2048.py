@@ -430,27 +430,23 @@ class GameView(discord.ui.View):
         return self.game._won
 
     def stop(self, save: bool = True):
-        try:
-            self.client.games.pop(self.client.games.index(self))
+        self.client.games.pop(self.client.games.index(self))
 
-            index = 0
-            for game in self.client.cache["games"]:
-                if game["player"] == self.game.player.id:
-                    if save is not True:
-                        self.client.cache["games"].pop(self.client.cache["games"].index(game))
-                        continue
+        index = 0
+        for game in self.client.cache["games"]:
+            if game["player"] == self.game.player.id:
+                if save is not True:
+                    self.client.cache["games"].pop(self.client.cache["games"].index(game))
+                    continue
 
-                    else:
-                        self.client.cache["games"][index] = {
-                            "player": self.game.player.id,
-                            "blocks": [b.value for b in self.game.blocks],
-                        }
-                        break
+                else:
+                    self.client.cache["games"][index] = {
+                        "player": self.game.player.id,
+                        "blocks": [b.value for b in self.game.blocks],
+                    }
+                    break
 
-                index += 1
-
-        except Exception as e:
-            print("".join(traceback.format_exception(e, e, e.__traceback__)))
+            index += 1
 
         return super().stop()
 
