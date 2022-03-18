@@ -196,6 +196,7 @@ class Utility(commands.Cog):
 
     @slash_command(name="invite")
     async def invite(self, ctx: ApplicationContext):
+        """invite the bot"""
         await ctx.respond(view=InviteView(), ephemeral=True)
 
     @slash_command(name="forgetmydata")
