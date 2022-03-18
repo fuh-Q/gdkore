@@ -671,19 +671,10 @@ class EditControlsView(discord.ui.View):
         right = discord.SelectOption(emoji=DirectionEmotes.RIGHT, label="right", description="button to move right")
         bye = discord.SelectOption(emoji=DirectionEmotes.BYE, label="bye", description="button to quit the game")
         none = discord.SelectOption(emoji=None, label="none", description="no button")
+        
+        return [o for o in [left, up, down, right, bye, none] if o.label != self.changes[self.editing]]
 
-        l = []
-        c: Optional[discord.SelectOption] = None
-        for o in [left, up, down, right, bye, none]:
-            if o.label != self.changes[self.editing]:
-                l.append(o)
-
-            else:
-                c = o
-
-        return l, c
-
-    @discord.ui.button(label="slot 1", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(style=discord.ButtonStyle.secondary)
     async def slot_1(self, button: discord.ui.Button, interaction: discord.Interaction):
         for c in self.children:
             if isinstance(c, discord.ui.Button):
@@ -697,16 +688,11 @@ class EditControlsView(discord.ui.View):
         button.style = discord.ButtonStyle.success
         self.editing = 0
         self.children[5].disabled = False
-        generated = self.generate_options()
-        self.children[5].options = generated[0]
-        for o in self.children[5].options:
-            o: Optional[discord.SelectOption]
-            if o == generated[1]:
-                self.children[5].placeholder = o.label
-
+        self.children[5].options = self.generate_options()
+        
         return await interaction.response.edit_message(view=self)
 
-    @discord.ui.button(label="slot 2", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(style=discord.ButtonStyle.secondary)
     async def slot_2(self, button: discord.ui.Button, interaction: discord.Interaction):
         for c in self.children:
             if isinstance(c, discord.ui.Button):
@@ -720,16 +706,11 @@ class EditControlsView(discord.ui.View):
         button.style = discord.ButtonStyle.success
         self.editing = 1
         self.children[5].disabled = False
-        generated = self.generate_options()
-        self.children[5].options = generated[0]
-        for o in self.children[5].options:
-            o: Optional[discord.SelectOption]
-            if o == generated[1]:
-                self.children[5].placeholder = o.label
-
+        self.children[5].options = self.generate_options()
+        
         return await interaction.response.edit_message(view=self)
 
-    @discord.ui.button(label="slot 3", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(style=discord.ButtonStyle.secondary)
     async def slot_3(self, button: discord.ui.Button, interaction: discord.Interaction):
         for c in self.children:
             if isinstance(c, discord.ui.Button):
@@ -743,16 +724,11 @@ class EditControlsView(discord.ui.View):
         button.style = discord.ButtonStyle.success
         self.editing = 2
         self.children[5].disabled = False
-        generated = self.generate_options()
-        self.children[5].options = generated[0]
-        for o in self.children[5].options:
-            o: Optional[discord.SelectOption]
-            if o == generated[1]:
-                self.children[5].placeholder = o.label
-
+        self.children[5].options = self.generate_options()
+        
         return await interaction.response.edit_message(view=self)
 
-    @discord.ui.button(label="slot 4", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(style=discord.ButtonStyle.secondary)
     async def slot_4(self, button: discord.ui.Button, interaction: discord.Interaction):
         for c in self.children:
             if isinstance(c, discord.ui.Button):
@@ -766,16 +742,11 @@ class EditControlsView(discord.ui.View):
         button.style = discord.ButtonStyle.success
         self.editing = 3
         self.children[5].disabled = False
-        generated = self.generate_options()
-        self.children[5].options = generated[0]
-        for o in self.children[5].options:
-            o: Optional[discord.SelectOption]
-            if o == generated[1]:
-                self.children[5].placeholder = o.label
-
+        self.children[5].options = self.generate_options()
+        
         return await interaction.response.edit_message(view=self)
 
-    @discord.ui.button(label="slot 5", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(style=discord.ButtonStyle.secondary)
     async def slot_5(self, button: discord.ui.Button, interaction: discord.Interaction):
         for c in self.children:
             if isinstance(c, discord.ui.Button):
@@ -789,13 +760,8 @@ class EditControlsView(discord.ui.View):
         button.style = discord.ButtonStyle.success
         self.editing = 4
         self.children[5].disabled = False
-        generated = self.generate_options()
-        self.children[5].options = generated[0]
-        for o in self.children[5].options:
-            o: Optional[discord.SelectOption]
-            if o == generated[1]:
-                self.children[5].placeholder = o.label
-
+        self.children[5].options = self.generate_options()
+        
         return await interaction.response.edit_message(view=self)
 
     @discord.ui.select(
