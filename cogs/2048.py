@@ -667,7 +667,7 @@ class EditControlsView(discord.ui.View):
         right = discord.SelectOption(emoji=DirectionEmotes.RIGHT, label="right", description="button to move right")
         bye = discord.SelectOption(emoji=DirectionEmotes.BYE, label="bye", description="button to quit the game")
         none = discord.SelectOption(emoji=None, label="none", description="no button")
-        
+
         return [o for o in [left, up, down, right, bye, none] if o.label != self.changes[self.editing]]
 
     @discord.ui.button(style=discord.ButtonStyle.secondary)
@@ -685,7 +685,7 @@ class EditControlsView(discord.ui.View):
         self.editing = 0
         self.children[5].disabled = False
         self.children[5].options = self.generate_options()
-        
+
         return await interaction.response.edit_message(view=self)
 
     @discord.ui.button(style=discord.ButtonStyle.secondary)
@@ -703,7 +703,7 @@ class EditControlsView(discord.ui.View):
         self.editing = 1
         self.children[5].disabled = False
         self.children[5].options = self.generate_options()
-        
+
         return await interaction.response.edit_message(view=self)
 
     @discord.ui.button(style=discord.ButtonStyle.secondary)
@@ -721,7 +721,7 @@ class EditControlsView(discord.ui.View):
         self.editing = 2
         self.children[5].disabled = False
         self.children[5].options = self.generate_options()
-        
+
         return await interaction.response.edit_message(view=self)
 
     @discord.ui.button(style=discord.ButtonStyle.secondary)
@@ -739,7 +739,7 @@ class EditControlsView(discord.ui.View):
         self.editing = 3
         self.children[5].disabled = False
         self.children[5].options = self.generate_options()
-        
+
         return await interaction.response.edit_message(view=self)
 
     @discord.ui.button(style=discord.ButtonStyle.secondary)
@@ -757,7 +757,7 @@ class EditControlsView(discord.ui.View):
         self.editing = 4
         self.children[5].disabled = False
         self.children[5].options = self.generate_options()
-        
+
         return await interaction.response.edit_message(view=self)
 
     @discord.ui.select(
