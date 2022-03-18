@@ -139,13 +139,19 @@ class ClearConfirm(discord.ui.View):
 class InviteView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
-        
-        bot = discord.ui.Button(label="invite me", style=discord.ButtonStyle.link, url="https://discord.com/api/oauth2/authorize?client_id=859104775429947432&permissions=412384484416&scope=bot%20applications.commands")
-        support = discord.ui.Button(label="get support", style=discord.ButtonStyle.link, url="https://discord.gg/85sdd3EEMv")
-        
+
+        bot = discord.ui.Button(
+            label="invite me",
+            style=discord.ButtonStyle.link,
+            url="https://discord.com/api/oauth2/authorize?client_id=859104775429947432&permissions=412384484416&scope=bot%20applications.commands",
+        )
+        support = discord.ui.Button(
+            label="get support", style=discord.ButtonStyle.link, url="https://discord.gg/85sdd3EEMv"
+        )
+
         self.add_item(bot)
         self.add_item(support)
-        
+
         self.stop()
 
 
@@ -187,7 +193,7 @@ class Utility(commands.Cog):
     async def ping(self, ctx: ApplicationContext):
         """latency"""
         await ctx.respond(f"`{round(self.client.latency * 1000, 2)}ms`", ephemeral=True)
-    
+
     @slash_command(name="invite")
     async def invite(self, ctx: ApplicationContext):
         await ctx.respond(view=InviteView(), ephemeral=True)
