@@ -42,7 +42,18 @@ class DirectionEmotes(Enum):
 
 
 class Game:
-    def __init__(self, grid_size: Optional[int] = 4, blocks: list["Block"] = None):
+    """
+    Represents a 2048 game.
+    
+    Parameters
+    ----------
+    grid_size: Optional[`int`]
+        The width and height of the grid. Defaults to 4 if not provided
+    blocks: Optional[list[`Block`]]
+        The blocks to start the game off with. Useful for game saving
+    """
+    
+    def __init__(self, grid_size: Optional[int] = 4, blocks: Optional[list["Block"]] = None):
         self.blocks: list[Block] = blocks or []
         self.grid_size = grid_size
         self.new_block = None
@@ -80,6 +91,29 @@ class Game:
 
     @classmethod
     def from_values(cls, blocks: list[int]):
+        """
+        Factory method that starts a game from a provided list of tile values.
+        
+        Parameters
+        ----------
+        blocks: list[`int`]
+            A list of tile values to be passed into the newly created game object.
+            
+            | ----------------------------- |
+            |  Grid Size  |  Values Needed  |
+            |-------------|-----------------|
+            |     4x4     |       16        |
+            |             |                 |
+            |     3x3     |        9        |
+            |             |                 |
+            |     2x2     |        4        |
+        
+        Returns
+        -------
+        `~Game`
+            The game object initialised with the passed values
+        """
+        
         new_blocks: list[Block] = []
 
         counter = 0
@@ -96,6 +130,15 @@ class Game:
         return f"<{self.__class__.__name__} player={self.player} grid_size={self.grid_size}>"
 
     def move(self, direction: Directions):
+        """
+        Move the game grid in a direction.
+        
+        Parameters
+        ----------
+        direction: `~Directions`
+            A value from the `~Directions` Enum.
+        """
+        
         og_blocks = [b.value for b in self.blocks.copy()]
 
         def modify_block(xy, xy2):
@@ -171,6 +214,19 @@ class Game:
                 break
 
     def check_loss(self, blocks: list["Block"]) -> bool:
+        """
+        Checks if the player has lost.
+        
+        Parameters
+        ----------
+        blocks: list[`~Block`]
+            The list of blocks to check for a loss
+        
+        Returns
+        -------
+        `~bool`
+            Wether the player has lost
+        """
         if self.moved:
             empty_spaces = []
             for block in blocks:
@@ -247,12 +303,28 @@ class Game:
 
 
 class Block:
+    """
+    Represents a 2048 tile. I just named it "Block" and adhered to
+    this namespace because I am stupid.
+    
+    Parameters
+    ----------
+    x: `int`
+        The x-position of the tile on the grid
+    y: `int`
+        The y-position of the tile on the grid
+    list_index: `int`
+        The list refers to the list of blocks in the actual game object
+    value: Optional[`int`]
+        The value of the tile on the grid. Defaults to 0 if not provided
+    """
+    
     def __init__(
         self,
         x: int,
         y: int,
         list_index: int,
-        value: int = 0,
+        value: Optional[int] = 0,
     ) -> None:
         self.x = x
         self.y = y
@@ -272,15 +344,26 @@ class Block:
         return f"{self.value}"
 
     def swap(self, other: "Block"):
+        """
+        Swap a block with another block
+        
+        Parameters
+        ----------
+        other: `Block`
+            The `Block` to make the exchange with
+        """
         x = self.x
         y = self.y
         list_index = self.list_index
+        display = self.display
         self.x = other.x
         self.y = other.y
         self.list_index = other.list_index
+        self.display = other.display
         other.x = x
         other.y = y
         other.list_index = list_index
+        other.display = display
 
 
 class GameView(discord.ui.View):
@@ -290,8 +373,8 @@ class GameView(discord.ui.View):
         self,
         ctx: ApplicationContext,
         grid_size: Optional[int] = None,
-        blocks: list[int] = None,
-        client: NotGDKID = None,
+        blocks: Optional[list[int]] = None,
+        client: Optional[NotGDKID] = None,
     ):
         super().__init__(timeout=120)
 
