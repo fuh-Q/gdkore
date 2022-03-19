@@ -102,6 +102,7 @@ class ClearConfirm(discord.ui.View):
     def __init__(self, owner_id: int):
         self.choice = False
         self.owner_id = owner_id
+        self.original_message = None
 
         super().__init__(timeout=120)
 
@@ -112,6 +113,10 @@ class ClearConfirm(discord.ui.View):
         return True
 
     async def on_timeout(self) -> None:
+        for c in self.children:
+            c.disabled = True
+        
+        await self.original_message.edit(view=self)
         self.stop()
 
     @discord.ui.button(label="ye")
@@ -210,7 +215,9 @@ class Utility(commands.Cog):
             colour=0x09DFFF,
         )
 
-        await ctx.respond(embed=confirm_embed, view=view, ephemeral=True)
+        message = await ctx.respond(embed=confirm_embed, view=view, ephemeral=True)
+        setattr(view, "original_message", await message.original_message())
+        
         await view.wait()
 
         if view.choice is True:
