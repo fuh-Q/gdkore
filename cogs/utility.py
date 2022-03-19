@@ -190,7 +190,7 @@ class Utility(commands.Cog):
 
         except discord.HTTPException:
             await ctx.respond(
-                "something went wrong, most likely the output exceeded my character limit in sending messages or smth like that",
+                "something went wrong, most likely the output exceeded my character limit in sending messages",
                 ephemeral=True,
             )
 
