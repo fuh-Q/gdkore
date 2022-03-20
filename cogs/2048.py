@@ -2,11 +2,9 @@ import math
 import time
 import traceback
 from enum import Enum
-from random import (
-    choice as c,
-    choices as ch,
-    randint as r
-)
+from random import choice as c
+from random import choices as ch
+from random import randint as r
 from typing import Iterable, Optional
 
 import discord
@@ -44,7 +42,7 @@ class DirectionEmotes(Enum):
 class Game:
     """
     Represents a 2048 game.
-    
+
     Parameters
     ----------
     grid_size: Optional[`int`]
@@ -52,7 +50,7 @@ class Game:
     blocks: Optional[list[`Block`]]
         The blocks to start the game off with. Useful for game saving
     """
-    
+
     def __init__(self, grid_size: Optional[int] = 4, blocks: Optional[list["Block"]] = None):
         self.blocks: list[Block] = blocks or []
         self.grid_size = grid_size
@@ -93,12 +91,12 @@ class Game:
     def from_values(cls, blocks: list[int]):
         """
         Factory method that starts a game from a provided list of tile values.
-        
+
         Parameters
         ----------
         blocks: list[`int`]
             A list of tile values to be passed into the newly created game object.
-            
+
             | ----------------------------- |
             |  Grid Size  |  Values Needed  |
             |-------------|-----------------|
@@ -107,13 +105,13 @@ class Game:
             |     3x3     |        9        |
             |             |                 |
             |     2x2     |        4        |
-        
+
         Returns
         -------
         `~Game`
             The game object initialised with the passed values
         """
-        
+
         new_blocks: list[Block] = []
 
         counter = 0
@@ -132,13 +130,13 @@ class Game:
     def move(self, direction: Directions):
         """
         Move the game grid in a direction.
-        
+
         Parameters
         ----------
         direction: `~Directions`
             A value from the `~Directions` Enum.
         """
-        
+
         og_blocks = [b.value for b in self.blocks.copy()]
 
         def modify_block(xy, xy2):
@@ -216,12 +214,12 @@ class Game:
     def check_loss(self, blocks: list["Block"]) -> bool:
         """
         Checks if the player has lost.
-        
+
         Parameters
         ----------
         blocks: list[`~Block`]
             The list of blocks to check for a loss
-        
+
         Returns
         -------
         `~bool`
@@ -306,7 +304,7 @@ class Block:
     """
     Represents a 2048 tile. I just named it "Block" and adhered to
     this namespace because I am stupid.
-    
+
     Parameters
     ----------
     x: `int`
@@ -318,7 +316,7 @@ class Block:
     value: Optional[`int`]
         The value of the tile on the grid. Defaults to 0 if not provided
     """
-    
+
     def __init__(
         self,
         x: int,
@@ -346,7 +344,7 @@ class Block:
     def swap(self, other: "Block"):
         """
         Swap a block with another block
-        
+
         Parameters
         ----------
         other: `Block`

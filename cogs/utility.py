@@ -115,7 +115,7 @@ class ClearConfirm(discord.ui.View):
     async def on_timeout(self) -> None:
         for c in self.children:
             c.disabled = True
-        
+
         await self.original_message.edit(view=self)
         self.stop()
 
@@ -217,7 +217,7 @@ class Utility(commands.Cog):
 
         message = await ctx.respond(embed=confirm_embed, view=view, ephemeral=True)
         setattr(view, "original_message", await message.original_message())
-        
+
         await view.wait()
 
         if view.choice is True:
