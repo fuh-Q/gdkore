@@ -31,7 +31,7 @@ class Directions(Enum):
     RIGHT = 4
 
 
-class DirectionEmotes(Enum):
+class DirectionEmotes:
     LEFT = NewEmote.from_name("<a:arrowleft:951720658256134144>")
     UP = NewEmote.from_name("<a:arrowup:951720658440708097>")
     DOWN = NewEmote.from_name("<a:arrowdown:951720657509564417>")
