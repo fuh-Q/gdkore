@@ -426,10 +426,10 @@ class Eval(BattlerCog):
 
         env.update(globals())
 
-        body = self.cleanup_code(body)
+        code = self.cleanup_code(code)
         stdout = io.StringIO()
 
-        to_compile = f'async def func():\n{textwrap.indent(body, "    ")}'
+        to_compile = f'async def func():\n{textwrap.indent(code, "    ")}'
 
         color = 0x2E3135
 
