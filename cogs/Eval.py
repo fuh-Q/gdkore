@@ -431,19 +431,6 @@ class Eval(BattlerCog):
 
         to_compile = f'async def func():\n{textwrap.indent(body, "    ")}'
 
-        def paginate(text: str):
-            """Simple generator that paginates text."""
-            last = 0
-            pages = []
-            for curr in range(0, len(text)):
-                if curr % 1980 == 0:
-                    pages.append(text[last:curr])
-                    last = curr
-                    appd_index = curr
-            if appd_index != len(text) - 1:
-                pages.append(text[last:curr])
-            return list(filter(lambda a: a != "", pages))
-
         color = 0x2E3135
 
         try:
@@ -470,7 +457,7 @@ class Eval(BattlerCog):
                         embed = discord.Embed(description=f"```py\n{value}\n```", color=color)
                         await ctx.send(embed=embed)
                     except:
-                        paginated_text = paginate(value)
+                        paginated_text = Eval.paginate(value)
                         for page in paginated_text:
                             if page == paginated_text[-1]:
                                 embed = discord.Embed(description=f"```py\n{page}\n```", color=color)
@@ -483,7 +470,7 @@ class Eval(BattlerCog):
                     embed = discord.Embed(description=f"```py\n{value}{ret}\n```", color=color)
                     await ctx.send(embed=embed)
                 except:
-                    paginated_text = paginate(f"{value}{ret}")
+                    paginated_text = Eval.paginate(f"{value}{ret}")
                     for page in paginated_text:
                         if page == paginated_text[-1]:
                             embed = discord.Embed(description=f"```py\n{page}\n```", color=color)
