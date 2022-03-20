@@ -185,6 +185,7 @@ class NotGDKID(commands.Bot):
     async def on_application_command_error(
         self, ctx: discord.ApplicationContext, e: discord.ApplicationCommandInvokeError
     ) -> None:
+        print("".join(traceback.format_exception(e, e, e.__traceback__)))
         if isinstance(e.original, commands.MaxConcurrencyReached):
             return await ctx.respond(
                 f"you can only have `{e.original.number}` instance of this command running at once", ephemeral=True
