@@ -418,12 +418,12 @@ class Eval(BattlerCog):
                     content="Bro you're supposed to end these sessions once you're done wipe your own ass for once"
                 )
                 return
-    
+
     @repl.command(name="noreturn", aliases=["nr"], brief="Runs code", hidden=True)
     @commands.is_owner()
     async def _eval(self, ctx: commands.Context, *, code: str):
         env = self.get_environment(ctx)
-        
+
         env.update(globals())
 
         body = self.cleanup_code(body)
@@ -432,7 +432,7 @@ class Eval(BattlerCog):
         to_compile = f'async def func():\n{textwrap.indent(body, "    ")}'
 
         def paginate(text: str):
-            '''Simple generator that paginates text.'''
+            """Simple generator that paginates text."""
             last = 0
             pages = []
             for curr in range(0, len(text)):
@@ -440,32 +440,26 @@ class Eval(BattlerCog):
                     pages.append(text[last:curr])
                     last = curr
                     appd_index = curr
-            if appd_index != len(text)-1:
+            if appd_index != len(text) - 1:
                 pages.append(text[last:curr])
-            return list(filter(lambda a: a != '', pages))
-        
-        color = 0x2e3135
+            return list(filter(lambda a: a != "", pages))
+
+        color = 0x2E3135
 
         try:
             exec(to_compile, env)
         except Exception as e:
-            embed=discord.Embed(
-                title='Error',
-                description=f'```py\n{e.__class__.__name__}: {e}\n```',
-                color=color
-            )
+            embed = discord.Embed(title="Error", description=f"```py\n{e.__class__.__name__}: {e}\n```", color=color)
             await ctx.send(embed=embed)
 
-        func = env['func']
+        func = env["func"]
         try:
             with redirect_stdout(stdout):
                 ret = await func()
         except Exception:
             value = stdout.getvalue()
-            embed=discord.Embed(
-                title='Error',
-                description=f'```py\n{value}{traceback.format_exc()}\n```',
-                color=color
+            embed = discord.Embed(
+                title="Error", description=f"```py\n{value}{traceback.format_exc()}\n```", color=color
             )
             await ctx.send(embed=embed)
         else:
@@ -473,49 +467,31 @@ class Eval(BattlerCog):
             if ret is None:
                 if value:
                     try:
-                        embed=discord.Embed(
-                            description=f'```py\n{value}\n```',
-                                color=color
-                            )
+                        embed = discord.Embed(description=f"```py\n{value}\n```", color=color)
                         await ctx.send(embed=embed)
                     except:
                         paginated_text = paginate(value)
                         for page in paginated_text:
                             if page == paginated_text[-1]:
-                                embed=discord.Embed(
-                                    description=f'```py\n{page}\n```',
-                                    color=color
-                                    )
+                                embed = discord.Embed(description=f"```py\n{page}\n```", color=color)
                                 await ctx.send(embed=embed)
                                 break
-                            embed=discord.Embed(
-                                description=f'```py\n{page}\n```',
-                                color=color
-                                )
+                            embed = discord.Embed(description=f"```py\n{page}\n```", color=color)
                             await ctx.send(embed=embed)
             else:
                 try:
-                    embed=discord.Embed(
-                        description=f'```py\n{value}{ret}\n```',
-                        color=color
-                        )
+                    embed = discord.Embed(description=f"```py\n{value}{ret}\n```", color=color)
                     await ctx.send(embed=embed)
                 except:
                     paginated_text = paginate(f"{value}{ret}")
                     for page in paginated_text:
                         if page == paginated_text[-1]:
-                            embed=discord.Embed(
-                                description=f'```py\n{page}\n```',
-                                color=color
-                                )
+                            embed = discord.Embed(description=f"```py\n{page}\n```", color=color)
                             await ctx.send(embed=embed)
                             break
-                        embed=discord.Embed(
-                            description=f'```py\n{page}\n```',
-                            color=color
-                        )
+                        embed = discord.Embed(description=f"```py\n{page}\n```", color=color)
                         await ctx.send(embed=embed)
-            
+
             await ctx.message.add_reaction(self.client.yes)
 
     @repl.command(name="exec", aliases=["run"], brief="Runs code", hidden=True)
