@@ -305,7 +305,7 @@ class Eval(BattlerCog):
                 response = await self.client.wait_for(
                     "message",
                     timeout=600,
-                    check=lambda m: str(m.content).startswith(f"{self.client.user.mention}") and m.author == ctx.author,
+                    check=lambda m: str(m.content).startswith(f"`") and m.author == ctx.author,
                 )
 
                 cleaned = self.cleanup_code(response.content)
