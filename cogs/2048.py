@@ -708,7 +708,7 @@ class EditControlsView(discord.ui.View):
             emoji = getattr(DirectionEmotes, self.changes[i].upper(), None)
             if emoji is not None:
                 btn.emoji = emoji
-                btn.label = self.changes[i]#None
+                btn.label = self.changes[i]  # None
 
             else:
                 btn.label = "none"
