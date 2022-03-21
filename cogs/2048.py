@@ -32,10 +32,10 @@ class Directions(Enum):
 
 
 class DirectionEmotes:
-    LEFT = NewEmote.from_name("<a:pointleft:955292113824792596>")
-    UP = NewEmote.from_name("<a:pointup:955292113799630928>")
-    DOWN = NewEmote.from_name("<a:pointdown:955292113791234089>")
-    RIGHT = NewEmote.from_name("<a:pointright:955292113795416134>")
+    LEFT = NewEmote.from_name("<a:lefter:852197128116633610>")
+    UP = NewEmote.from_name("<a:upper:955300054900568164>")
+    DOWN = NewEmote.from_name("<a:lower:955300054896357386>")
+    RIGHT = NewEmote.from_name("<a:righter:852197253728960573>")
     BYE = NewEmote.from_name("<:bye:954097284482736128>")
 
 
