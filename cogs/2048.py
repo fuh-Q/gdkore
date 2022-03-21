@@ -430,7 +430,7 @@ class GameView(discord.ui.View):
                 if self.controls[i] == "bye":
                     style = discord.ButtonStyle.danger
 
-                item = discord.ui.Button(emoji=emoji, style=style, row=self.control_row)
+                item = discord.ui.Button(emoji=None, label=self.controls[i], style=style, row=self.control_row)
                 item.callback = attr
                 self.add_item(item)
 

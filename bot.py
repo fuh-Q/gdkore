@@ -75,7 +75,7 @@ DiscordWebSocket.identify = mobile
 
 @tasks.loop(seconds=1)
 async def status_task(client: "NotGDKID"):
-    now = datetime.now(timezone(timedelta(hours=-6)))
+    now = datetime.now(timezone(timedelta(hours=-4)))
     if now.second == 0:
         fmt = now.strftime("%I:%M")
 
