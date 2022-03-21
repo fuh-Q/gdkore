@@ -708,7 +708,7 @@ class EditControlsView(discord.ui.View):
             emoji = getattr(DirectionEmotes, self.changes[i].upper(), None)
             if emoji is not None:
                 btn.emoji = emoji
-                btn.label = None
+                btn.label = self.changes[i]#None
 
             else:
                 btn.label = "none"
@@ -745,10 +745,10 @@ class EditControlsView(discord.ui.View):
         return super().stop()
 
     def generate_options(self):
-        left = discord.SelectOption(emoji=None, label="left", description="button to move left")
-        up = discord.SelectOption(emoji=None, label="up", description="button to move up")
-        down = discord.SelectOption(emoji=None, label="down", description="button to move down")
-        right = discord.SelectOption(emoji=None, label="right", description="button to move right")
+        left = discord.SelectOption(emoji=DirectionEmotes.LEFT, label="left", description="button to move left")
+        up = discord.SelectOption(emoji=DirectionEmotes.UP, label="up", description="button to move up")
+        down = discord.SelectOption(emoji=DirectionEmotes.DOWN, label="down", description="button to move down")
+        right = discord.SelectOption(emoji=DirectionEmotes.RIGHT, label="right", description="button to move right")
         bye = discord.SelectOption(emoji=DirectionEmotes.BYE, label="bye", description="button to quit the game")
         none = discord.SelectOption(emoji=None, label="none", description="no button")
 
