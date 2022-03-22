@@ -16,13 +16,11 @@ bot_to_launch = 0
 process_map = {
     "bot.py": False,
     "rickroll_bot.py": False,
-    "hc_bot.py": False,
 }
 
 bot_map = {
     1: "bot.py",
     2: "rickroll_bot.py",
-    3: "hc_bot.py",
 }
 
 major = sys.version_info[:2][0]
@@ -63,7 +61,7 @@ def print_intro() -> None:
     )
 
     processes = list(psutil.process_iter())
-    proc_cmd_regex = re.compile(rf"py(?:thon{major}\.{minor})? ((?:hc_|rickroll_)?bot\.py)")
+    proc_cmd_regex = re.compile(rf"py(?:thon{major}\.{minor})? ((?:rickroll_)?bot\.py)")
     for process in processes:
         try:
             proc_cmd = " ".join(process.cmdline())
@@ -79,7 +77,6 @@ def print_intro() -> None:
             "",
             f"{G}1.{W} Not GDKID {R + '-- RUNNING' + W if process_map['bot.py'] else ''}",
             f"{G}2.{W} Rickroll Bot {R + '-- RUNNING' + W if process_map['rickroll_bot.py'] else ''}",
-            f"{G}3.{W} HC Utility {R + '-- RUNNING' + W if process_map['hc_bot.py'] else ''}",
         ]
     )
 
