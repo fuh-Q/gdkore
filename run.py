@@ -82,7 +82,7 @@ def print_intro() -> None:
 
     print("Bots you can launch:", end="\n\n")
     print(bots, end="\n\n")
-    print("Which bot would you like to launch? [0|1|2|3]")
+    print("Which bot would you like to launch? [0|1|2]")
     print(LINE)
 
 
@@ -98,11 +98,11 @@ def prompt():
             if user_input == 0:
                 exit()
 
-            if not user_input in [1, 2, 3]:
+            if not user_input in [1, 2]:
                 raise TypeError
 
         except (ValueError, TypeError):
-            print("Please enter either 0, 1, 2, or 3!")
+            print("Please enter either 0, 1, or 2!")
             continue
 
         else:
