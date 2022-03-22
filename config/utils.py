@@ -1,7 +1,7 @@
 import datetime
 import re
 import sys
-from typing import Optional, SupportsInt, Union
+from typing import Optional, SupportsInt
 
 import discord
 from discord.ext import commands
