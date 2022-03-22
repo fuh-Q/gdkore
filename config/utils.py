@@ -5,7 +5,6 @@ from typing import Optional, SupportsInt, Union
 
 import discord
 from discord.ext import commands
-
 from hc_bot import HeistingCultBot
 
 CHOICES = [
