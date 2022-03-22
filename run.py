@@ -117,7 +117,7 @@ def prompt():
 
                 else:
                     print("")
-                    print("Which bot would you like to launch? [0|1|2|3]")
+                    print("Which bot would you like to launch? [0|1|2]")
                     print(LINE)
                     continue
 
