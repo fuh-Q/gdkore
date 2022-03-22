@@ -5,7 +5,6 @@ from typing import Optional, SupportsInt, Union
 
 import discord
 from discord.ext import commands
-from hc_bot import HeistingCultBot
 
 CHOICES = [
     "No u",
@@ -140,7 +139,7 @@ class Botcolours:
 
 class BattlerCog(commands.Cog):
     def __init__(self, *args, **kwargs):
-        self.client: Union[commands.Bot, HeistingCultBot] = kwargs.pop("client")
+        self.client: commands.Bot = kwargs.pop("client")
         super().__init__(*args, **kwargs)
 
     @property
