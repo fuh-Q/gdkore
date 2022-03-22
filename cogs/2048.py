@@ -32,10 +32,10 @@ class Directions(Enum):
 
 
 class DirectionEmotes:
-    LEFT = NewEmote.from_name("<a:lefter:852197128116633610>")
-    UP = NewEmote.from_name("<a:upper:955300054900568164>")
-    DOWN = NewEmote.from_name("<a:lower:955300054896357386>")
-    RIGHT = NewEmote.from_name("<a:righter:852197253728960573>")
+    LEFT = NewEmote.from_name("<a:arrowleft:951720658256134144>")
+    UP = NewEmote.from_name("<a:arrowup:951720658440708097>")
+    DOWN = NewEmote.from_name("<a:arrowdown:951720657509564417>")
+    RIGHT = NewEmote.from_name("<a:arrowright:951720658365186058>")
     BYE = NewEmote.from_name("<:bye:954097284482736128>")
 
 
@@ -430,7 +430,7 @@ class GameView(discord.ui.View):
                 if self.controls[i] == "bye":
                     style = discord.ButtonStyle.danger
 
-                item = discord.ui.Button(emoji=None, label=self.controls[i], style=style, row=self.control_row)
+                item = discord.ui.Button(emoji=emoji, label=self.controls[i], style=style, row=self.control_row)
                 item.callback = attr
                 self.add_item(item)
 
@@ -708,7 +708,7 @@ class EditControlsView(discord.ui.View):
             emoji = getattr(DirectionEmotes, self.changes[i].upper(), None)
             if emoji is not None:
                 btn.emoji = emoji
-                btn.label = self.changes[i]  # None
+                btn.label = None
 
             else:
                 btn.label = "none"
