@@ -117,6 +117,9 @@ class NotGDKID(commands.Bot):
         os.environ["JISHAKU_USE_BRAILLE_J"] = "True"
 
         extensions = ["cogs.2048", "cogs.debug", "cogs.dev", "cogs.Eval", "cogs.utility"]
+        
+        if self.get_guild(890355226517860433) is not None:
+            extensions.append("cogs.tts")
 
         self.owner_ids = [596481615253733408, 650882112655720468]
         self.yes = "<:yes_tick:842078179833151538>"  # Checkmark
