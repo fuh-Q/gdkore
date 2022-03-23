@@ -225,6 +225,18 @@ class Utility(commands.Cog):
                 for item in i:
                     if ctx.author.id in item.values():
                         i.pop(i.index(item))
+            
+            for g in self.client.games:
+                if g.game.player.id == ctx.author.id:
+                    self.client.games.pop(self.client.games.index(g))
+                    g.stop(save=False)
+                    for c in g.children:
+                        c.disabled = True
+                    
+                    await ctx.interaction.followup.edit_message(
+                        message_id=g.original_message.id,
+                        view=g
+                    )
 
 
 def setup(client: commands.Bot):
