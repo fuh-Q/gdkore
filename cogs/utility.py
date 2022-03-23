@@ -228,7 +228,6 @@ class Utility(commands.Cog):
 
             for g in self.client.games:
                 if g.game.player.id == ctx.author.id:
-                    self.client.games.pop(self.client.games.index(g))
                     g.stop(save=False)
                     for c in g.children:
                         c.disabled = True
