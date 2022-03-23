@@ -1,5 +1,6 @@
 git+https://github.com/Pycord-development/pycord
 PyNaCl
+gtts
 
 fuzzy-match
 numpy
