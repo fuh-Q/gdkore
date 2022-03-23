@@ -477,7 +477,7 @@ class GameView(discord.ui.View):
         await self.original_message.reply(
             "\n".join(
                 [
-                    "ok im guessing you just <a:peace:951323779756326912>'d out on me"
+                    "ok im guessing you just <a:peace:951323779756326912>'d out on me "
                     f"cuz you havent clicked anything for 2 minutes {self.game.player.mention}",
                     "",
                     "(i saved your game btw, you can keep playing with `/2048`, setting `load` to true)",
