@@ -118,7 +118,7 @@ class NotGDKID(commands.Bot):
 
         extensions = ["cogs.2048", "cogs.debug", "cogs.dev", "cogs.Eval", "cogs.utility"]
 
-        if self.get_guild(890355226517860433) is not None:
+        if sys.platform == "linux":
             extensions.append("cogs.tts")
 
         self.owner_ids = [596481615253733408, 650882112655720468]
