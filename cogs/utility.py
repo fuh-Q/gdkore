@@ -151,7 +151,7 @@ class InviteView(discord.ui.View):
             url="https://discord.com/api/oauth2/authorize?client_id=859104775429947432&permissions=412384484416&scope=bot%20applications.commands",
         )
         support = discord.ui.Button(
-            label="get support", style=discord.ButtonStyle.link, url="https://discord.gg/85sdd3EEMv"
+            label="get support", style=discord.ButtonStyle.link, url="https://discord.gg/DzN4U8veab"
         )
 
         self.add_item(bot)
