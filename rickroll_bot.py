@@ -300,7 +300,7 @@ async def on_voice_state_update(member: discord.Member, before: discord.VoiceSta
     global on_safe_timer
     global kick_switch
     global safe_timer_disconnect
-    
+
     if kick_switch is True:
         kick_switch = False
         return
@@ -315,7 +315,7 @@ async def on_voice_state_update(member: discord.Member, before: discord.VoiceSta
                 await member.move_to(channel=None)
             else:
                 await member.kick(reason=f"{member.name}#{member.discriminator} is deafened.")
-            
+
             if vc.is_playing():
                 vc.stop()
             return
@@ -377,10 +377,10 @@ async def on_voice_state_update(member: discord.Member, before: discord.VoiceSta
 
                 except:
                     pass
-                
+
                 if vc.is_playing():
                     vc.stop()
-                
+
                 audio = discord.FFmpegPCMAudio(
                     source=str(Path(__file__).parent) + r"/rickroll.mp3",
                     executable=r"/usr/bin/ffmpeg" if sys.platform == "linux" else r"d:\thingyy\ffmpeg.exe",
@@ -408,10 +408,10 @@ async def on_voice_state_update(member: discord.Member, before: discord.VoiceSta
 
                 except:
                     pass
-                
+
                 if vc.is_playing() and not on_safe_timer:
                     vc.stop()
-                
+
                 on_safe_timer = False
 
 
