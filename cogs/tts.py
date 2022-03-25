@@ -19,7 +19,6 @@ class TTS(commands.Cog):
         print("TTS cog loaded")
 
     @slash_command(
-        guild_ids=[890355226517860433],
         default_permissions=False,
         permissions=[CommandPermission(id=596481615253733408, type=2, permission=True)],
     )
