@@ -18,12 +18,12 @@ class TTS(commands.Cog):
     async def on_ready(self):
         print("TTS cog loaded")
 
-    @slash_command(
-        default_permissions=False,
-        permissions=[CommandPermission(id=596481615253733408, type=2, permission=True)],
-    )
+    @slash_command()
     async def tts(self, ctx: ApplicationContext, text: Option(str, "what i'll say", required=True)):
         """say something"""
+        if ctx.author.id != 596481615253733408:
+            return
+        
         await ctx.interaction.response.defer(ephemeral=True)
         vc: discord.VoiceClient = ctx.voice_client
         if vc and not vc.is_playing():
