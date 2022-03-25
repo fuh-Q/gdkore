@@ -2,8 +2,7 @@ import os
 import sys
 
 import discord
-from discord.commands import (ApplicationContext, CommandPermission, Option,
-                              slash_command)
+from discord.commands import (ApplicationContext, Option, slash_command)
 from discord.ext import commands
 from gtts import gTTS
 
@@ -23,7 +22,7 @@ class TTS(commands.Cog):
         """say something"""
         if ctx.author.id != 596481615253733408:
             return
-        
+
         await ctx.interaction.response.defer(ephemeral=True)
         vc: discord.VoiceClient = ctx.voice_client
         if vc and not vc.is_playing():
