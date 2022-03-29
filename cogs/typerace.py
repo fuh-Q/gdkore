@@ -1,20 +1,16 @@
-import discord
 from discord.ext import commands
-from discord.commands import (
-    slash_command,
-    ApplicationContext
-)
 
 from bot import NotGDKID
+
 
 class TypeRace(commands.Cog):
     def __init__(self, client: NotGDKID) -> None:
         self.client = client
-    
+
     @commands.Cog.listener()
     async def on_ready(self):
         print("Typerace cog loaded")
-    
+
     @commands.command(aliases=["tr"])
     @commands.is_owner()
     async def typerace(self, ctx: commands.Context):
