@@ -2,7 +2,7 @@ import os
 import sys
 
 import discord
-from discord.commands import ApplicationContext, Option, slash_command
+from discord.commands import (ApplicationContext, Option, slash_command)
 from discord.ext import commands
 from gtts import gTTS
 

@@ -333,7 +333,7 @@ async def on_voice_state_update(member: discord.Member, before: discord.VoiceSta
         with contextlib.suppress((AttributeError, TypeError, RuntimeError, RuntimeWarning)):
             if not vc:
                 vc = await client.get_channel(831692952489033758).connect()
-
+            
             if member.id != client.user.id and after.channel is not None:
                 if on_safe_timer:
                     kick_switch = True
