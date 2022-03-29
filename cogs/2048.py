@@ -421,7 +421,7 @@ class GameView(discord.ui.View):
 
         if len(self.controls) == 0:
             self.controls = ["left", "up", "down", "right", "bye"]
-        
+
         self.add_controls()
 
     def __repr__(self) -> str:
@@ -476,7 +476,7 @@ class GameView(discord.ui.View):
         )
 
         self.stop(save=True)
-    
+
     def add_controls(self):
         for i in range(5):
             attr = getattr(self, self.controls[i], None)
@@ -562,9 +562,9 @@ class GameView(discord.ui.View):
             for c in self.children:
                 if c.row == self.control_row:
                     self.remove_item(c)
-            
+
             self.add_controls()
-            
+
             already_won = self.game._won
             self.game.move(Directions.LEFT)
             loss = self.game.check_loss(self.game.blocks)
@@ -587,9 +587,9 @@ class GameView(discord.ui.View):
             for c in self.children:
                 if c.row == self.control_row:
                     self.remove_item(c)
-            
+
             self.add_controls()
-            
+
             already_won = self.game._won
             self.game.move(Directions.UP)
             loss = self.game.check_loss(self.game.blocks)
@@ -612,9 +612,9 @@ class GameView(discord.ui.View):
             for c in self.children:
                 if c.row == self.control_row:
                     self.remove_item(c)
-            
+
             self.add_controls()
-            
+
             already_won = self.game._won
             self.game.move(Directions.DOWN)
             loss = self.game.check_loss(self.game.blocks)
@@ -637,9 +637,9 @@ class GameView(discord.ui.View):
             for c in self.children:
                 if c.row == self.control_row:
                     self.remove_item(c)
-            
+
             self.add_controls()
-            
+
             already_won = self.game._won
             self.game.move(Directions.RIGHT)
             loss = self.game.check_loss(self.game.blocks)
@@ -662,9 +662,9 @@ class GameView(discord.ui.View):
             for c in self.children:
                 if c.row == self.control_row:
                     self.remove_item(c)
-            
+
             self.add_controls()
-            
+
             for btn in self.children:
                 btn.disabled = True
 
@@ -939,13 +939,9 @@ class TwentyFortyEight(commands.Cog):
                 OptionChoice(name="3x3 (win at 1024)", value=3),
                 OptionChoice(name="2x2 (win at 32)", value=2),
             ],
-            default=4
+            default=4,
         ),
-        load: Option(
-            bool,
-            "load a previously saved game",
-            default=False
-        ),
+        load: Option(bool, "load a previously saved game", default=False),
     ):
         """play 2048"""
 
