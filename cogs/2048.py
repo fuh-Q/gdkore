@@ -421,18 +421,8 @@ class GameView(discord.ui.View):
 
         if len(self.controls) == 0:
             self.controls = ["left", "up", "down", "right", "bye"]
-
-        for i in range(5):
-            attr = getattr(self, self.controls[i], None)
-            if attr is not None:
-                emoji: NewEmote = getattr(DirectionEmotes, self.controls[i].upper())
-                style = discord.ButtonStyle.primary
-                if self.controls[i] == "bye":
-                    style = discord.ButtonStyle.danger
-
-                item = discord.ui.Button(emoji=emoji, style=style, row=self.control_row)
-                item.callback = attr
-                self.add_item(item)
+        
+        self.add_controls()
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} game={self.game}>"
@@ -486,6 +476,19 @@ class GameView(discord.ui.View):
         )
 
         self.stop(save=True)
+    
+    def add_controls(self):
+        for i in range(5):
+            attr = getattr(self, self.controls[i], None)
+            if attr is not None:
+                emoji: NewEmote = getattr(DirectionEmotes, self.controls[i].upper())
+                style = discord.ButtonStyle.primary
+                if self.controls[i] == "bye":
+                    style = discord.ButtonStyle.danger
+
+                item = discord.ui.Button(emoji=emoji, style=style, row=self.control_row)
+                item.callback = attr
+                self.add_item(item)
 
     def update(self):
         self.children = sorted(self.children, key=lambda o: o.row)
@@ -556,6 +559,12 @@ class GameView(discord.ui.View):
 
     async def left(self, interaction: discord.Interaction):
         try:
+            for c in self.children:
+                if c.row == self.control_row:
+                    self.remove_item(c)
+            
+            self.add_controls()
+            
             already_won = self.game._won
             self.game.move(Directions.LEFT)
             loss = self.game.check_loss(self.game.blocks)
@@ -575,6 +584,12 @@ class GameView(discord.ui.View):
 
     async def up(self, interaction: discord.Interaction):
         try:
+            for c in self.children:
+                if c.row == self.control_row:
+                    self.remove_item(c)
+            
+            self.add_controls()
+            
             already_won = self.game._won
             self.game.move(Directions.UP)
             loss = self.game.check_loss(self.game.blocks)
@@ -594,6 +609,12 @@ class GameView(discord.ui.View):
 
     async def down(self, interaction: discord.Interaction):
         try:
+            for c in self.children:
+                if c.row == self.control_row:
+                    self.remove_item(c)
+            
+            self.add_controls()
+            
             already_won = self.game._won
             self.game.move(Directions.DOWN)
             loss = self.game.check_loss(self.game.blocks)
@@ -613,6 +634,12 @@ class GameView(discord.ui.View):
 
     async def right(self, interaction: discord.Interaction):
         try:
+            for c in self.children:
+                if c.row == self.control_row:
+                    self.remove_item(c)
+            
+            self.add_controls()
+            
             already_won = self.game._won
             self.game.move(Directions.RIGHT)
             loss = self.game.check_loss(self.game.blocks)
@@ -632,6 +659,12 @@ class GameView(discord.ui.View):
 
     async def bye(self, interaction: discord.Interaction):
         try:
+            for c in self.children:
+                if c.row == self.control_row:
+                    self.remove_item(c)
+            
+            self.add_controls()
+            
             for btn in self.children:
                 btn.disabled = True
 
@@ -906,11 +939,13 @@ class TwentyFortyEight(commands.Cog):
                 OptionChoice(name="3x3 (win at 1024)", value=3),
                 OptionChoice(name="2x2 (win at 32)", value=2),
             ],
-        ) = 4,
+            default=4
+        ),
         load: Option(
             bool,
             "load a previously saved game",
-        ) = False,
+            default=False
+        ),
     ):
         """play 2048"""
 

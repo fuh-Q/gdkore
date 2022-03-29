@@ -16,4 +16,5 @@ heroku/
 # Not ready
 presence_bot.py
 cogs/presencetracker.py
+cogs/typerace.py
 assets/

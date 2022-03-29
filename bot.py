@@ -96,7 +96,7 @@ class NotGDKID(commands.Bot):
         allowed_mentions = discord.AllowedMentions.all()
         intents = discord.Intents.all()
         intents.presences = False
-        intents.message_content = False
+        intents.message_content = False if sys.platform != "win32" else True
 
         super().__init__(
             command_prefix=[
@@ -116,7 +116,7 @@ class NotGDKID(commands.Bot):
         os.environ["JISHAKU_NO_DM_TRACEBACK"] = "True"
         os.environ["JISHAKU_USE_BRAILLE_J"] = "True"
 
-        extensions = ["cogs.2048", "cogs.debug", "cogs.dev", "cogs.Eval", "cogs.utility"]
+        extensions = ["cogs.2048", "cogs.debug", "cogs.dev", "cogs.Eval", "cogs.typerace", "cogs.utility"]
 
         if sys.platform == "linux":
             extensions.append("cogs.tts")
