@@ -13,6 +13,7 @@ from types import FunctionType
 import aiohttp
 import discord
 from discord.ext import commands
+from discord.http import INTERNAL_API_VERSION
 from discord.ui import Modal, TextInput, View, button
 from jishaku.paginators import WrappedPaginator
 from jishaku.shim.paginator_200 import \
@@ -25,7 +26,7 @@ logging.basicConfig(level=logging.INFO)
 secrets: dict[str, str] = Json.read_json("secrets")
 
 token = "ODMxMzAwNDgzMjEzNjg4ODkz.YHTO6A.cobKjTXjxedRKe459PFTpehZbok"
-BASE = f"https://discord.com/api/v{discord.http.API_VERSION}"
+BASE = f"https://discord.com/api/v{INTERNAL_API_VERSION}"
 PLACEHOLDER = "Enter Something..."
 
 
