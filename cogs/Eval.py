@@ -179,6 +179,7 @@ class Eval(BattlerCog):
             "description": self.client.description,
             "self": self,
             "getsource": inspect.getsource,
+            self.client.__class__.__name__: self.client,
         }
 
         env.update(globals())

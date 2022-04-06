@@ -236,7 +236,7 @@ class Utility(commands.Cog):
                     if interaction.user.id in item.values():
                         i.pop(i.index(item))
 
-            for g in self.client.games:
+            for g in self.client._2048_games:
                 if g.game.player.id == interaction.user.id:
                     g.stop(save=False)
                     for c in g.children:
