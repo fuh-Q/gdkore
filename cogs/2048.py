@@ -827,7 +827,6 @@ class TwentyFortyEight(commands.Cog):
             Choice(name="2x2 (win at 32)", value=2),
         ]
     )
-    # @checks.max_concurrency(1, commands.BucketType.user)
     async def twentyfortyeight(
         self, interaction: Interaction, grid_size: Optional[Choice[int]] = 4, load: Optional[bool] = False
     ):
