@@ -2,14 +2,8 @@ import random
 from random import choice as c
 
 import discord
-from discord import (
-    Interaction
-)
-from discord.app_commands import (
-    command,
-    context_menu,
-    describe
-)
+from discord import Interaction
+from discord.app_commands import command, context_menu, describe
 from discord.ext import commands
 
 from bot import NotGDKID
@@ -182,7 +176,7 @@ async def invite_bot(interaction: Interaction, member: discord.Member):
 class Utility(commands.Cog):
     def __init__(self, client: NotGDKID):
         self.client = client
-        
+
         self.client.tree.add_command(invite_bot)
 
     @commands.Cog.listener()
@@ -196,7 +190,9 @@ class Utility(commands.Cog):
         output = markdownify(text)
 
         try:
-            await interaction.response.send_message(f"```{output}```\n**copy paste the stuff above into the chat or smth**", ephemeral=True)
+            await interaction.response.send_message(
+                f"```{output}```\n**copy paste the stuff above into the chat or smth**", ephemeral=True
+            )
 
         except discord.HTTPException:
             await interaction.response.send_message(

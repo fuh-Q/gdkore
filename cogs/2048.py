@@ -3,32 +3,15 @@ import time
 import traceback
 from datetime import datetime
 from enum import Enum
-from random import (
-    choice as c,
-    choices as ch,
-    randint as r
-)
-from typing import (
-    Optional,
-    Iterable
-)
+from random import choice as c
+from random import choices as ch
+from random import randint as r
+from typing import Iterable, Optional
 
 import discord
-from discord import (
-    Interaction,
-    InteractionMessage,
-    SelectOption
-)
-from discord.app_commands import (
-    CheckFailure,
-    command,
-    describe,
-    choices,
-    Choice,
-    Group,
-    checks,
-    errors,
-)
+from discord import Interaction, InteractionMessage, SelectOption
+from discord.app_commands import (CheckFailure, Choice, Group, choices, command,
+                                  describe)
 from discord.ext import commands
 
 from bot import NotGDKID
@@ -319,12 +302,8 @@ class GameView(discord.ui.View):
     ):
         super().__init__(timeout=120)
 
-        self.game = (
-            Game.from_values(blocks)
-            if blocks is not None and grid_size is None
-            else Game(grid_size=grid_size)
-        )
-        
+        self.game = Game.from_values(blocks) if blocks is not None and grid_size is None else Game(grid_size=grid_size)
+
         setattr(self.game, "player", interaction.user)
 
         self.interaction = interaction
@@ -586,11 +565,7 @@ class GameView(discord.ui.View):
                     btn.style = discord.ButtonStyle.secondary
 
             await interaction.response.edit_message(view=self)
-            await interaction.followup.send(
-                "wanna save your game?",
-                view=QuitConfirmationView(self),
-                ephemeral=True
-            )
+            await interaction.followup.send("wanna save your game?", view=QuitConfirmationView(self), ephemeral=True)
 
         except Exception as e:
             print("".join(traceback.format_exception(e, e, e.__traceback__)))
@@ -844,29 +819,25 @@ class TwentyFortyEight(commands.Cog):
         print("2048 cog loaded")
 
     @command(name="2048")
-    @describe(
-        grid_size="what size grid you want",
-        load="load a previously saved game"
+    @describe(grid_size="what size grid you want", load="load a previously saved game")
+    @choices(
+        grid_size=[
+            Choice(name="4x4", value=4),
+            Choice(name="3x3 (win at 1024)", value=3),
+            Choice(name="2x2 (win at 32)", value=2),
+        ]
     )
-    @choices(grid_size=[
-        Choice(name="4x4", value=4),
-        Choice(name="3x3 (win at 1024)", value=3),
-        Choice(name="2x2 (win at 32)", value=2),
-    ])
-    #@checks.max_concurrency(1, commands.BucketType.user)
+    # @checks.max_concurrency(1, commands.BucketType.user)
     async def twentyfortyeight(
-        self,
-        interaction: Interaction,
-        grid_size: Optional[Choice[int]] = 4,
-        load: Optional[bool] = False
+        self, interaction: Interaction, grid_size: Optional[Choice[int]] = 4, load: Optional[bool] = False
     ):
         """play 2048"""
-        
+
         for game in self.client._2048_games:
             game: GameView
             if game.game.player.id == interaction.user.id:
                 raise MaxConcurrencyReached
-        
+
         if isinstance(grid_size, Choice):
             grid_size = grid_size.value
 
@@ -890,30 +861,31 @@ class TwentyFortyEight(commands.Cog):
 
         infoEmbed.set_author(
             name=f"{grid_size}x{grid_size} grid (win at {win_map[grid_size]})",
-            icon_url=interaction.client.user.avatar.url
+            icon_url=interaction.client.user.avatar.url,
         )
 
         await interaction.response.send_message(embed=infoEmbed, view=view)
         setattr(view, "original_message", await interaction.original_message())
 
         await view.wait()
-    
+
     twentyfortyeightconf = Group(name="2048conf", description="configuration commands")
-    
+
     howto = Group(name="howto", description="2048 game guide")
-    
+
     @howto.command(name="basic")
     async def howtobasic(self, interaction: Interaction):
         """2048 game guide"""
-        
+
         avatars = [
             self.client.get_user(596481615253733408).avatar.url,
             self.client.get_user(865596669999054910).avatar.url,
             self.client.get_user(859104775429947432).avatar.url,
         ]
-        
-        info_embed = discord.Embed(
-            description="""
+
+        info_embed = (
+            discord.Embed(
+                description="""
             **▫️ How to Play 2048**
             
             Click the controls {0} {1} {2} {3} to move the tiles around
@@ -930,34 +902,30 @@ class TwentyFortyEight(commands.Cog):
             in green {7} for visibility. Once your board fills up with no more 
             possible moves, **you *__lose__. {8}***
             """.format(
-                str(DirectionEmotes.LEFT),
-                str(DirectionEmotes.UP),
-                str(DirectionEmotes.DOWN),
-                str(DirectionEmotes.RIGHT),
-                "<:2048:960746063285878795>",
-                "<:1024:960746063537528852>",
-                "<:32:960746063571075112>",
-                "🟩",
-                "💀",
-            ),
-            colour=Botcolours.yellow,
-            timestamp=datetime.now()
-        ).set_author(
-            name=interaction.client.user.name,
-            url="https://levelskip.com/puzzle/How-to-play-2048",
-            icon_url=c(avatars)
-        ).set_thumbnail(
-            url="https://www.gamebrew.org/images/6/64/2048_Screenshot.png"
-        ).set_footer(
-            text="\u200b",
-            icon_url=c(avatars)
+                    str(DirectionEmotes.LEFT),
+                    str(DirectionEmotes.UP),
+                    str(DirectionEmotes.DOWN),
+                    str(DirectionEmotes.RIGHT),
+                    "<:2048:960746063285878795>",
+                    "<:1024:960746063537528852>",
+                    "<:32:960746063571075112>",
+                    "🟩",
+                    "💀",
+                ),
+                colour=Botcolours.yellow,
+                timestamp=datetime.now(),
+            )
+            .set_author(
+                name=interaction.client.user.name,
+                url="https://levelskip.com/puzzle/How-to-play-2048",
+                icon_url=c(avatars),
+            )
+            .set_thumbnail(url="https://www.gamebrew.org/images/6/64/2048_Screenshot.png")
+            .set_footer(text="\u200b", icon_url=c(avatars))
         )
-        
-        return await interaction.response.send_message(
-            embed=info_embed,
-            ephemeral=True
-        )
-    
+
+        return await interaction.response.send_message(embed=info_embed, ephemeral=True)
+
     @twentyfortyeightconf.command(name="controls")
     @commands.max_concurrency(1, commands.BucketType.user)
     async def twentyfortyeight_config_controls(self, interaction: Interaction):

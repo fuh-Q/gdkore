@@ -28,8 +28,8 @@ from jishaku.shell import ShellReader as ShellReader
 from jishaku.shim.paginator_200 import \
     PaginatorInterface as OGPaginatorInterface
 
-from config.utils import *
 from bot import NotGDKID
+from config.utils import *
 
 try:
     import psutil
@@ -204,7 +204,7 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
                 )
             finally:
                 summary.append("")  # blank line
-        
+
         summary.append(
             f"There are `{len(self.bot.app_commands)}` application commands and "
             f"`{len(self.bot.commands)}` prefix commands registered to this bot."
@@ -244,9 +244,11 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
             members_intent = f"members intent is *{'enabled' if self.bot.intents.members else 'disabled'}*"
 
             summary.append(f"{message_cache}, {presence_intent} and {members_intent}.")
-            
+
             if discord.version_info >= (2, 0, 0):
-                summary.append(f"This bot *{'can' if self.bot.intents.message_content else 'cannot'}* read message content.")
+                summary.append(
+                    f"This bot *{'can' if self.bot.intents.message_content else 'cannot'}* read message content."
+                )
         else:
             guild_subscriptions = (
                 f"guild subscriptions are *{'enabled' if self.bot._connection.guild_subscriptions else 'disabled'}*"

@@ -5,14 +5,12 @@ import sys
 import time
 import traceback
 from datetime import datetime, timedelta, timezone
-from typing import Any, List, Dict, Set
+from typing import Any, Dict, List, Set
 
 import discord
-from discord import Interaction
-from discord.app_commands import Command, Group, AppCommandError
+from discord.app_commands import Command, Group
 from discord.ext import commands, tasks
 from discord.gateway import DiscordWebSocket
-
 from fuzzy_match import match
 from jishaku.shim.paginator_200 import PaginatorInterface
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -148,9 +146,9 @@ class NotGDKID(commands.Bot):
 
     async def setup_hook(self) -> None:
         cluster: MongoClient = AsyncIOMotorClient(secrets["mongoURI"], io_loop=self.loop)
-        
+
         self.db = cluster["NotGDKIDDB"]
-        
+
         ready_task = self.loop.create_task(self.first_ready())
         ready_task.add_done_callback(
             lambda exc: print(traceback.format_exception(e, e, e.__traceback__)) if (e := exc.exception()) else ...
@@ -164,7 +162,7 @@ class NotGDKID(commands.Bot):
         log.info(f"Logged in as: {self.user.name} : {self.user.id}\n----- Cogs and Extensions -----\nMain bot online")
         await self.tree.sync()
         log.info("Finished syncing all interaction commands!")
-        
+
         collection_names: List[str] = await self.db.list_collection_names()
         for name in collection_names:
             self.cache[name] = [d["item"] async for d in self.db[name].find()]

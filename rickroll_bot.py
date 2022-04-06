@@ -13,7 +13,7 @@ from types import FunctionType
 import aiohttp
 import discord
 from discord.ext import commands
-from discord.ui import TextInput, Modal, View, button
+from discord.ui import Modal, TextInput, View, button
 from jishaku.paginators import WrappedPaginator
 from jishaku.shim.paginator_200 import \
     PaginatorInterface as OGPaginatorInterface

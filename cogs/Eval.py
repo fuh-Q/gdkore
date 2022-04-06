@@ -15,11 +15,7 @@ import aiohttp
 import discord
 from discord.ext import commands
 
-from config.utils import (
-    CHOICES,
-    NewEmote,
-    BattlerCog
-)
+from config.utils import CHOICES, BattlerCog, NewEmote
 
 quote = r'"'
 wraps = r"\(\)\[\]\{\}"

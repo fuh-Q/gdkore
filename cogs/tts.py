@@ -2,14 +2,8 @@ import os
 import sys
 
 import discord
-from discord import (
-    Interaction
-)
-from discord.app_commands import (
-    command,
-    describe,
-    checks
-)
+from discord import Interaction
+from discord.app_commands import command, describe
 from discord.ext import commands
 from gtts import gTTS
 
@@ -29,10 +23,7 @@ class TTS(commands.Cog):
     async def tts(self, interaction: Interaction, text: str):
         """say something"""
         if interaction.user.id != 596481615253733408:
-            return await interaction.response.send_message(
-                "soon™️",
-                ephemeral=True
-            )
+            return await interaction.response.send_message("soon™️", ephemeral=True)
 
         await interaction.response.defer(ephemeral=True)
         vc: discord.VoiceClient = interaction.guild.voice_client
@@ -42,10 +33,7 @@ class TTS(commands.Cog):
 
             except Exception as e:
                 print(e)
-                return await interaction.response.send_message(
-                    "something went wrong there",
-                    ephemeral=True
-                )
+                return await interaction.response.send_message("something went wrong there", ephemeral=True)
 
             src = discord.FFmpegPCMAudio(
                 source=fp, executable=r"/usr/bin/ffmpeg" if sys.platform == "linux" else r"d:\thingyy\ffmpeg.exe"
