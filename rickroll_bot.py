@@ -13,7 +13,7 @@ from types import FunctionType
 import aiohttp
 import discord
 from discord.ext import commands
-from discord.ui import InputText, Modal, View, button
+from discord.ui import TextInput, Modal, View, button
 from jishaku.paginators import WrappedPaginator
 from jishaku.shim.paginator_200 import \
     PaginatorInterface as OGPaginatorInterface
@@ -178,26 +178,20 @@ class RickrollBot(commands.Bot):
 client = RickrollBot()
 
 
-class RoleNameModal(Modal):
-    def __init__(self) -> None:
-        super().__init__("Rename Owner Role")
+class RoleNameModal(Modal, title="Rename Owner Role"):
+    name = TextInput(label="New Role Name", placeholder=PLACEHOLDER)
 
-        self.add_item(InputText(label="New Role Name", placeholder=PLACEHOLDER))
-
-    async def callback(self, interaction: discord.Interaction):
+    async def on_submit(self, interaction: discord.Interaction):
         r = client.get_guild(831692952027791431).get_role(946435442553810993)
         await r.edit(name=self.children[0].value)
-        return await interaction.response.send_message(f"Role renamed to {self.children[0].value}", ephemeral=True)
+        return await interaction.response.send_message(f"Role renamed to {self.name}", ephemeral=True)
 
 
-class EvalModal(Modal):
-    def __init__(self) -> None:
-        super().__init__("Execute Code")
+class EvalModal(Modal, title="Execute Code"):
+    code = TextInput(label="Code Here", placeholder=PLACEHOLDER, style=discord.TextStyle.paragraph)
 
-        self.add_item(InputText(label="Code Here", placeholder=PLACEHOLDER, style=discord.InputTextStyle.paragraph))
-
-    async def callback(self, interaction: discord.Interaction):
-        result = await _eval(interaction, code=self.children[0].value)
+    async def on_submit(self, interaction: discord.Interaction):
+        result = await _eval(interaction, code=self.code)
 
         paginator = WrappedPaginator(prefix="```py", suffix="```", max_size=1975, force_wrap=True)
 

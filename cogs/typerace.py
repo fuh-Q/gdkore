@@ -17,5 +17,5 @@ class TypeRace(commands.Cog):
         """starts a typerace"""
 
 
-def setup(client: NotGDKID):
-    client.add_cog(TypeRace(client=client))
+async def setup(client: NotGDKID):
+    await client.add_cog(TypeRace(client=client))

@@ -5,23 +5,23 @@ import sys
 import time
 import traceback
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict
+from typing import Any, List, Dict, Set
 
 import discord
+from discord import Interaction
+from discord.app_commands import Command, Group, AppCommandError
 from discord.ext import commands, tasks
 from discord.gateway import DiscordWebSocket
+
 from fuzzy_match import match
 from jishaku.shim.paginator_200 import PaginatorInterface
 from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo import MongoClient
-from pymongo.database import Database
 
 from config.json import Json
 
 secrets: Dict[str, str] = Json.read_json("secrets")
 secondary_config: Dict[str, str] = Json.read_json("restart")
-cluster: MongoClient = AsyncIOMotorClient(secrets["mongoURI"])
-db: Database = cluster["NotGDKIDDB"]
 
 
 def new_call_soon(self: asyncio.BaseEventLoop, callback, *args, context=None):
@@ -116,50 +116,58 @@ class NotGDKID(commands.Bot):
         os.environ["JISHAKU_NO_DM_TRACEBACK"] = "True"
         os.environ["JISHAKU_USE_BRAILLE_J"] = "True"
 
-        extensions = ["cogs.2048", "cogs.debug", "cogs.dev", "cogs.Eval", "cogs.typerace", "cogs.utility"]
+        self.init_extensions = ["cogs.2048", "cogs.debug", "cogs.dev", "cogs.Eval", "cogs.typerace", "cogs.utility"]
 
         if sys.platform == "linux":
-            extensions.append("cogs.tts")
+            self.init_extensions.append("cogs.tts")
 
         self.owner_ids = [596481615253733408, 650882112655720468]
         self.yes = "<:yes_tick:842078179833151538>"  # Checkmark
         self.no = "<:no_cross:842078253032407120>"  # X
-        self.active_jishaku_paginators: list[PaginatorInterface] = []
+        self.active_jishaku_paginators: List[PaginatorInterface] = []
 
-        self.games_db = db["games"]
-        self.controls_db = db["controls"]
+        self._2048_games = []
 
-        self.games = []
-
-        self.cache: dict[str, list[dict[str, Any]]] = {"games": [], "controls": []}
+        self.cache: Dict[str, List[Dict[str, Any]]] = {}
 
         self.token = secrets["token"]
         self.testing_token = secrets["testing_token"]
 
         self.uptime = datetime.utcnow()
 
+        self.add_commands()
+
+    @property
+    def app_commands(self) -> Set[Command[Any, ..., Any] | Group]:
+        """
+        Set[:class:`.Command`]: A set of application commands registered to this bot
+        """
+        cmds = {c for c in self.tree.walk_commands()}
+
+        return cmds
+
+    async def setup_hook(self) -> None:
+        cluster: MongoClient = AsyncIOMotorClient(secrets["mongoURI"], io_loop=self.loop)
+        
+        self.db = cluster["NotGDKIDDB"]
+        
         ready_task = self.loop.create_task(self.first_ready())
         ready_task.add_done_callback(
-            lambda exc: (traceback.format_exception(e, e, e.__traceback__) if (e := exc.exception()) else None)
+            lambda exc: print(traceback.format_exception(e, e, e.__traceback__)) if (e := exc.exception()) else ...
         )
 
-        for extension in extensions:
-            self.load_extension(extension)
-
-        self.add_commands()
+        for extension in self.init_extensions:
+            await self.load_extension(extension)
 
     async def first_ready(self):
         await self.wait_until_ready()
         log.info(f"Logged in as: {self.user.name} : {self.user.id}\n----- Cogs and Extensions -----\nMain bot online")
-
-        await self.sync_commands()
+        await self.tree.sync()
         log.info("Finished syncing all interaction commands!")
-
-        async for doc in self.games_db.find():
-            self.cache["games"].append(doc["item"])
-
-        async for doc in self.controls_db.find():
-            self.cache["controls"].append(doc["item"])
+        
+        collection_names: List[str] = await self.db.list_collection_names()
+        for name in collection_names:
+            self.cache[name] = [d["item"] async for d in self.db[name].find()]
 
         try:
             secondary_config["chan_id"]
@@ -185,15 +193,6 @@ class NotGDKID(commands.Bot):
 
             Json.clear_json("restart")
 
-    async def on_application_command_error(
-        self, ctx: discord.ApplicationContext, e: discord.ApplicationCommandInvokeError
-    ) -> None:
-        print("".join(traceback.format_exception(e, e, e.__traceback__)))
-        if isinstance(e.original, commands.MaxConcurrencyReached):
-            return await ctx.respond(
-                f"you can only have `{e.original.number}` instance of this command running at once", ephemeral=True
-            )
-
     async def on_message(self, message: discord.Message):
         if message.content in [f"<@!{self.user.id}>", f"<@{self.user.id}>"]:
             await message.reply(content=message.author.mention)
@@ -204,7 +203,7 @@ class NotGDKID(commands.Bot):
         await self.change_presence(status=discord.Status.idle, activity=discord.Game(name="Connecting..."))
 
     async def on_ready(self):
-        now = datetime.now(timezone(timedelta(hours=-6)))
+        now = datetime.now(timezone(timedelta(hours=-4)))
         fmt = now.strftime("%I:%M")
 
         await self.change_presence(
@@ -223,13 +222,14 @@ class NotGDKID(commands.Bot):
             await super().start(self.token)
 
     async def close(self, restart: bool = False):
-        for k, v in self.cache.items():
-            counter = 0
-            await db[k].delete_many({})
-            for i in v:
-                await db[k].insert_one({"_id": counter, "item": i})
+        if self.http.token != self.testing_token:
+            for k, v in self.cache.items():
+                counter = 0
+                await self.db[k].delete_many({})
+                for i in v:
+                    await self.db[k].insert_one({"_id": counter, "item": i})
 
-                counter += 1
+                    counter += 1
 
         for pag in self.active_jishaku_paginators:
             await pag.message.edit(view=None)
@@ -266,7 +266,7 @@ class NotGDKID(commands.Bot):
                 )
             cog = "cogs." + str(the_match[0])[:-3]
             try:
-                self.load_extension(cog)
+                await self.load_extension(cog)
             except commands.ExtensionAlreadyLoaded:
                 return await ctx.reply(content=f"`{cog[5:]}` is already loaded", mention_author=True)
             else:
@@ -283,7 +283,7 @@ class NotGDKID(commands.Bot):
                 )
             cog = str(the_match[0])
             try:
-                self.unload_extension(cog)
+                await self.unload_extension(cog)
             except commands.ExtensionNotLoaded:
                 return await ctx.reply(content=f"`{cog[5:]}` is not loaded", mention_author=True)
             else:
@@ -295,7 +295,7 @@ class NotGDKID(commands.Bot):
             if extension.lower() in ["all", "~", "."]:
                 List = []
                 for extension in list(self.extensions):
-                    self.reload_extension(extension)
+                    await self.reload_extension(extension)
                     List.append(f"`{extension[5:]}`")
                 return await ctx.reply(content=f"Reloaded {', '.join(List)}", mention_author=True)
             the_match = match.extractOne(extension, self.extensions)
@@ -305,7 +305,7 @@ class NotGDKID(commands.Bot):
                     mention_author=True,
                 )
             cog = str(the_match[0])
-            self.reload_extension(cog)
+            await self.reload_extension(cog)
             await ctx.reply(content=f"Reloaded `{cog[5:]}`", mention_author=True)
 
 

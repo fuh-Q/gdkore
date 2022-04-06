@@ -53,5 +53,5 @@ class Dev(BattlerCog):
         await ctx.reply("hi")
 
 
-def setup(client: commands.Bot):
-    client.add_cog(Dev(client=client))
+async def setup(client: commands.Bot):
+    await client.add_cog(Dev(client=client))

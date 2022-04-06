@@ -15,7 +15,11 @@ import aiohttp
 import discord
 from discord.ext import commands
 
-from config.utils import *
+from config.utils import (
+    CHOICES,
+    NewEmote,
+    BattlerCog
+)
 
 quote = r'"'
 wraps = r"\(\)\[\]\{\}"
@@ -43,10 +47,9 @@ REGEX_LIST: list[re.Pattern[str]] = [
 
 class SuppressTraceback(discord.ui.View):
     def __init__(self, ctx: commands.Context):
-        self.timeout = 45
         self.owner = ctx.author
         self.delete_me = False
-        super().__init__(timeout=self.timeout)
+        super().__init__(timeout=45)
 
     async def interaction_check(self, interaction: discord.Interaction):
         """Check that determines whether this interaction should be honored"""
@@ -64,7 +67,7 @@ class SuppressTraceback(discord.ui.View):
         style=discord.ButtonStyle.danger,
         emoji=NewEmote.from_name("<:x_:822656892538191872>"),
     )
-    async def close_menu(self, button: discord.Button, interaction: discord.Interaction):
+    async def close_menu(self, *_):
         self.delete_me = True
         self.stop()
 
@@ -594,5 +597,5 @@ class Eval(BattlerCog):
             await ctx.send("Unexpected error: `{}`").format(e)
 
 
-def setup(client: commands.Bot):
-    client.add_cog(Eval(client=client))
+async def setup(client: commands.Bot):
+    await client.add_cog(Eval(client=client))

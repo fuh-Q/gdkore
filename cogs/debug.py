@@ -29,6 +29,7 @@ from jishaku.shim.paginator_200 import \
     PaginatorInterface as OGPaginatorInterface
 
 from config.utils import *
+from bot import NotGDKID
 
 try:
     import psutil
@@ -151,6 +152,7 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
     """
 
     __cat_line_regex = re.compile(r"(?:\.\/+)?(.+?)(?:#L?(\d+)(?:\-L?(\d+))?)?$")
+    bot: NotGDKID
 
     @Feature.Command(
         name="battler",
@@ -180,9 +182,9 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
                     try:
                         mem = proc.memory_full_info()
                         summary.append(
-                            f"Using {natural_size(mem.rss)} physical memory and "
-                            f"{natural_size(mem.vms)} virtual memory, "
-                            f"{natural_size(mem.uss)} of which unique to this process."
+                            f"Using `{natural_size(mem.rss)}` physical memory and "
+                            f"`{natural_size(mem.vms)}` virtual memory, "
+                            f"`{natural_size(mem.uss)}` of which unique to this process."
                         )
                     except psutil.AccessDenied:
                         pass
@@ -192,17 +194,21 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
                         pid = proc.pid
                         thread_count = proc.num_threads()
 
-                        summary.append(f"Running on PID {pid} (`{name}`) with {thread_count} thread(s).")
+                        summary.append(f"Running on `PID {pid}` (`{name}`) with `{thread_count}` thread(s).")
                     except psutil.AccessDenied:
                         pass
-
-                    summary.append("")  # blank line
             except psutil.AccessDenied:
                 summary.append(
                     "psutil is installed, but this process does not have high enough access rights "
                     "to query process information."
                 )
+            finally:
                 summary.append("")  # blank line
+        
+        summary.append(
+            f"There are `{len(self.bot.app_commands)}` application commands and "
+            f"`{len(self.bot.commands)}` prefix commands registered to this bot."
+        )
 
         cache_summary = f"{len(self.bot.guilds)} guild(s) and {get_member_count(self.bot)} user(s)"
 
@@ -210,18 +216,18 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
         if isinstance(self.bot, discord.AutoShardedClient):
             if len(self.bot.shards) > 20:
                 summary.append(
-                    f"This bot is automatically sharded ({len(self.bot.shards)} shards of {self.bot.shard_count})"
+                    f"This bot is automatically sharded (`{len(self.bot.shards)}` shards of `{self.bot.shard_count}`)"
                     f" and can see {cache_summary}."
                 )
             else:
-                shard_ids = ", ".join(str(i) for i in self.bot.shards.keys())
+                shard_ids = "`, `".join(str(i) for i in self.bot.shards.keys())
                 summary.append(
-                    f"This bot is automatically sharded (Shards {shard_ids} of {self.bot.shard_count})"
+                    f"This bot is automatically sharded (Shards `{shard_ids}` of `{self.bot.shard_count}`)"
                     f" and can see {cache_summary}."
                 )
         elif self.bot.shard_count:
             summary.append(
-                f"This bot is manually sharded (Shard {self.bot.shard_id} of {self.bot.shard_count})"
+                f"This bot is manually sharded (Shard `{self.bot.shard_id}` of `{self.bot.shard_count}`)"
                 f" and can see {cache_summary}."
             )
         else:
@@ -229,18 +235,21 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
 
         # pylint: disable=protected-access
         if self.bot._connection.max_messages:
-            message_cache = f"Message cache capped at {self.bot._connection.max_messages}"
+            message_cache = f"Message cache capped at `{self.bot._connection.max_messages}`"
         else:
             message_cache = "Message cache is disabled"
 
         if discord.version_info >= (1, 5, 0):
-            presence_intent = f"presence intent is {'enabled' if self.bot.intents.presences else 'disabled'}"
-            members_intent = f"members intent is {'enabled' if self.bot.intents.members else 'disabled'}"
+            presence_intent = f"presence intent is *{'enabled' if self.bot.intents.presences else 'disabled'}*"
+            members_intent = f"members intent is *{'enabled' if self.bot.intents.members else 'disabled'}*"
 
             summary.append(f"{message_cache}, {presence_intent} and {members_intent}.")
+            
+            if discord.version_info >= (2, 0, 0):
+                summary.append(f"This bot *{'can' if self.bot.intents.message_content else 'cannot'}* read message content.")
         else:
             guild_subscriptions = (
-                f"guild subscriptions are {'enabled' if self.bot._connection.guild_subscriptions else 'disabled'}"
+                f"guild subscriptions are *{'enabled' if self.bot._connection.guild_subscriptions else 'disabled'}*"
             )
 
             summary.append(f"{message_cache} and {guild_subscriptions}.")
@@ -248,7 +257,7 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
         # pylint: enable=protected-access
 
         # Show websocket latency in milliseconds
-        summary.append(f"Average websocket latency: {round(self.bot.latency * 1000, 2)}ms")
+        summary.append(f"Average websocket latency: `{round(self.bot.latency * 1000, 2)}ms`")
 
         await ctx.send("\n".join(summary))
 
@@ -720,9 +729,9 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
         return await interface.send_to(ctx)
 
 
-def setup(bot: commands.Bot):
+async def setup(bot: commands.Bot):
     """
     The setup function defining the jishaku.cog and jishaku extensions.
     """
 
-    bot.add_cog(Jishaku(bot=bot))
+    await bot.add_cog(Jishaku(bot=bot))

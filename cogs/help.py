@@ -319,5 +319,5 @@ class help(BattlerCog):
         print("Help cog loaded")
 
 
-def setup(client: commands.Bot):
-    client.add_cog(help(client=client))
+async def setup(client: commands.Bot):
+    await client.add_cog(help(client=client))

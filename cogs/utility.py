@@ -2,8 +2,14 @@ import random
 from random import choice as c
 
 import discord
-from discord.commands import (ApplicationContext, Option, slash_command,
-                              user_command)
+from discord import (
+    Interaction
+)
+from discord.app_commands import (
+    command,
+    context_menu,
+    describe
+)
 from discord.ext import commands
 
 from bot import NotGDKID
@@ -120,7 +126,7 @@ class ClearConfirm(discord.ui.View):
         self.stop()
 
     @discord.ui.button(label="ye")
-    async def ye(self, btn: discord.ui.Button, interaction: discord.Interaction):
+    async def ye(self, interaction: discord.Interaction, btn: discord.ui.Button):
         for c in self.children:
             c.disabled = True
 
@@ -131,7 +137,7 @@ class ClearConfirm(discord.ui.View):
         return self.stop()
 
     @discord.ui.button(label="nu")
-    async def nu(self, btn: discord.ui.Button, interaction: discord.Interaction):
+    async def nu(self, interaction: discord.Interaction, btn: discord.ui.Button):
         for c in self.children:
             c.disabled = True
 
@@ -160,80 +166,84 @@ class InviteView(discord.ui.View):
         self.stop()
 
 
+@context_menu(name="Invite Bot")
+async def invite_bot(interaction: Interaction, member: discord.Member):
+    if not member.bot:
+        return await interaction.response.send_message(f"{member.mention} is not a bot", ephemeral=True)
+
+    url = f"https://discord.com/oauth2/authorize?client_id={member.id}&permissions=543312838143&scope=bot%20applications.commands"
+
+    return await interaction.response.send_message(
+        f"[click here to invite {member.name}]({url}) (feel free to toggle the invite's permissions as needed)",
+        ephemeral=True,
+    )
+
+
 class Utility(commands.Cog):
     def __init__(self, client: NotGDKID):
         self.client = client
+        
+        self.client.tree.add_command(invite_bot)
 
     @commands.Cog.listener()
     async def on_ready(self):
         print("Utility cog loaded")
 
-    @user_command(name="Invite Bot")
-    async def invite_bot(self, ctx: ApplicationContext, member: discord.Member):
-        if not member.bot:
-            return await ctx.respond(f"{member.mention} is not a bot", ephemeral=True)
-
-        url = f"https://discord.com/oauth2/authorize?client_id={member.id}&permissions=543312838143&scope=bot%20applications.commands"
-
-        return await ctx.respond(
-            f"[click here to invite {member.name}]({url}) (feel free to toggle the invite's permissions as needed)",
-            ephemeral=True,
-        )
-
-    @slash_command(name="markdown")
-    async def markdown(self, ctx: ApplicationContext, text: Option(str, "the text you want to nuke", required=True)):
+    @command(name="markdown")
+    @describe(text="the text you want to nuke")
+    async def markdown(self, interaction: Interaction, text: str):
         """nuke some text"""
         output = markdownify(text)
 
         try:
-            await ctx.respond(f"```{output}```\n**copy paste the stuff above into the chat or smth**", ephemeral=True)
+            await interaction.response.send_message(f"```{output}```\n**copy paste the stuff above into the chat or smth**", ephemeral=True)
 
         except discord.HTTPException:
-            await ctx.respond(
+            await interaction.response.send_message(
                 "something went wrong, most likely the output exceeded my character limit in sending messages",
                 ephemeral=True,
             )
 
-    @slash_command(name="ping")
-    async def ping(self, ctx: ApplicationContext):
+    @command(name="ping")
+    async def ping(self, interaction: Interaction):
         """latency"""
-        await ctx.respond(f"`{round(self.client.latency * 1000, 2)}ms`", ephemeral=True)
+        await interaction.response.send_message(f"`{round(self.client.latency * 1000, 2)}ms`", ephemeral=True)
 
-    @slash_command(name="invite")
-    async def invite(self, ctx: ApplicationContext):
+    @command(name="invite")
+    async def invite(self, interaction: Interaction):
         """invite the bot"""
-        await ctx.respond(view=InviteView(), ephemeral=True)
+        await interaction.response.send_message(view=InviteView(), ephemeral=True)
 
-    @slash_command(name="forgetmydata")
-    async def forgetmydata(self, ctx: ApplicationContext):
+    @command(name="forgetmydata")
+    async def forgetmydata(self, interaction: Interaction):
         """clears out any data i have stored on you"""
 
-        view = ClearConfirm(ctx.author.id)
+        view = ClearConfirm(interaction.user.id)
         confirm_embed = discord.Embed(
             title="confirm data delete?",
             description="this will delete all of your saved games / saved configurations",
             colour=0x09DFFF,
         )
 
-        message = await ctx.respond(embed=confirm_embed, view=view, ephemeral=True)
-        setattr(view, "original_message", await message.original_message())
+        await interaction.response.send_message(embed=confirm_embed, view=view, ephemeral=True)
+        setattr(view, "original_message", await interaction.original_message())
 
         await view.wait()
 
         if view.choice is True:
             for i in self.client.cache.values():
                 for item in i:
-                    if ctx.author.id in item.values():
+                    if interaction.user.id in item.values():
                         i.pop(i.index(item))
 
             for g in self.client.games:
-                if g.game.player.id == ctx.author.id:
+                if g.game.player.id == interaction.user.id:
                     g.stop(save=False)
                     for c in g.children:
                         c.disabled = True
 
-                    await ctx.interaction.followup.edit_message(message_id=g.original_message.id, view=g)
+                    await interaction.followup.edit_message(message_id=g.original_message.id, view=g)
 
 
-def setup(client: commands.Bot):
-    client.add_cog(Utility(client))
+async def setup(client: commands.Bot):
+    await client.add_cog(Utility(client))
