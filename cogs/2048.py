@@ -10,8 +10,8 @@ from typing import Iterable, Optional
 
 import discord
 from discord import Interaction, InteractionMessage, SelectOption
-from discord.app_commands import (CheckFailure, Choice, Group, choices, command,
-                                  describe)
+from discord.app_commands import (CheckFailure, Choice, Group, choices,
+                                  command, describe)
 from discord.ext import commands
 
 from bot import NotGDKID
