@@ -162,8 +162,6 @@ class NotGDKID(commands.Bot):
     async def first_ready(self):
         await self.wait_until_ready()
         log.info(f"Logged in as: {self.user.name} : {self.user.id}\n----- Cogs and Extensions -----\nMain bot online")
-        await self.tree.sync()
-        log.info("Finished syncing all interaction commands!")
 
         collection_names: List[str] = await self.db.list_collection_names()
         for name in collection_names:
