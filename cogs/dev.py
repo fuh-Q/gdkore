@@ -35,7 +35,7 @@ class Dev(BattlerCog):
     @commands.command(hidden=True, brief="Restart the bot")
     @commands.is_owner()
     async def restart(self, ctx: commands.Context):
-        e = discord.Embed(description="<a:loading:937145488493379614> Aight brb")
+        e = discord.Embed(description="❯❯ Aight brb")
         msg = await ctx.reply(embed=e)
         Json.write_json(
             {

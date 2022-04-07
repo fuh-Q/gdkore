@@ -176,10 +176,6 @@ class NotGDKID(commands.Bot):
             msg = await restart_channel.fetch_message(secondary_config["id"])
 
             e = msg.embeds[0].copy()
-            e.description = f"❯❯ Aight brb"
-            e.description += f"\n❯❯ k im back"
-            e.description += "\nㅤㅤ❯❯ calculating reboot time"
-            await msg.edit(embed=e)
             e.description = f"❯❯  Aight brb\n" f"❯❯  k im back\n" f"❯❯  reboot took around `{round(end - start, 1)}s`"
             await msg.edit(embed=e)
 
