@@ -205,12 +205,13 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
             finally:
                 summary.append("")  # blank line
 
-        summary.append(
+        summary += [
             f"There are `{len(self.bot.app_commands)}` application commands and "
-            f"`{len(self.bot.commands)}` prefix commands registered to this bot."
-        )
+            f"`{len(self.bot.commands)}` prefixed commands registered to this bot.",
+            ""  # blank line
+        ]
 
-        cache_summary = f"{len(self.bot.guilds)} guild(s) and {get_member_count(self.bot)} user(s)"
+        cache_summary = f"`{len(self.bot.guilds)}` guild(s) and `{get_member_count(self.bot)}` user(s)"
 
         # Show shard settings to summary
         if isinstance(self.bot, discord.AutoShardedClient):
@@ -259,6 +260,7 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
         # pylint: enable=protected-access
 
         # Show websocket latency in milliseconds
+        summary.append("")  # blank line
         summary.append(f"Average websocket latency: `{round(self.bot.latency * 1000, 2)}ms`")
 
         await ctx.send("\n".join(summary))
