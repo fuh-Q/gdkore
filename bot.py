@@ -136,11 +136,13 @@ class NotGDKID(commands.Bot):
         self.add_commands()
 
     @property
-    def app_commands(self) -> Set[Command[Any, ..., Any] | Group]:
+    def app_commands(self) -> Set[Command[Any, ..., Any]]:
         """
         Set[:class:`.Command`]: A set of application commands registered to this bot
+        
+        NOTE: This does not include :class:`.Group` objects, only their subcommands are listed
         """
-        cmds = {c for c in self.tree.walk_commands()}
+        cmds = {c for c in self.tree.walk_commands() if not isinstance(c, Group)}
 
         return cmds
 
