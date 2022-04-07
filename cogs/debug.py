@@ -208,7 +208,7 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
         summary += [
             f"There are `{len(self.bot.app_commands)}` application commands and "
             f"`{len(self.bot.commands)}` prefixed commands registered to this bot.",
-            ""  # blank line
+            "",  # blank line
         ]
 
         cache_summary = f"`{len(self.bot.guilds)}` guild(s) and `{get_member_count(self.bot)}` user(s)"
