@@ -40,7 +40,7 @@ class Dev(BattlerCog):
         Json.write_json(
             {
                 "id": msg.id,
-                "chan_id": msg.channel.id if ctx.guild else 0,
+                "chan_id": msg.channel.id if ctx.guild else None,
                 "now": time.monotonic(),
             },
             "restart",

@@ -131,7 +131,7 @@ class NotGDKID(commands.Bot):
         self.token = secrets["token"]
         self.testing_token = secrets["testing_token"]
 
-        self.uptime = datetime.utcnow()
+        self.uptime = datetime.utcnow().astimezone(timezone(timedelta(hours=-4)))
 
         self.add_commands()
 
@@ -166,15 +166,10 @@ class NotGDKID(commands.Bot):
         collection_names: List[str] = await self.db.list_collection_names()
         for name in collection_names:
             self.cache[name] = [d["item"] async for d in self.db[name].find()]
+        
+        self.dweebhook = await self.fetch_webhook(954211358231130204)
 
-        try:
-            secondary_config["chan_id"]
-            secondary_config["id"]
-            secondary_config["now"]
-        except Exception:
-            return
-
-        if secondary_config["chan_id"] != 0:
+        if len(secondary_config) > 0 and secondary_config["chan_id"] is not None:
             start: float = secondary_config["now"]
             restart_channel = self.get_channel(secondary_config["chan_id"])
             msg = await restart_channel.fetch_message(secondary_config["id"])
