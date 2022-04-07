@@ -161,6 +161,7 @@ class NotGDKID(commands.Bot):
 
     async def first_ready(self):
         await self.wait_until_ready()
+        end = time.monotonic()
         log.info(f"Logged in as: {self.user.name} : {self.user.id}\n----- Cogs and Extensions -----\nMain bot online")
 
         collection_names: List[str] = await self.db.list_collection_names()
@@ -179,8 +180,6 @@ class NotGDKID(commands.Bot):
             e.description += f"\n❯❯ k im back"
             e.description += "\nㅤㅤ❯❯ calculating reboot time"
             await msg.edit(embed=e)
-            end = time.monotonic() + 0.5
-            await asyncio.sleep(0.5)
             e.description = f"❯❯  Aight brb\n" f"❯❯  k im back\n" f"❯❯  reboot took around `{round(end - start, 1)}s`"
             await msg.edit(embed=e)
 
