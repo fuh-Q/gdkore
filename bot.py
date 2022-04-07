@@ -166,7 +166,7 @@ class NotGDKID(commands.Bot):
         collection_names: List[str] = await self.db.list_collection_names()
         for name in collection_names:
             self.cache[name] = [d["item"] async for d in self.db[name].find()]
-        
+
         self.dweebhook = await self.fetch_webhook(954211358231130204)
 
         if len(secondary_config) > 0 and secondary_config["chan_id"] is not None:
