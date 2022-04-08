@@ -168,7 +168,8 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
         summary = [
             f"Jishaku `v{package_version('jishaku')}`, discord.py `v{package_version('discord.py')}`, "
             f"`Python v{sys.version}` on `{sys.platform}`".replace("\n", ""),
-            f"Bot was started <t:{self.bot.uptime.timestamp():.0f}:R>, " f"cog was loaded <t:{self.start_time.timestamp():.0f}:R>.",
+            f"Bot was started <t:{self.bot.uptime.timestamp():.0f}:R>, "
+            f"cog was loaded <t:{self.start_time.timestamp():.0f}:R>.",
             "",
         ]
 
