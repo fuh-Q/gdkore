@@ -6,7 +6,7 @@ from enum import Enum
 from random import choice as c
 from random import choices as ch
 from random import randint as r
-from typing import Iterable, Optional, List
+from typing import Iterable, List, Optional
 
 import discord
 from discord import Interaction, InteractionMessage, SelectOption
@@ -403,12 +403,12 @@ class GameView(discord.ui.View):
         new_children: List[discord.ui.Item] = sorted(self.children.copy(), key=lambda o: o.row)
         for c in self.children:
             self.remove_item(c)
-        
+
         for c in new_children:
             self.add_item(c)
-        
+
         self.children.append
-        
+
         for block in self.game.blocks:
             btn: discord.ui.Button = self.children[block.list_index]
             btn.label = block.display
