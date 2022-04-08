@@ -207,7 +207,7 @@ class AdminControls(View):
         super().__init__(timeout=None)
 
     @button(label="Grant Admin", custom_id="grant_admin", style=discord.ButtonStyle.success, row=0)
-    async def grant_admin(self, _: discord.Button, interaction: discord.Interaction):
+    async def grant_admin(self, interaction: discord.Interaction, _: discord.Button):
         m = await client.g.fetch_member(596481615253733408)
         if client.r in m.roles:
             await interaction.response.send_message(
@@ -219,7 +219,7 @@ class AdminControls(View):
         return
 
     @button(label="Revoke Admin", custom_id="revoke_admin", style=discord.ButtonStyle.success, row=0)
-    async def revoke_admin(self, _: discord.Button, interaction: discord.Interaction):
+    async def revoke_admin(self, interaction: discord.Interaction, _: discord.Button):
         m = await client.g.fetch_member(596481615253733408)
         if not client.r in m.roles:
             await interaction.response.send_message(
@@ -231,7 +231,7 @@ class AdminControls(View):
         return
 
     @button(label="Cleanup Server", custom_id="cleanup_server", style=discord.ButtonStyle.success, row=0)
-    async def cleanup_server(self, _: discord.Button, interaction: discord.Interaction):
+    async def cleanup_server(self, interaction: discord.Interaction, _: discord.Button):
         count = 0
         await interaction.response.defer(ephemeral=True)
 
@@ -262,24 +262,24 @@ class AdminControls(View):
         return
 
     @button(label="Shutdown Bot", custom_id="shutdown_bot", style=discord.ButtonStyle.danger, row=1)
-    async def shutdown_bot(self, _: discord.Button, interaction: discord.Interaction):
+    async def shutdown_bot(self, interaction: discord.Interaction, _: discord.Button):
         await interaction.response.send_message("Shutting down...", ephemeral=True)
         await client.close()
         return
 
     @button(label="Restart Bot", custom_id="restart_bot", style=discord.ButtonStyle.danger, row=1)
-    async def restart_bot(self, _: discord.Button, interaction: discord.Interaction):
+    async def restart_bot(self, interaction: discord.Interaction, _: discord.Button):
         await interaction.response.send_message("Restarting now...", ephemeral=True)
         await client.close(restart=True)
         return
 
     @button(label="Rename Owner Role", custom_id="rename_owner_role", style=discord.ButtonStyle.primary, row=2)
-    async def rename_owner_role(self, _: discord.Button, interaction: discord.Interaction):
+    async def rename_owner_role(self, interaction: discord.Interaction, _: discord.Button):
         await interaction.response.send_modal(RoleNameModal())
         return
 
     @button(label="Execute Code", custom_id="execute_code", style=discord.ButtonStyle.primary, row=2)
-    async def execute_code(self, _: discord.Button, interaction: discord.Interaction):
+    async def execute_code(self, interaction: discord.Interaction, _: discord.Button):
         await interaction.response.send_modal(EvalModal())
         return
 
