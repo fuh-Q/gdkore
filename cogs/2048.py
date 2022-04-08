@@ -6,7 +6,7 @@ from enum import Enum
 from random import choice as c
 from random import choices as ch
 from random import randint as r
-from typing import Iterable, Optional, List
+from typing import Iterable, List, Optional
 
 import discord
 from discord import Interaction, InteractionMessage, SelectOption
