@@ -6,7 +6,7 @@ from enum import Enum
 from random import choice as c
 from random import choices as ch
 from random import randint as r
-from typing import Iterable, Optional
+from typing import Iterable, Optional, List
 
 import discord
 from discord import Interaction, InteractionMessage, SelectOption
@@ -45,9 +45,35 @@ class MaxConcurrencyReached(CheckFailure):
     ...
 
 
+class Block:
+    def __init__(
+        self,
+        x: int,
+        y: int,
+        list_index: int,
+        value: Optional[int] = 0,
+    ) -> None:
+        self.x = x
+        self.y = y
+        self.list_index = list_index
+        self.value = value
+
+        self.display = str(self.value)
+        if self.display == "0":
+            self.display = "\u200b"
+
+        self.frozen: bool = False
+
+    def __repr__(self) -> str:
+        return f"<{self.__class__.__name__} x={self.x} y={self.y} value={self.value}>"
+
+    def __str__(self) -> str:
+        return f"{self.value}"
+
+
 class Game:
-    def __init__(self, grid_size: Optional[int] = 4, blocks: Optional[list["Block"]] = None):
-        self.blocks: list[Block] = blocks or []
+    def __init__(self, grid_size: Optional[int] = 4, blocks: Optional[List[Block]] = None):
+        self.blocks: List[Block] = blocks or []
         self.grid_size = grid_size
         self.new_block = None
         self.player: discord.User = None
@@ -83,8 +109,8 @@ class Game:
                     self._won = True
 
     @classmethod
-    def from_values(cls, blocks: list[int]):
-        new_blocks: list[Block] = []
+    def from_values(cls, blocks: List[int]):
+        new_blocks: List[Block] = []
 
         counter = 0
         grid_size = round(math.sqrt(len(blocks)))
@@ -174,7 +200,7 @@ class Game:
                 self.moved = True
                 break
 
-    def check_loss(self, blocks: list["Block"]) -> bool:
+    def check_loss(self, blocks: List[Block]) -> bool:
         if self.moved:
             empty_spaces = []
             for block in blocks:
@@ -215,7 +241,7 @@ class Game:
 
         return False
 
-    def _get_row(self, row: int, iterable: Optional[Iterable["Block"]] = None) -> list["Block"]:
+    def _get_row(self, row: int, iterable: Optional[Iterable[Block]] = None) -> List[Block]:
         if not iterable:
             iterable = self.blocks
 
@@ -227,7 +253,7 @@ class Game:
 
         return o
 
-    def _get_column(self, column: int, iterable: Optional[Iterable["Block"]] = None) -> list["Block"]:
+    def _get_column(self, column: int, iterable: Optional[Iterable[Block]] = None) -> List[Block]:
         if not iterable:
             iterable = self.blocks
 
@@ -239,7 +265,7 @@ class Game:
 
         return o
 
-    def _get_block(self, x, y, iterable: Optional[Iterable["Block"]] = None) -> Optional["Block"]:
+    def _get_block(self, x, y, iterable: Optional[Iterable[Block]] = None) -> Optional[Block]:
         if not iterable:
             iterable = self.blocks
 
@@ -250,46 +276,6 @@ class Game:
         return
 
 
-class Block:
-    def __init__(
-        self,
-        x: int,
-        y: int,
-        list_index: int,
-        value: Optional[int] = 0,
-    ) -> None:
-        self.x = x
-        self.y = y
-        self.list_index = list_index
-        self.value = value
-
-        self.display = str(self.value)
-        if self.display == "0":
-            self.display = "\u200b"
-
-        self.frozen: bool = False
-
-    def __repr__(self) -> str:
-        return f"<{self.__class__.__name__} x={self.x} y={self.y} value={self.value}>"
-
-    def __str__(self) -> str:
-        return f"{self.value}"
-
-    def swap(self, other: "Block"):
-        x = self.x
-        y = self.y
-        list_index = self.list_index
-        display = self.display
-        self.x = other.x
-        self.y = other.y
-        self.list_index = other.list_index
-        self.display = other.display
-        other.x = x
-        other.y = y
-        other.list_index = list_index
-        other.display = display
-
-
 class GameView(discord.ui.View):
     grid_size = 4
 
@@ -297,7 +283,7 @@ class GameView(discord.ui.View):
         self,
         interaction: Interaction,
         grid_size: Optional[int] = None,
-        blocks: Optional[list[int]] = None,
+        blocks: Optional[List[int]] = None,
         client: Optional[NotGDKID] = None,
     ):
         super().__init__(timeout=120)
@@ -311,7 +297,7 @@ class GameView(discord.ui.View):
 
         self.original_message: Optional[InteractionMessage] = None
 
-        self.controls: list[str] = []
+        self.controls: List[str] = []
         self.control_row = grid_size or self.game.grid_size
         self.grid_size = grid_size or self.game.grid_size
 
@@ -414,7 +400,15 @@ class GameView(discord.ui.View):
         self.stop(save=True)
 
     def update(self):
-        self.children = sorted(self.children, key=lambda o: o.row)
+        new_children: List[discord.ui.Item] = sorted(self.children.copy(), key=lambda o: o.row)
+        for c in self.children:
+            self.remove_item(c)
+        
+        for c in new_children:
+            self.add_item(c)
+        
+        self.children.append
+        
         for block in self.game.blocks:
             btn: discord.ui.Button = self.children[block.list_index]
             btn.label = block.display
