@@ -639,9 +639,13 @@ class EditControlsView(discord.ui.View):
 
         self.children[-1].style = discord.ButtonStyle.success
 
-        msg = await self.original_message.channel.fetch_message(self.original_message.id)
-
-        await msg.edit(view=self)
+        try:
+            msg = await self.original_message.channel.fetch_message(self.original_message.id)
+            await msg.edit(view=self)
+        
+        except discord.NotFound:
+            pass
+        
         return self.stop()
 
     def stop(self) -> None:
@@ -783,7 +787,7 @@ class EditControlsView(discord.ui.View):
         return await interaction.response.edit_message(view=self)
 
     @discord.ui.button(label="save changes", style=discord.ButtonStyle.success, row=2)
-    async def exit_menu(self, btn: discord.ui.Button, interaction: Interaction):
+    async def exit_menu(self, interaction: Interaction, btn: discord.ui.Button):
         for c in self.children:
             c.disabled = True
             if isinstance(c, discord.ui.Button):
