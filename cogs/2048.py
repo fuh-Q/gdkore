@@ -642,10 +642,10 @@ class EditControlsView(discord.ui.View):
         try:
             msg = await self.original_message.channel.fetch_message(self.original_message.id)
             await msg.edit(view=self)
-        
+
         except discord.NotFound:
             pass
-        
+
         return self.stop()
 
     def stop(self) -> None:
