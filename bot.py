@@ -142,7 +142,7 @@ class NotGDKID(commands.Bot):
 
         NOTE: This does not include :class:`.Group` objects, only their subcommands are listed
         """
-        cmds = {c for c in self.tree.walk_commands() if not isinstance(c, Group)}
+        cmds = self.tree.get_commands()
 
         return cmds
 
