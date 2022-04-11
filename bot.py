@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Set
 
 import discord
-from discord.app_commands import Command, Group
+from discord.app_commands import Command
 from discord.ext import commands, tasks
 from discord.gateway import DiscordWebSocket
 from fuzzy_match import match
