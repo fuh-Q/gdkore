@@ -92,9 +92,9 @@ log = logging.getLogger("Bot")
 class NotGDKID(commands.Bot):
     def __init__(self):
         allowed_mentions = discord.AllowedMentions.all()
-        #intents = discord.Intents.all()
-        #intents.presences = False
-        #intents.message_content = False if sys.platform != "win32" else True
+        # intents = discord.Intents.all()
+        # intents.presences = False
+        # intents.message_content = False if sys.platform != "win32" else True
         intents = discord.Intents.default()
         if sys.platform == "win32":
             intents.message_content = True
