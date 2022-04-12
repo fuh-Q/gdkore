@@ -92,12 +92,9 @@ log = logging.getLogger("Bot")
 class NotGDKID(commands.Bot):
     def __init__(self):
         allowed_mentions = discord.AllowedMentions.all()
-        # intents = discord.Intents.all()
-        # intents.presences = False
-        # intents.message_content = False if sys.platform != "win32" else True
-        intents = discord.Intents.default()
-        if sys.platform == "win32":
-            intents.message_content = True
+        intents = discord.Intents.all()
+        intents.presences = False
+        intents.message_content = False if sys.platform != "win32" else True
 
         super().__init__(
             command_prefix=[
@@ -110,6 +107,9 @@ class NotGDKID(commands.Bot):
             allowed_mentions=allowed_mentions,
             intents=intents,
             case_insensitive=True,
+            chunk_guilds_at_startup=False,
+            status=discord.Status.idle,
+            activity=discord.Game(name="Connecting...")
         )
 
         os.environ["JISHAKU_HIDE"] = "True"
@@ -166,6 +166,17 @@ class NotGDKID(commands.Bot):
         await self.wait_until_ready()
         end = time.monotonic()
         log.info(f"Logged in as: {self.user.name} : {self.user.id}\n----- Cogs and Extensions -----\nMain bot online")
+        
+        now = datetime.now(timezone(timedelta(hours=-4)))
+        fmt = now.strftime("%I:%M")
+
+        await self.change_presence(
+            status=discord.Status.online,
+            activity=discord.Activity(
+                name=f"the time, its {fmt[1:] if fmt[0] == '0' else fmt}", type=discord.ActivityType.watching
+            ),
+        )
+        status_task.start(self)
 
         collection_names: List[str] = await self.db.list_collection_names()
         for name in collection_names:
@@ -190,21 +201,6 @@ class NotGDKID(commands.Bot):
             await message.reply(content=message.author.mention)
 
         await self.process_commands(message)
-
-    async def on_connect(self):
-        await self.change_presence(status=discord.Status.idle, activity=discord.Game(name="Connecting..."))
-
-    async def on_ready(self):
-        now = datetime.now(timezone(timedelta(hours=-4)))
-        fmt = now.strftime("%I:%M")
-
-        await self.change_presence(
-            status=discord.Status.online,
-            activity=discord.Activity(
-                name=f"the time, its {fmt[1:] if fmt[0] == '0' else fmt}", type=discord.ActivityType.watching
-            ),
-        )
-        status_task.start(self)
 
     async def start(self):
         if str(__file__).lower() == r"d:\ban-battler\bot.py":
