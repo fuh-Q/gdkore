@@ -109,7 +109,7 @@ class NotGDKID(commands.Bot):
             case_insensitive=True,
             chunk_guilds_at_startup=False,
             status=discord.Status.idle,
-            activity=discord.Game(name="Connecting...")
+            activity=discord.Game(name="Connecting..."),
         )
 
         os.environ["JISHAKU_HIDE"] = "True"
@@ -166,7 +166,7 @@ class NotGDKID(commands.Bot):
         await self.wait_until_ready()
         end = time.monotonic()
         log.info(f"Logged in as: {self.user.name} : {self.user.id}\n----- Cogs and Extensions -----\nMain bot online")
-        
+
         now = datetime.now(timezone(timedelta(hours=-4)))
         fmt = now.strftime("%I:%M")
 
