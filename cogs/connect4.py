@@ -186,7 +186,7 @@ class GameView(discord.ui.View):
         self.hovering = 1
         self.timed_out = 0
         self.moved_at = time.time()
-        self.turn_timeout = 10
+        self.turn_timeout = 60
 
         self.game = Game(players)
 
