@@ -239,7 +239,7 @@ class Utility(commands.Cog):
                         c.disabled = True
 
                     await interaction.followup.edit_message(message_id=g.original_message.id, view=g)
-            
+
             for g in self.client._connect4_games:
                 if interaction.user in g.game.player_list:
                     await g.children[-1].callback(interaction)

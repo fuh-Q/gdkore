@@ -129,7 +129,7 @@ class Game:
 
         for i in range(-5, 7):
             diag_right = self._get_diagonal(DiagonalDirection.RIGHT, i)
-            
+
             diag_left = self._get_diagonal(DiagonalDirection.LEFT, i)
 
             if check_slot_list(diag_right) or check_slot_list(diag_left):
@@ -159,7 +159,7 @@ class Game:
 
         if (s := self._get_slot(x, y)) is not None:
             diag.append(s)
-        
+
         for _ in range(6):
             y += 1
             if direction == DiagonalDirection.RIGHT:
@@ -383,9 +383,11 @@ class GameView(discord.ui.View):
         if interaction:
             try:
                 return await interaction.response.edit_message(content=content, view=self)
-            
+
             except discord.InteractionResponded:
-                return await interaction.followup.edit_message(message_id=self.original_message.id, content=content, view=self)
+                return await interaction.followup.edit_message(
+                    message_id=self.original_message.id, content=content, view=self
+                )
 
         elif message and not interaction:
             return await self.original_message.edit(content=content, view=self)
