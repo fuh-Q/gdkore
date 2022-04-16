@@ -237,8 +237,12 @@ class NotGDKID(commands.Bot):
                     counter += 1
 
         for pag in self.active_jishaku_paginators:
-            await pag.message.edit(view=None)
-            self.active_jishaku_paginators.pop(self.active_jishaku_paginators.index(pag))
+            try:
+                await pag.message.edit(view=None)
+                self.active_jishaku_paginators.pop(self.active_jishaku_paginators.index(pag))
+            
+            except:
+                continue
 
             if self.active_jishaku_paginators:
                 await asyncio.sleep(0.25)
