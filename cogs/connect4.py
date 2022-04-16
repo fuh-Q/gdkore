@@ -6,7 +6,7 @@ from typing import List
 
 import discord
 from discord import Interaction
-from discord.app_commands import (CheckFailure, command, describe)
+from discord.app_commands import CheckFailure, command, describe
 from discord.ext import commands
 
 from bot import NotGDKID

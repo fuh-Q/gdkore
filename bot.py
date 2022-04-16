@@ -240,7 +240,7 @@ class NotGDKID(commands.Bot):
             try:
                 await pag.message.edit(view=None)
                 self.active_jishaku_paginators.pop(self.active_jishaku_paginators.index(pag))
-            
+
             except:
                 continue
 
