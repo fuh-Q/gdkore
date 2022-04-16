@@ -242,12 +242,12 @@ class GameView(discord.ui.View):
 
             except AttributeError:
                 break
-    
+
     async def interaction_check(self, interaction: Interaction) -> bool:
         if interaction.user not in self.game.player_list:
             await interaction.response.send_message("its not your game")
             return False
-        
+
         return True
 
     async def on_game_timeout(self) -> None:
