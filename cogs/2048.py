@@ -601,7 +601,7 @@ class EditControlsView(discord.ui.View):
     def __init__(self, interaction: Interaction, client: NotGDKID) -> None:
         self.interaction = interaction
         self.client = client
-        self.original_message: Optional[InteractionMessage] = None
+        self.original_message: InteractionMessage = None
         self.changes = []
         self.editing = 0
 

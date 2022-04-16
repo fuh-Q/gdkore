@@ -90,6 +90,9 @@ log = logging.getLogger("Bot")
 
 
 class NotGDKID(commands.Bot):
+    """
+    The sexiest bot of all time.
+    """
     def __init__(self):
         allowed_mentions = discord.AllowedMentions.all()
         intents = discord.Intents.all()
@@ -117,7 +120,7 @@ class NotGDKID(commands.Bot):
         os.environ["JISHAKU_NO_DM_TRACEBACK"] = "True"
         os.environ["JISHAKU_USE_BRAILLE_J"] = "True"
 
-        self.init_extensions = ["cogs.2048", "cogs.debug", "cogs.dev", "cogs.Eval", "cogs.typerace", "cogs.utility"]
+        self.init_extensions = ["cogs.2048", "cogs.connect4", "cogs.debug", "cogs.dev", "cogs.Eval", "cogs.typerace", "cogs.utility"]
 
         if sys.platform == "linux":
             self.init_extensions.append("cogs.tts")
@@ -128,6 +131,7 @@ class NotGDKID(commands.Bot):
         self.active_jishaku_paginators: List[PaginatorInterface] = []
 
         self._2048_games = []
+        self._connect4_games = []
 
         self.cache: Dict[str, List[Dict[str, Any]]] = {}
 
@@ -201,6 +205,10 @@ class NotGDKID(commands.Bot):
             await message.reply(content=message.author.mention)
 
         await self.process_commands(message)
+    
+    async def on_reaction_add(self, reaction: discord.Reaction, user: discord.User):
+        if user.id == self.owner_id and reaction.emoji == "❌" and reaction.message.author == self.user:
+            await reaction.message.delete()
 
     async def start(self):
         if str(__file__).lower() == r"d:\ban-battler\bot.py":
@@ -225,6 +233,9 @@ class NotGDKID(commands.Bot):
 
             if self.active_jishaku_paginators:
                 await asyncio.sleep(0.25)
+        
+        for game in self._2048_games:
+            game.stop(save=True)
 
         if restart is True:
             for voice in self.voice_clients:
