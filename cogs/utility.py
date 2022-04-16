@@ -1,5 +1,4 @@
 import random
-from random import choice as c
 
 import discord
 from discord import Interaction
@@ -186,7 +185,7 @@ class Utility(commands.Cog):
         if view.choice is True:
             await view.interaction.response.edit_message(view=view)
             await view.interaction.followup.send("data cleared", ephemeral=True)
-            
+
             for i in self.client.cache.values():
                 for item in i:
                     if interaction.user.id in item.values():
@@ -203,7 +202,7 @@ class Utility(commands.Cog):
             for g in self.client._connect4_games:
                 if interaction.user in g.game.player_list:
                     await g.children[-1].callback(interaction)
-        
+
         else:
             await view.interaction.response.edit_message(view=view)
             await view.interaction.followup.send("k nvm then", ephemeral=True)

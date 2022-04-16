@@ -459,14 +459,14 @@ class GameView(discord.ui.View):
             title="are you sure you want to forfeit?",
             colour=0xC0382B,
         )
-        
+
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
         view.original_message = await interaction.original_message()
-        
+
         await view.wait()
         for c in view.children:
             c.disabled = True
-        
+
         await view.interaction.response.edit_message(view=view)
         if not view.choice:
             await view.interaction.followup.send("kden", ephemeral=True)
@@ -474,7 +474,7 @@ class GameView(discord.ui.View):
         else:
             for c in self.children:
                 c.disabled = True
-                
+
             await self.update_board(interaction=interaction, gave_up=True)
             self.stop()
 
@@ -499,19 +499,21 @@ class ConnectFour(commands.Cog):
 
         if opponent.id == interaction.user.id or opponent.bot:
             return await interaction.response.send_message("aw hell nah", ephemeral=True)
-        
+
         view = Confirm(opponent)
         embed = discord.Embed(
             title="connect 4",
             description=f"{interaction.user.mention} wants to play connect 4 with you, accept game?",
-            colour=0x09dfff,
+            colour=0x09DFFF,
         )
-        
+
         await interaction.response.send_message(opponent.mention, embed=embed, view=view)
-        view.original_message = (msg := await interaction.channel.fetch_message((await interaction.original_message()).id))
-        
+        view.original_message = (
+            msg := await interaction.channel.fetch_message((await interaction.original_message()).id)
+        )
+
         await view.wait()
-        
+
         if not view.choice:
             embed = msg.embeds[0].copy()
             embed.colour = 0xC0382B

@@ -5,10 +5,10 @@ import sys
 from typing import Optional, SupportsInt
 
 import discord
-from discord import Interaction, InteractionMessage, User, PartialEmoji
+from discord import Interaction, InteractionMessage, PartialEmoji, User
 from discord.ext import commands
 from discord.gateway import DiscordWebSocket
-from discord.ui import button, Button, View
+from discord.ui import Button, View, button
 
 CHOICES = [
     "no",
@@ -142,6 +142,7 @@ class NewEmote(PartialEmoji):
         a, name, id = emoji_name.split(":")
         return cls(name=name, id=int(id), animated=bool(a))
 
+
 class Confirm(View):
     def __init__(self, owner: User):
         self.choice = False
@@ -163,10 +164,10 @@ class Confirm(View):
 
         try:
             await self.original_message.edit(view=self)
-        
+
         except discord.HTTPException:
             pass
-        
+
         self.stop()
 
     @button(label="ye")
