@@ -4,10 +4,9 @@ import discord
 from discord.ext import commands
 
 from config.json import Json
-from config.utils import BattlerCog
 
 
-class Dev(BattlerCog):
+class Dev(commands.Cog):
     def __init__(self, client: commands.Bot):
         self.client = client
         self.emoji = "<a:gdkid:868976838112841760>"

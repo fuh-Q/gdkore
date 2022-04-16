@@ -15,7 +15,7 @@ import aiohttp
 import discord
 from discord.ext import commands
 
-from config.utils import CHOICES, BattlerCog, NewEmote
+from config.utils import CHOICES, NewEmote
 
 quote = r'"'
 wraps = r"\(\)\[\]\{\}"
@@ -68,12 +68,12 @@ class SuppressTraceback(discord.ui.View):
         self.stop()
 
 
-class Eval(BattlerCog):
+class Eval(commands.Cog):
     def __init__(self, client: commands.Bot):
         self.client = client
         self.emoji = ""
 
-    @BattlerCog.listener()
+    @commands.Cog.listener()
     async def on_ready(self):
         print("Eval cog loaded")
 

@@ -7,7 +7,7 @@ from discord.app_commands import command, context_menu, describe
 from discord.ext import commands
 
 from bot import NotGDKID
-from config.utils import CHOICES
+from config.utils import Confirm
 
 
 class Actions:
@@ -98,49 +98,6 @@ def markdownify(string: str):
     return string
 
 
-class ClearConfirm(discord.ui.View):
-    def __init__(self, owner_id: int):
-        self.choice = False
-        self.owner_id = owner_id
-        self.original_message = None
-
-        super().__init__(timeout=120)
-
-    async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        if interaction.user.id != self.owner_id:
-            await interaction.response.send_message(content=c(CHOICES), ephemeral=True)
-            return False
-        return True
-
-    async def on_timeout(self) -> None:
-        for c in self.children:
-            c.disabled = True
-
-        await self.original_message.edit(view=self)
-        self.stop()
-
-    @discord.ui.button(label="ye")
-    async def ye(self, interaction: discord.Interaction, btn: discord.ui.Button):
-        for c in self.children:
-            c.disabled = True
-
-        btn.style = discord.ButtonStyle.success
-        self.choice = True
-        await interaction.response.edit_message(view=self)
-        await interaction.followup.send("data cleared", ephemeral=True)
-        return self.stop()
-
-    @discord.ui.button(label="nu")
-    async def nu(self, interaction: discord.Interaction, btn: discord.ui.Button):
-        for c in self.children:
-            c.disabled = True
-
-        btn.style = discord.ButtonStyle.success
-        await interaction.response.edit_message(view=self)
-        await interaction.followup.send("k nvm then", ephemeral=True)
-        return self.stop()
-
-
 class InviteView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
@@ -214,7 +171,7 @@ class Utility(commands.Cog):
     async def forgetmydata(self, interaction: Interaction):
         """clears out any data i have stored on you"""
 
-        view = ClearConfirm(interaction.user.id)
+        view = Confirm(interaction.user)
         confirm_embed = discord.Embed(
             title="confirm data delete?",
             description="this will delete all of your saved games / saved configurations",
@@ -227,6 +184,9 @@ class Utility(commands.Cog):
         await view.wait()
 
         if view.choice is True:
+            await view.interaction.response.edit_message(view=view)
+            await view.interaction.followup.send("data cleared", ephemeral=True)
+            
             for i in self.client.cache.values():
                 for item in i:
                     if interaction.user.id in item.values():
@@ -243,6 +203,10 @@ class Utility(commands.Cog):
             for g in self.client._connect4_games:
                 if interaction.user in g.game.player_list:
                     await g.children[-1].callback(interaction)
+        
+        else:
+            await view.interaction.response.edit_message(view=view)
+            await view.interaction.followup.send("k nvm then", ephemeral=True)
 
 
 async def setup(client: commands.Bot):

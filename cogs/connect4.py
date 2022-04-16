@@ -10,6 +10,7 @@ from discord.app_commands import CheckFailure, command, describe
 from discord.ext import commands
 
 from bot import NotGDKID
+from config.utils import Confirm
 
 
 class MaxConcurrencyReached(CheckFailure):
@@ -453,14 +454,29 @@ class GameView(discord.ui.View):
 
     @discord.ui.button(emoji="<:bye:954097284482736128>", style=discord.ButtonStyle.danger)
     async def forfeit(self, interaction: Interaction, btn: discord.ui.Button):
-        for c in self.children:
+        view = Confirm(interaction.user)
+        embed = discord.Embed(
+            title="are you sure you want to forfeit?",
+            colour=0xC0382B,
+        )
+        
+        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+        view.original_message = await interaction.original_message()
+        
+        await view.wait()
+        for c in view.children:
             c.disabled = True
+        
+        await view.interaction.response.edit_message(view=view)
+        if not view.choice:
+            await view.interaction.followup.send("kden", ephemeral=True)
 
-        await self.update_board(interaction=interaction, gave_up=True)
-        self.stop()
-        """
-        Forfeit confirmation
-        """
+        else:
+            for c in self.children:
+                c.disabled = True
+                
+            await self.update_board(interaction=interaction, gave_up=True)
+            self.stop()
 
 
 class ConnectFour(commands.Cog):
@@ -483,6 +499,24 @@ class ConnectFour(commands.Cog):
 
         if opponent.id == interaction.user.id or opponent.bot:
             return await interaction.response.send_message("aw hell nah", ephemeral=True)
+        
+        view = Confirm(opponent)
+        embed = discord.Embed(
+            title="connect 4",
+            description=f"{interaction.user.mention} wants to play connect 4 with you, accept game?",
+            colour=0x09dfff,
+        )
+        
+        await interaction.response.send_message(opponent.mention, embed=embed, view=view)
+        view.original_message = (msg := await interaction.channel.fetch_message((await interaction.original_message()).id))
+        
+        await view.wait()
+        
+        if not view.choice:
+            embed = msg.embeds[0].copy()
+            embed.colour = 0xC0382B
+            await msg.edit(embed=embed, view=view)
+            return
 
         view = GameView(interaction, [opponent, interaction.user])
 
@@ -528,10 +562,8 @@ class ConnectFour(commands.Cog):
             ]
         )
 
-        await interaction.response.send_message(content=content, view=view)
-        setattr(
-            view, "original_message", await interaction.channel.fetch_message((await interaction.original_message()).id)
-        )
+        await interaction.followup.edit_message(message_id=msg.id, embed=None, content=content, view=view)
+        view.original_message = msg
 
         await view.wait()
 
