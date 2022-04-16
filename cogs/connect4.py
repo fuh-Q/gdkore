@@ -484,7 +484,7 @@ class ConnectFour(commands.Cog):
         if opponent.id == interaction.user.id or opponent.bot:
             return await interaction.response.send_message("aw hell nah", ephemeral=True)
 
-        view = GameView(interaction, [interaction.user, opponent])
+        view = GameView(interaction, [opponent, interaction.user])
 
         content = "".join(
             [
