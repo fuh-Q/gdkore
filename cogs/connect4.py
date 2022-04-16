@@ -468,7 +468,7 @@ class ConnectFour(commands.Cog):
             if interaction.user.id in [u.id for u in game.game.player_list]:
                 raise MaxConcurrencyReached
 
-        if opponent.id == interaction.user.id:
+        if opponent.id == interaction.user.id or opponent.bot:
             return await interaction.response.send_message("aw hell nah", ephemeral=True)
 
         view = GameView(interaction, [interaction.user, opponent])
