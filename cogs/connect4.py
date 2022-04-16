@@ -88,8 +88,8 @@ class Game:
             counter += 1
 
     def check_4(self) -> Player | None:
-        def check_slot_list(slots: List[Slot]) -> bool:
-            if len(slots) < 4:
+        def check_slot_list(slots: List[Slot] | None) -> bool:
+            if not slots or len(slots) < 4:
                 return False
 
             streak: List[Slot] = []
@@ -127,8 +127,9 @@ class Game:
             if check_slot_list(ro):
                 return self.winner
 
-        for i in range(6):
+        for i in range(-5, 7):
             diag_right = self._get_diagonal(DiagonalDirection.RIGHT, i)
+            
             diag_left = self._get_diagonal(DiagonalDirection.LEFT, i)
 
             if check_slot_list(diag_right) or check_slot_list(diag_left):
@@ -141,22 +142,24 @@ class Game:
         except IndexError:
             return None
 
-    def _get_column(self, x: int) -> List[Slot]:
+    def _get_column(self, x: int) -> List[Slot] | None:
         return [s for s in self.slots if s.x == x] or None
 
-    def _get_row(self, y: int) -> List[Slot]:
+    def _get_row(self, y: int) -> List[Slot] | None:
         return [s for s in self.slots if s.y == y] or None
 
     def _get_diagonal(
         self,
         direction: DiagonalDirection,
-        x: int,
-    ) -> List[Slot]:
+        x: int | None = None,
+    ) -> List[Slot] | None:
         diag: List[Slot] = []
 
         y = 0
 
-        diag.append(self._get_slot(x, y))
+        if (s := self._get_slot(x, y)) is not None:
+            diag.append(s)
+        
         for _ in range(6):
             y += 1
             if direction == DiagonalDirection.RIGHT:
@@ -167,9 +170,6 @@ class Game:
 
             if (s := self._get_slot(x, y)) is not None:
                 diag.append(s)
-
-            else:
-                break
 
         return diag or None
 
@@ -186,7 +186,7 @@ class GameView(discord.ui.View):
         self.hovering = 1
         self.timed_out = 0
         self.moved_at = time.time()
-        self.turn_timeout = 60
+        self.turn_timeout = 30
 
         self.game = Game(players)
 
@@ -381,10 +381,14 @@ class GameView(discord.ui.View):
                 counter += 1
 
         if interaction:
-            await interaction.response.edit_message(content=content, view=self)
+            try:
+                return await interaction.response.edit_message(content=content, view=self)
+            
+            except discord.InteractionResponded:
+                return await interaction.followup.edit_message(message_id=self.original_message.id, content=content, view=self)
 
         elif message and not interaction:
-            await self.original_message.edit(content=content, view=self)
+            return await self.original_message.edit(content=content, view=self)
 
     @discord.ui.button(emoji="<:redleft:964765364212863056> ", style=discord.ButtonStyle.secondary)
     async def move_left(self, interaction: Interaction, btn: discord.ui.Button):
@@ -438,7 +442,7 @@ class GameView(discord.ui.View):
         else:
             await self.update_board(interaction=interaction, drop=True)
 
-    @discord.ui.button(emoji="<:bye:954097284482736128>", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(emoji="<:bye:954097284482736128>", style=discord.ButtonStyle.danger)
     async def forfeit(self, interaction: Interaction, btn: discord.ui.Button):
         for c in self.children:
             c.disabled = True
