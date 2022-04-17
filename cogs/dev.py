@@ -36,7 +36,7 @@ class Dev(commands.Cog):
         e = discord.Embed(description="❯❯ Aight brb")
         msg = await ctx.reply(embed=e)
         with open("./config/restart.json", "w") as f:
-            json.load(
+            json.dump(
                 {
                     "id": msg.id,
                     "chan_id": msg.channel.id if ctx.guild else None,
