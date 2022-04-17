@@ -436,7 +436,7 @@ class Eval(commands.Cog):
         try:
             exec(to_compile, env)
         except Exception as e:
-            embed = discord.Embed(title="Error", description=f"```py\n{e.__class__.__name__}: {e}\n```", color=color)
+            embed = discord.Embed(title="FUCK!", description=f"```py\n{e.__class__.__name__}: {e}\n```", color=color)
             await ctx.send(embed=embed)
 
         func = env["func"]
@@ -446,7 +446,7 @@ class Eval(commands.Cog):
         except Exception:
             value = stdout.getvalue()
             embed = discord.Embed(
-                title="Error", description=f"```py\n{value}{traceback.format_exc()}\n```", color=color
+                title="FUCK!", description=f"```py\n{value}{traceback.format_exc()}\n```", color=color
             )
             await ctx.send(embed=embed)
         else:
