@@ -44,7 +44,7 @@ class Dev(commands.Cog):
                 },
                 f,
             )
-        
+
         await self.client.close(restart=True)
 
     @commands.command(name="hi", brief='Say "Hi" to the bot', hidden=True)
