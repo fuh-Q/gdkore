@@ -35,7 +35,7 @@ class Dev(commands.Cog):
     async def restart(self, ctx: commands.Context):
         e = discord.Embed(description="❯❯ Aight brb")
         msg = await ctx.reply(embed=e)
-        with open("../config/restart.json", "w") as f:
+        with open("./config/restart.json", "w") as f:
             json.load(
                 {
                     "id": msg.id,
