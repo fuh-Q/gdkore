@@ -2,6 +2,7 @@ import asyncio
 import copy
 import time
 from itertools import cycle
+import traceback
 from typing import List
 
 import discord
@@ -564,13 +565,14 @@ class ConnectFour(commands.Cog):
             ]
         )
 
-        await view.interaction.response.edit_message(embed=None, content=content, view=view)
+        await interaction.followup.edit_message(message_id=msg.id, embed=None, content=content, view=view)
         view.original_message = msg
 
         await view.wait()
 
     @connect4.error
     async def connect4_error(self, interaction: Interaction, error):
+        print("".join(traceback.format_exc()))
         if isinstance(error, commands.MaxConcurrencyReached):
             author_game = None
 
