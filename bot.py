@@ -187,9 +187,16 @@ class NotGDKID(commands.Bot):
 
         await self.process_commands(message)
 
-    async def on_reaction_add(self, reaction: discord.Reaction, user: discord.User):
-        if user.id == self.owner_id and reaction.emoji == "❌" and reaction.message.author == self.user:
-            await reaction.message.delete()
+    async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
+        if payload.user_id == self.owner_id and payload.emoji == "❌":
+            try:
+                msg = await self.get_channel(payload.channel_id).fetch_message(payload.message_id)
+
+                if msg.author == self.user:
+                    await msg.delete()
+            
+            except discord.HTTPException:
+                pass
 
     async def start(self):
         if str(__file__).lower() == r"d:\gdkore\bot.py":
