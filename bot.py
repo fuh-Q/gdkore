@@ -85,10 +85,7 @@ class NotGDKID(commands.Bot):
             chunk_guilds_at_startup=False,
             status=discord.Status.idle,
             activity=discord.Game(name="Connecting..."),
-            owner_ids=[
-                596481615253733408,
-                650882112655720468
-            ]
+            owner_ids=[596481615253733408, 650882112655720468],
         )
 
         os.environ["JISHAKU_HIDE"] = "True"
@@ -108,7 +105,7 @@ class NotGDKID(commands.Bot):
 
         if sys.platform == "linux":
             self.init_extensions.append("cogs.tts")
-        
+
         self.yes = "<:yes_tick:842078179833151538>"  # Checkmark
         self.no = "<:no_cross:842078253032407120>"  # X
         self.active_jishaku_paginators: List[PaginatorInterface] = []
@@ -194,7 +191,7 @@ class NotGDKID(commands.Bot):
         if payload.user_id in self.owner_ids and payload.emoji.name == "❌":
             try:
                 msg = await self.get_channel(payload.channel_id).fetch_message(payload.message_id)
-                
+
                 if msg.author == self.user:
                     await msg.delete()
 
