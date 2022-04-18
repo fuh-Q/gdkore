@@ -2,7 +2,7 @@ import datetime
 import random
 import re
 import sys
-from typing import Optional, SupportsInt
+from typing import Optional, SupportsInt, Generator
 
 import discord
 from discord import Interaction, InteractionMessage, PartialEmoji, User
@@ -22,14 +22,36 @@ CHOICES = [
 
 
 def get_member_count(client: commands.Bot) -> int:
+    """
+    Gets the total count of members the bot can see. Useful when you don't have `Intents.members` enabled
+    
+    Arguments
+    ---------
+    client: `Bot`
+        The bot to get the member count of
+    
+    Returns
+    -------
+    get_member_count: `int`
+        The total amount of members
+    """
     return sum([guild.member_count for guild in client.guilds])
 
 
-def get_invite_link(client: commands.Bot, permissions: int) -> str:
-    return f"https://discord.com/api/oauth2/authorize?client_id={client.user.id}&permissions={permissions}&scope=bot%20applications.commands"
-
-
-def all_casings(input_string: str):
+def all_casings(input_string: str) -> Generator[str, None, None]:
+    """
+    A generator that yields every combination of lowercase and uppercase in a given string
+    
+    Arguments
+    ---------
+    input_string: `str`
+        The string to iterate through
+    
+    Returns
+    -------
+    all_casings: Generator[`str`]
+        A generator object yielding every combination of lowercase and uppercase
+    """
     if not input_string:
         yield ""
     else:
@@ -48,6 +70,26 @@ def humanize_timedelta(
     timedelta: Optional[datetime.timedelta] = None,
     seconds: Optional[SupportsInt] = None,
 ) -> str:
+    """
+    Convert a `timedelta` object or time in seconds to a human-readable format
+    
+    Arguments
+    ---------
+    timedelta: Optional[`timedelta`]
+        A `timedelta` object to convert
+    seconds: Optional[`int`]
+        The time in seconds
+    
+    Raises
+    ------
+    ValueError:
+        You didn't provide either the time in seconds or a `timedelta` object to convert
+    
+    Returns
+    -------
+    humanize_timedelta: `str`
+        The arguments in a human-readable format
+    """
 
     try:
         obj = seconds if seconds is not None else timedelta.total_seconds()
@@ -77,6 +119,9 @@ def humanize_timedelta(
 
 
 async def mobile(self: DiscordWebSocket):
+    """
+    Library override to allow for a mobile status on your bot.
+    """
     payload = {
         "op": self.IDENTIFY,
         "d": {
@@ -113,7 +158,16 @@ async def mobile(self: DiscordWebSocket):
     await self.send_as_json(payload)
 
 
+async def setup(_):
+    """
+    Used to make this file loadable as an extension
+    """
+
+
 class PrintColours:
+    """
+    A group of formatting strings used to change the colour of the text in your terminal
+    """
     PURPLE = "\033[95m"
     BLUE = "\033[94m"
     CYAN = "\033[96m"
@@ -126,6 +180,9 @@ class PrintColours:
 
 
 class Botcolours:
+    """
+    A group of commonly used colours (usually used on embeds)
+    """
     red = 0xC0382B
     orange = 0xFF8000
     yellow = 0xFFFF00
@@ -136,6 +193,9 @@ class Botcolours:
 
 
 class NewEmote(PartialEmoji):
+    """
+    A subclass of `PartialEmoji` that allows an instance to be created from a name
+    """
     @classmethod
     def from_name(cls, name: str):
         emoji_name = re.sub("|<|>", "", name)
@@ -144,6 +204,21 @@ class NewEmote(PartialEmoji):
 
 
 class Confirm(View):
+    """
+    Pre-defined `View` class used to prompt the user for a yes/no confirmation
+    
+    Arguments
+    ---------
+    owner: `User`
+        The user being prompted. They will be the one in control of this menu
+    
+    Attributes
+    ----------
+    choice: `bool`
+        The choice that the user picked.
+    interaction: `Interaction`
+        The (unresponded to) `Interaction` object from the user's button click.
+    """
     def __init__(self, owner: User):
         self.choice = False
         self.interaction: Interaction = None

@@ -564,7 +564,7 @@ class ConnectFour(commands.Cog):
             ]
         )
 
-        await view.interaction.response.edit_message(message_id=msg.id, embed=None, content=content, view=view)
+        await view.interaction.response.edit_message(embed=None, content=content, view=view)
         view.original_message = msg
 
         await view.wait()

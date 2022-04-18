@@ -101,6 +101,7 @@ class NotGDKID(commands.Bot):
             "cogs.Eval",
             "cogs.typerace",
             "cogs.utility",
+            "config.utils",
         ]
 
         if sys.platform == "linux":
