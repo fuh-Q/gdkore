@@ -194,7 +194,7 @@ class NotGDKID(commands.Bot):
 
                 if msg.author == self.user:
                     await msg.delete()
-            
+
             except discord.HTTPException:
                 pass
 
