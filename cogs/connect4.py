@@ -514,6 +514,7 @@ class ConnectFour(commands.Cog):
         )
 
         await view.wait()
+        await view.interaction.response.defer()
 
         if not view.choice:
             embed = msg.embeds[0].copy()
