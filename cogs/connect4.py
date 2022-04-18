@@ -1,8 +1,8 @@
 import asyncio
 import copy
 import time
-from itertools import cycle
 import traceback
+from itertools import cycle
 from typing import List
 
 import discord
