@@ -2,7 +2,7 @@ import datetime
 import random
 import re
 import sys
-from typing import Optional, SupportsInt, Generator
+from typing import Generator, Optional, SupportsInt
 
 import discord
 from discord import Interaction, InteractionMessage, PartialEmoji, User
@@ -24,12 +24,12 @@ CHOICES = [
 def get_member_count(client: commands.Bot) -> int:
     """
     Gets the total count of members the bot can see. Useful when you don't have `Intents.members` enabled
-    
+
     Arguments
     ---------
     client: `Bot`
         The bot to get the member count of
-    
+
     Returns
     -------
     get_member_count: `int`
@@ -41,12 +41,12 @@ def get_member_count(client: commands.Bot) -> int:
 def all_casings(input_string: str) -> Generator[str, None, None]:
     """
     A generator that yields every combination of lowercase and uppercase in a given string
-    
+
     Arguments
     ---------
     input_string: `str`
         The string to iterate through
-    
+
     Returns
     -------
     all_casings: Generator[`str`]
@@ -72,19 +72,19 @@ def humanize_timedelta(
 ) -> str:
     """
     Convert a `timedelta` object or time in seconds to a human-readable format
-    
+
     Arguments
     ---------
     timedelta: Optional[`timedelta`]
         A `timedelta` object to convert
     seconds: Optional[`int`]
         The time in seconds
-    
+
     Raises
     ------
     ValueError:
         You didn't provide either the time in seconds or a `timedelta` object to convert
-    
+
     Returns
     -------
     humanize_timedelta: `str`
@@ -168,6 +168,7 @@ class PrintColours:
     """
     A group of formatting strings used to change the colour of the text in your terminal
     """
+
     PURPLE = "\033[95m"
     BLUE = "\033[94m"
     CYAN = "\033[96m"
@@ -183,6 +184,7 @@ class Botcolours:
     """
     A group of commonly used colours (usually used on embeds)
     """
+
     red = 0xC0382B
     orange = 0xFF8000
     yellow = 0xFFFF00
@@ -196,6 +198,7 @@ class NewEmote(PartialEmoji):
     """
     A subclass of `PartialEmoji` that allows an instance to be created from a name
     """
+
     @classmethod
     def from_name(cls, name: str):
         emoji_name = re.sub("|<|>", "", name)
@@ -206,12 +209,12 @@ class NewEmote(PartialEmoji):
 class Confirm(View):
     """
     Pre-defined `View` class used to prompt the user for a yes/no confirmation
-    
+
     Arguments
     ---------
     owner: `User`
         The user being prompted. They will be the one in control of this menu
-    
+
     Attributes
     ----------
     choice: `bool`
@@ -219,6 +222,7 @@ class Confirm(View):
     interaction: `Interaction`
         The (unresponded to) `Interaction` object from the user's button click.
     """
+
     def __init__(self, owner: User):
         self.choice = False
         self.interaction: Interaction = None

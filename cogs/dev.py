@@ -1,21 +1,9 @@
-import inspect
 import json
-import os
-from pathlib import Path
 import time
-from typing import Any, List, Dict
+from typing import Any, Dict, List
 
 import discord
-from discord import ui, Interaction
-from discord.app_commands import (
-    command,
-    describe,
-    choices,
-    checks,
-    errors,
-    Choice,
-    CheckFailure,
-)
+from discord import Interaction, ui
 from discord.ext import commands
 
 from bot import NotGDKID
@@ -26,10 +14,10 @@ class FileExporer(ui.View):
         self.interaction = interaction
         self.client = client or interaction.client
         self.tree: Dict[str, List[Dict[str, Any]] | Any] = {}
-        
+
         # Start building the tree
         ...
-        
+
         super().__init__(timeout=120)
 
 
