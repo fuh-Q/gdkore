@@ -134,10 +134,10 @@ class Game:
 
             if check_slot_list(diag_right):
                 return self.winner
-        
+
         for i in range(11, -1, -1):
             diag_left = self._get_diagonal(DiagonalDirection.LEFT, i)
-            
+
             if check_slot_list(diag_left):
                 return self.winner
 
