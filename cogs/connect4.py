@@ -132,9 +132,13 @@ class Game:
         for i in range(-5, 7):
             diag_right = self._get_diagonal(DiagonalDirection.RIGHT, i)
 
+            if check_slot_list(diag_right):
+                return self.winner
+        
+        for i in range(11, -1, -1):
             diag_left = self._get_diagonal(DiagonalDirection.LEFT, i)
-
-            if check_slot_list(diag_right) or check_slot_list(diag_left):
+            
+            if check_slot_list(diag_left):
                 return self.winner
 
     def _get_slot(self, x: int, y: int) -> Slot | None:
@@ -247,7 +251,7 @@ class GameView(discord.ui.View):
 
     async def interaction_check(self, interaction: Interaction) -> bool:
         if interaction.user not in self.game.player_list:
-            await interaction.response.send_message("its not your game")
+            await interaction.response.send_message("its not your game", ephemeral=True)
             return False
 
         return True
