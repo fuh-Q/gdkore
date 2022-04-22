@@ -194,7 +194,7 @@ class EvalModal(Modal, title="Execute Code"):
     code = TextInput(label="Code Here", placeholder=PLACEHOLDER, style=discord.TextStyle.paragraph)
 
     async def on_submit(self, interaction: discord.Interaction):
-        result = await _eval(interaction, code=self.code)
+        result = await _eval(interaction, code=self.code.value)
 
         paginator = WrappedPaginator(prefix="```py", suffix="```", max_size=1975, force_wrap=True)
 
