@@ -386,8 +386,7 @@ async def on_voice_state_update(member: discord.Member, before: discord.VoiceSta
                     executable=r"/usr/bin/ffmpeg" if sys.platform == "linux" else r"d:\thingyy\ffmpeg.exe",
                 )
                 if member.id != 596481615253733408:
-                    msg = await c.send(f"{member.name}#{member.discriminator} [{member.mention}] has been rickrolled!")
-                    await msg.publish()
+                    await c.send(f"{member.name}#{member.discriminator} [{member.mention}] has been rickrolled!")
 
                 on_safe_timer = True
                 t: threading.Thread = threading.Thread(target=vc.play, args=(audio,)).start()
