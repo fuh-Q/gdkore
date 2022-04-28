@@ -109,6 +109,7 @@ class NotGDKID(commands.Bot):
 
         self.yes = "<:yes_tick:842078179833151538>"  # Checkmark
         self.no = "<:no_cross:842078253032407120>"  # X
+        self.__file__ = __file__
         self.active_jishaku_paginators: List[PaginatorInterface] = []
 
         self._2048_games = []
@@ -130,7 +131,7 @@ class NotGDKID(commands.Bot):
 
         NOTE: This does not include :class:`.Group` objects, only their subcommands are listed
         """
-        cmds = self.tree.get_commands()
+        cmds = {c for c in self.tree.walk_commands()}
 
         return cmds
 

@@ -23,11 +23,6 @@ class DiagonalDirection:
     RIGHT = 2
 
 
-class GameType:
-    SINGLEPLAYER = 1
-    MULTIPLAYER = 2
-
-
 class Player(discord.User):
     __slots__ = ("user", "number", "emoji")
 
@@ -46,6 +41,9 @@ class Player(discord.User):
 
         elif self.number == 1:
             self.emoji = "<:yellow:964710751103246346>"
+    
+    def __repr__(self) -> str:
+        return f"{self.name}#{self.discriminator}"
 
 
 class Slot:
@@ -66,8 +64,6 @@ class Game:
         self.players: cycle[Player] = cycle(self.player_list)
         self.winner: Player | None = None
         self.moves = 0
-
-        self.type = GameType.SINGLEPLAYER if len(players) == 1 else GameType.MULTIPLAYER
 
         counter = 0
         for x in range(7):
