@@ -10,7 +10,6 @@ import sys
 
 import aiohttp
 import discord
-import jishaku.shim.paginator_base
 from discord import app_commands
 from discord.ext import commands
 from jishaku.codeblocks import Codeblock, codeblock_converter
@@ -348,16 +347,16 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
         """
         Displays the source code for a command.
         """
-        
+
         command: commands.Command | app_commands.Command
 
         if not (command := self.bot.get_command(command_name)):
             if not (command := self.bot.tree.get_command(command_name)):
-                if (maybe_command := self.bot.tree.get_command((split := command_name.split(" "))[0])):
+                if maybe_command := self.bot.tree.get_command((split := command_name.split(" "))[0]):
                     # we got a group
-                    
+
                     command = maybe_command.get_command(split[1])
-        
+
                 else:
                     return await ctx.send(f"Couldn't find command `{command_name}`.")
         try:
