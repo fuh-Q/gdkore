@@ -359,7 +359,7 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
 
         if not command:
             return await ctx.send(f"Couldn't find command `{command_name}`.")
-        
+
         try:
             source_lines, _ = inspect.getsourcelines(command.callback)
         except (TypeError, OSError):
