@@ -1,9 +1,9 @@
 import json
-from pathlib import Path
 import os
-import time
-from typing import Any, Dict, List
 import sys
+import time
+from pathlib import Path
+from typing import Any, Dict, List
 
 import discord
 from discord import Interaction, ui
@@ -27,18 +27,20 @@ class FileExporer(ui.View):
         rootdir = Path(self.client.__file__).parents[0]
         rootdir_abso = str(rootdir.absolute())
         self.tree[rootdir_abso] = []
-        
+
         last_fucked_with: Path = None
         last_cwd: Path = None
-        
+
         for filename in os.listdir(str(rootdir.absolute())):
             cwd: Path = rootdir
             dir_set = False
-            
+
             for filename in os.listdir(str(cwd.absolute())):
                 p = Path(f"{cwd.absolute()}{S}{filename}")
-                self.tree[str(cwd.absolute())].append({str(p.absolute()): [] if os.path.isdir(str(p.absolute())) else 69})
-                
+                self.tree[str(cwd.absolute())].append(
+                    {str(p.absolute()): [] if os.path.isdir(str(p.absolute())) else 69}
+                )
+
                 if os.path.isdir(str(p.absolute())) and not dir_set and not p == last_fucked_with:
                     dir_set = True
                     cwd = p

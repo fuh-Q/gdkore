@@ -41,7 +41,7 @@ class Player(discord.User):
 
         elif self.number == 1:
             self.emoji = "<:yellow:964710751103246346>"
-    
+
     def __repr__(self) -> str:
         return f"{self.name}#{self.discriminator}"
 
