@@ -11,6 +11,7 @@ import sys
 import aiohttp
 import discord
 import jishaku.shim.paginator_base
+from discord import app_commands
 from discord.ext import commands
 from jishaku.codeblocks import Codeblock, codeblock_converter
 from jishaku.cog import OPTIONAL_FEATURES, STANDARD_FEATURES
@@ -347,27 +348,18 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
         """
         Displays the source code for a command.
         """
+        
+        command: commands.Command | app_commands.Command
 
-        command: commands.Command = self.bot.get_command(command_name)
-        if not command:
-            return await ctx.send(f"Couldn't find command `{command_name}`.")
-
-        def check(message: discord.Message) -> bool:
-            return message.author.id == ctx.author.id and message.channel.id == ctx.channel.id
-
-        file_format = False
-        await ctx.send("Would you like this in the form of a file rather than a paginator? `[yes|no]`")
-        while True:
-            try:
-                msg: discord.Message = await self.bot.wait_for("message", timeout=60, check=check)
-            except asyncio.TimeoutError:
-                await ctx.send("You took too long to respond, imma take that as a no")
-                break
-            else:
-                if msg.content.lower() == "yes":
-                    file_format = True
-                break
-
+        if not (command := self.bot.get_command(command_name)):
+            if not (command := self.bot.tree.get_command(command_name)):
+                if (maybe_command := self.bot.tree.get_command((split := command_name.split(" "))[0])):
+                    # we got a group
+                    
+                    command = maybe_command.get_command(split[1])
+        
+                else:
+                    return await ctx.send(f"Couldn't find command `{command_name}`.")
         try:
             source_lines, _ = inspect.getsourcelines(command.callback)
         except (TypeError, OSError):
@@ -375,23 +367,14 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
 
         source_text = "".join(source_lines)
 
-        if file_format and not JISHAKU_FORCE_PAGINATOR:
+        filename = "source.py"
 
-            filename = "source.py"
+        try:
+            filename = pathlib.Path(inspect.getfile(command.callback)).name
+        except (TypeError, OSError):
+            pass
 
-            try:
-                filename = pathlib.Path(inspect.getfile(command.callback)).name
-            except (TypeError, OSError):
-                pass
-
-            await ctx.send(file=discord.File(filename=filename, fp=io.BytesIO(source_text.encode("utf-8"))))
-        else:
-            paginator = jishaku.paginators.WrappedPaginator(prefix="```py", suffix="```", max_size=1985)
-
-            paginator.add_line(source_text.replace("```", "``\N{zero width space}`"))
-
-            interface = PaginatorInterFace(ctx.bot, paginator, owner=ctx.author)
-            await interface.send_to(ctx)
+        await ctx.send(file=discord.File(filename=filename, fp=io.BytesIO(source_text.encode("utf-8"))))
 
     @Feature.Command(parent="", standalone_ok=True, name="cat")
     async def jsk_cat(self, ctx: commands.Context, argument: str):  # pylint: disable=too-many-locals
