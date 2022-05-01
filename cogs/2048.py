@@ -9,7 +9,7 @@ from random import randint as r
 from typing import Iterable, List, Optional
 
 import discord
-from discord import Interaction, InteractionMessage, SelectOption
+from discord import Embed, Interaction, InteractionMessage, SelectOption
 from discord.app_commands import (CheckFailure, Choice, Group, choices,
                                   command, describe)
 from discord.ext import commands
@@ -77,8 +77,11 @@ class Game:
         self.grid_size = grid_size
         self.new_block = None
         self.player: discord.User = None
+        
+        self.score = 0
+        self.moves = 0
 
-        self.moved: bool = False
+        self._moved: bool = False
         self._won: bool = False
 
         if not blocks:
@@ -148,6 +151,9 @@ class Game:
                     next_block.frozen = True
 
                 next_block.value += block.value
+                if next_block.frozen:
+                    self.score += next_block.value
+                
                 block.value = 0
                 block.display = "\u200b"
 
@@ -197,11 +203,12 @@ class Game:
         now_blocks = [b.value for b in self.blocks.copy()]
         for i in range(len(og_blocks)):
             if og_blocks[i] != now_blocks[i]:
-                self.moved = True
+                self._moved = True
+                self.moves += 1
                 break
 
     def check_loss(self, blocks: List[Block]) -> bool:
-        if self.moved:
+        if self._moved:
             empty_spaces = []
             for block in blocks:
                 if block.value == 0:
@@ -213,7 +220,7 @@ class Game:
             new_block.display = new_block.value
             self.new_block = new_block
 
-        self.moved = False
+        self._moved = False
         self.blocks = blocks
 
         empty_spaces = []
@@ -284,6 +291,7 @@ class GameView(discord.ui.View):
         interaction: Interaction,
         grid_size: Optional[int] = None,
         blocks: Optional[List[int]] = None,
+        embed: Optional[Embed] = None,
         client: Optional[NotGDKID] = None,
     ):
         super().__init__(timeout=120)
@@ -294,6 +302,7 @@ class GameView(discord.ui.View):
 
         self.interaction = interaction
         self.client: NotGDKID = client or interaction.client
+        self.embed = embed
 
         self.original_message: Optional[InteractionMessage] = None
 
@@ -472,15 +481,17 @@ class GameView(discord.ui.View):
             self.game.move(Directions.LEFT)
             loss = self.game.check_loss(self.game.blocks)
             won = self.update()
+            
+            self.embed.description = f"— **score** `{self.game.score:,}`\n— **moves** `{self.game.moves:,}`"
 
             if loss:
                 return await self.loss(interaction)
 
             if won and not already_won:
-                await interaction.response.edit_message(view=self)
+                await interaction.response.edit_message(embed=self.embed, view=self)
                 await self.won(interaction)
 
-            await interaction.response.edit_message(view=self)
+            await interaction.response.edit_message(embed=self.embed, view=self)
 
         except Exception as e:
             print("".join(traceback.format_exception(e, e, e.__traceback__)))
@@ -491,15 +502,17 @@ class GameView(discord.ui.View):
             self.game.move(Directions.UP)
             loss = self.game.check_loss(self.game.blocks)
             won = self.update()
+            
+            self.embed.description = f"— **score** `{self.game.score:,}`\n— **moves** `{self.game.moves:,}`"
 
             if loss:
                 return await self.loss(interaction)
 
             if won and not already_won:
-                await interaction.response.edit_message(view=self)
+                await interaction.response.edit_message(embed=self.embed, view=self)
                 await self.won(interaction)
 
-            await interaction.response.edit_message(view=self)
+            await interaction.response.edit_message(embed=self.embed, view=self)
 
         except Exception as e:
             print("".join(traceback.format_exception(e, e, e.__traceback__)))
@@ -510,15 +523,17 @@ class GameView(discord.ui.View):
             self.game.move(Directions.DOWN)
             loss = self.game.check_loss(self.game.blocks)
             won = self.update()
+            
+            self.embed.description = f"— **score** `{self.game.score:,}`\n— **moves** `{self.game.moves:,}`"
 
             if loss:
                 return await self.loss(interaction)
 
             if won and not already_won:
-                await interaction.response.edit_message(view=self)
+                await interaction.response.edit_message(embed=self.embed, view=self)
                 await self.won(interaction)
 
-            await interaction.response.edit_message(view=self)
+            await interaction.response.edit_message(embed=self.embed, view=self)
 
         except Exception as e:
             print("".join(traceback.format_exception(e, e, e.__traceback__)))
@@ -529,15 +544,17 @@ class GameView(discord.ui.View):
             self.game.move(Directions.RIGHT)
             loss = self.game.check_loss(self.game.blocks)
             won = self.update()
+            
+            self.embed.description = f"— **score** `{self.game.score:,}`\n— **moves** `{self.game.moves:,}`"
 
             if loss:
                 return await self.loss(interaction)
 
             if won and not already_won:
-                await interaction.response.edit_message(view=self)
+                await interaction.response.edit_message(embed=self.embed, view=self)
                 await self.won(interaction)
 
-            await interaction.response.edit_message(view=self)
+            await interaction.response.edit_message(embed=self.embed, view=self)
 
         except Exception as e:
             print("".join(traceback.format_exception(e, e, e.__traceback__)))
@@ -829,6 +846,16 @@ class TwentyFortyEight(commands.Cog):
 
         if isinstance(grid_size, Choice):
             grid_size = grid_size.value
+        
+        infoEmbed = discord.Embed(description="— **score** `0`\n— **moves** `0`", colour=Botcolours.green)
+        infoEmbed.set_footer(
+            text="newly spawned blocks are highlighted in green"
+        )
+
+        infoEmbed.set_author(
+            name=f"{grid_size}x{grid_size} grid (win at {win_map[grid_size]})",
+            icon_url=interaction.client.user.avatar.url,
+        )
 
         if load is True:
             found = False
@@ -837,21 +864,14 @@ class TwentyFortyEight(commands.Cog):
                 if game["player"] == interaction.user.id:
                     found = True
                     grid_size = round(math.sqrt(len(game["blocks"])))
-                    view = GameView(interaction, blocks=game["blocks"])
+                    view = GameView(interaction, blocks=game["blocks"], embed=infoEmbed)
                     break
 
             if not found:
                 return await interaction.response.send_message("couldnt find a saved game", ephemeral=True)
 
         else:
-            view = GameView(interaction, grid_size)
-
-        infoEmbed = discord.Embed(description="newly spawned blocks are highlighted in green", colour=Botcolours.green)
-
-        infoEmbed.set_author(
-            name=f"{grid_size}x{grid_size} grid (win at {win_map[grid_size]})",
-            icon_url=interaction.client.user.avatar.url,
-        )
+            view = GameView(interaction, grid_size, embed=infoEmbed)
 
         await interaction.response.send_message(embed=infoEmbed, view=view)
         setattr(view, "original_message", await interaction.original_message())
@@ -862,14 +882,15 @@ class TwentyFortyEight(commands.Cog):
 
     howto = Group(name="howto", description="2048 game guide")
 
-    @howto.command(name="basic")
-    async def howtobasic(self, interaction: Interaction):
+    @howto.command(name="2048")
+    async def howto2048(self, interaction: Interaction):
         """2048 game guide"""
 
         avatars = [
-            self.client.get_user(596481615253733408).avatar.url,
-            self.client.get_user(865596669999054910).avatar.url,
-            self.client.get_user(859104775429947432).avatar.url,
+            "https://cdn.discordapp.com/avatars/596481615253733408/742f6979fe30ab201350bf99dafd2624.png?size=4096",
+            "https://cdn.discordapp.com/avatars/865596669999054910/5f55d7e0003edaa83f9fd6801f887ccd.png?size=4096",
+            "https://cdn.discordapp.com/avatars/930701221424164905/b9e644732993f675c3636636da1bfb89.png?size=4096",
+            "https://cdn.discordapp.com/avatars/859104775429947432/c55ae057136a15df6bf17f2c1fd4b5a2.png?size=4096",
         ]
 
         info_embed = (
