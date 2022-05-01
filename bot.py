@@ -64,7 +64,7 @@ class NotGDKID(commands.Bot):
     """
     The sexiest bot of all time.
     """
-    
+
     yes = "<:checkmark:970213925637484546>"  # Checkmark
     no = "<:cross:970214651784736818>"  # X
     __file__ = __file__
