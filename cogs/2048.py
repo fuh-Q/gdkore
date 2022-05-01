@@ -584,7 +584,7 @@ class QuitConfirmationView(discord.ui.View):
             discord.SelectOption(
                 label="nu",
                 description="trash out this current game",
-                emoji=NewEmote.from_name(NotGDKID.yes),
+                emoji=NewEmote.from_name(NotGDKID.no),
             ),
         ],
     )
