@@ -77,7 +77,7 @@ class Game:
         self.grid_size = grid_size
         self.new_block = None
         self.player: discord.User = None
-        
+
         self.score = 0
         self.moves = 0
 
@@ -153,7 +153,7 @@ class Game:
                 next_block.value += block.value
                 if next_block.frozen:
                     self.score += next_block.value
-                
+
                 block.value = 0
                 block.display = "\u200b"
 
@@ -481,7 +481,7 @@ class GameView(discord.ui.View):
             self.game.move(Directions.LEFT)
             loss = self.game.check_loss(self.game.blocks)
             won = self.update()
-            
+
             self.embed.description = f"— **score** `{self.game.score:,}`\n— **moves** `{self.game.moves:,}`"
 
             if loss:
@@ -502,7 +502,7 @@ class GameView(discord.ui.View):
             self.game.move(Directions.UP)
             loss = self.game.check_loss(self.game.blocks)
             won = self.update()
-            
+
             self.embed.description = f"— **score** `{self.game.score:,}`\n— **moves** `{self.game.moves:,}`"
 
             if loss:
@@ -523,7 +523,7 @@ class GameView(discord.ui.View):
             self.game.move(Directions.DOWN)
             loss = self.game.check_loss(self.game.blocks)
             won = self.update()
-            
+
             self.embed.description = f"— **score** `{self.game.score:,}`\n— **moves** `{self.game.moves:,}`"
 
             if loss:
@@ -544,7 +544,7 @@ class GameView(discord.ui.View):
             self.game.move(Directions.RIGHT)
             loss = self.game.check_loss(self.game.blocks)
             won = self.update()
-            
+
             self.embed.description = f"— **score** `{self.game.score:,}`\n— **moves** `{self.game.moves:,}`"
 
             if loss:
@@ -846,11 +846,9 @@ class TwentyFortyEight(commands.Cog):
 
         if isinstance(grid_size, Choice):
             grid_size = grid_size.value
-        
+
         infoEmbed = discord.Embed(description="— **score** `0`\n— **moves** `0`", colour=Botcolours.green)
-        infoEmbed.set_footer(
-            text="newly spawned blocks are highlighted in green"
-        )
+        infoEmbed.set_footer(text="newly spawned blocks are highlighted in green")
 
         infoEmbed.set_author(
             name=f"{grid_size}x{grid_size} grid (win at {win_map[grid_size]})",
