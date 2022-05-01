@@ -579,12 +579,12 @@ class QuitConfirmationView(discord.ui.View):
             discord.SelectOption(
                 label="ye",
                 description="keep playing later with /2048 and set load to true",
-                emoji=NewEmote.from_name("<:yes_tick:842078179833151538>"),
+                emoji=NewEmote.from_name(NotGDKID.yes),
             ),
             discord.SelectOption(
                 label="nu",
                 description="trash out this current game",
-                emoji=NewEmote.from_name("<:no_cross:842078253032407120>"),
+                emoji=NewEmote.from_name(NotGDKID.yes),
             ),
         ],
     )

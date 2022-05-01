@@ -64,6 +64,10 @@ class NotGDKID(commands.Bot):
     """
     The sexiest bot of all time.
     """
+    
+    yes = "<:checkmark:970213925637484546>"  # Checkmark
+    no = "<:cross:970214651784736818>"  # X
+    __file__ = __file__
 
     def __init__(self):
         allowed_mentions = discord.AllowedMentions.all()
@@ -107,9 +111,6 @@ class NotGDKID(commands.Bot):
         if sys.platform == "linux":
             self.init_extensions.append("cogs.tts")
 
-        self.yes = "<:yes_tick:842078179833151538>"  # Checkmark
-        self.no = "<:no_cross:842078253032407120>"  # X
-        self.__file__ = __file__
         self.active_jishaku_paginators: List[PaginatorInterface] = []
 
         self._2048_games = []
@@ -119,6 +120,7 @@ class NotGDKID(commands.Bot):
 
         self.token = secrets["token"]
         self.testing_token = secrets["testing_token"]
+        self.description = self.__doc__
 
         self.uptime = datetime.utcnow().astimezone(timezone(timedelta(hours=-4)))
 

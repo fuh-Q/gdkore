@@ -60,12 +60,12 @@ def natural_size(size_in_bytes: int) -> str:
 
 
 class PaginatorInterFace(OGPaginatorInterface):
-    button_start: discord.Button
-    button_previous: discord.Button
-    button_current: discord.Button
-    button_next: discord.Button
-    button_last: discord.Button
-    button_close: discord.Button
+    button_start: discord.ui.Button
+    button_previous: discord.ui.Button
+    button_current: discord.ui.Button
+    button_next: discord.ui.Button
+    button_last: discord.ui.Button
+    button_close: discord.ui.Button
 
     def __init__(
         self,
@@ -95,6 +95,9 @@ class PaginatorInterFace(OGPaginatorInterface):
                 child.emoji = None
             except Exception:
                 pass
+        
+        if self.page_count < 2:
+            self.button_goto.disabled = True
 
         if self.display_page == self.page_count - 1:
             self.button_last.disabled = True
