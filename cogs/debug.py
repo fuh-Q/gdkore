@@ -95,7 +95,7 @@ class PaginatorInterFace(OGPaginatorInterface):
                 child.emoji = None
             except Exception:
                 pass
-        
+
         if self.page_count < 2:
             self.button_goto.disabled = True
 
