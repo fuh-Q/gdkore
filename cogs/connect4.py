@@ -27,7 +27,6 @@ class Player(discord.User):
     __slots__ = ("user", "number", "emoji")
 
     def __init__(self, original: discord.User, number: int):
-        self._state = original._state
         self.name = original.name
         self.id = original.id
         self.discriminator = original.discriminator
@@ -401,14 +400,19 @@ class GameView(discord.ui.View):
         elif message and not interaction:
             return await self.original_message.edit(content=content, view=self)
 
-    @discord.ui.button(emoji="<:redleft:964765364212863056> ", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(emoji="<:redleft:964765364212863056> ", style=discord.ButtonStyle.secondary, disabled=True)
     async def move_left(self, interaction: Interaction, btn: discord.ui.Button):
         if interaction.user.id != self.turn.id:
             return await interaction.response.send_message("wait your turn", ephemeral=True)
 
         self.timed_out = 0
+        self.move_right.disabled = False
         if self.hovering > 1:
             self.hovering -= 1
+            btn.disabled = False
+        
+        if not self.hovering > 1:
+            btn.disabled = True
 
         await self.update_board(interaction=interaction)
 
@@ -418,8 +422,13 @@ class GameView(discord.ui.View):
             return await interaction.response.send_message("wait your turn", ephemeral=True)
 
         self.timed_out = 0
+        self.move_left.disabled = False
         if self.hovering < 7:
             self.hovering += 1
+            btn.disabled = False
+        
+        if not self.hovering < 7:
+            btn.disabled = True
 
         await self.update_board(interaction=interaction)
 
