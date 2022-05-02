@@ -410,7 +410,7 @@ class GameView(discord.ui.View):
         if self.hovering > 1:
             self.hovering -= 1
             btn.disabled = False
-        
+
         if not self.hovering > 1:
             btn.disabled = True
 
@@ -426,7 +426,7 @@ class GameView(discord.ui.View):
         if self.hovering < 7:
             self.hovering += 1
             btn.disabled = False
-        
+
         if not self.hovering < 7:
             btn.disabled = True
 
