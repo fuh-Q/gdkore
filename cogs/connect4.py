@@ -372,22 +372,24 @@ class GameView(discord.ui.View):
         )
 
         if not self.game.winner:
-            reds = ["<:redleft:964765364212863056>", "<:redright:964765364242243614>", "<:reddrop:964771745691213844> "]
+            reds = ["<:redleft:964765364212863056>", "<:redright:964765364242243614>", "<:reddrop:964771745691213844>", "<:redlefter:971241618059452416>", "<:redrighter:971241618004930600>",]
             yellows = [
                 "<:yellowleft:964765364259012608>",
                 "<:yellowright:964765364212863059>",
                 "<:yellowdrop:964771745653481532>",
+                "<:yellowlefter:971241618189479936>",
+                "<:yellowrighter:971241618055258152>",
             ]
+            
+            if self.turn.number == 0:
+                to_use = reds
+            else:
+                to_use = yellows
+
             counter = 0
-            for c in self.children[:-1]:
-                if not c.disabled:
-                    if self.turn.number == 0:
-                        c.emoji = reds[counter]
-
-                    elif self.turn.number == 1:
-                        c.emoji = yellows[counter]
-
-                    counter += 1
+            for i in [0, 1, 3, 5, 6]:
+                self.children[i].emoji = to_use[counter]
+                counter += 1
 
         if interaction:
             try:
@@ -401,13 +403,12 @@ class GameView(discord.ui.View):
         elif message and not interaction:
             return await self.original_message.edit(content=content, view=self)
 
-    @discord.ui.button(emoji="<:redleft:964765364212863056> ", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(emoji="<:redleft:964765364212863056>")
     async def move_left(self, interaction: Interaction, btn: discord.ui.Button):
         if interaction.user.id != self.turn.id:
             return await interaction.response.send_message("wait your turn", ephemeral=True)
 
         self.timed_out = 0
-        self.move_right.disabled = False
         if not self.hovering > 1:
             self.hovering = 7
 
@@ -416,13 +417,12 @@ class GameView(discord.ui.View):
 
         await self.update_board(interaction=interaction)
 
-    @discord.ui.button(emoji="<:redright:964765364242243614> ", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(emoji="<:redright:964765364242243614>")
     async def move_right(self, interaction: Interaction, btn: discord.ui.Button):
         if interaction.user.id != self.turn.id:
             return await interaction.response.send_message("wait your turn", ephemeral=True)
 
         self.timed_out = 0
-        self.move_left.disabled = False
         if not self.hovering < 7:
             self.hovering = 1
 
@@ -430,12 +430,32 @@ class GameView(discord.ui.View):
             self.hovering += 1
 
         await self.update_board(interaction=interaction)
+    
+    @discord.ui.button(emoji="<:redlefter:971241618059452416>", row=1)
+    async def move_lefter(self, interaction: Interaction, btn: discord.ui.Button):
+        if interaction.user.id != self.turn.id:
+            return await interaction.response.send_message("wait your turn", ephemeral=True)
 
-    @discord.ui.button(label="\u200b", style=discord.ButtonStyle.secondary, disabled=True)
+        self.timed_out = 0
+        self.hovering = 1
+
+        await self.update_board(interaction=interaction)
+    
+    @discord.ui.button(emoji="<:redrighter:971241618004930600>", row=1)
+    async def move_righter(self, interaction: Interaction, btn: discord.ui.Button):
+        if interaction.user.id != self.turn.id:
+            return await interaction.response.send_message("wait your turn", ephemeral=True)
+
+        self.timed_out = 0
+        self.hovering = 7
+
+        await self.update_board(interaction=interaction)
+
+    @discord.ui.button(label="\u200b", disabled=True)
     async def separator(*args):
         ...
 
-    @discord.ui.button(emoji="<:reddrop:964771745691213844> ", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(emoji="<:reddrop:964771745691213844>", style=discord.ButtonStyle.secondary)
     async def drop_piece(self, interaction: Interaction, btn: discord.ui.Button):
         if interaction.user.id != self.turn.id:
             return await interaction.response.send_message("wait your turn", ephemeral=True)
