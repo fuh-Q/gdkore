@@ -100,6 +100,7 @@ class NotGDKID(commands.Bot):
         self.init_extensions = [
             "cogs.2048",
             "cogs.connect4",
+            "cogs.checkers",
             "cogs.debug",
             "cogs.dev",
             "cogs.Eval",

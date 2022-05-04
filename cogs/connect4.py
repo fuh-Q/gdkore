@@ -11,7 +11,7 @@ from discord.app_commands import CheckFailure, command, describe
 from discord.ext import commands
 
 from bot import NotGDKID
-from config.utils import Confirm
+from config.utils import Botcolours, Confirm
 
 
 class MaxConcurrencyReached(CheckFailure):
@@ -59,9 +59,9 @@ class Slot:
 class Game:
     def __init__(self, players: List[discord.User]):
         self.slots: List[Slot] = []
-        self.player_list: List[Player] = [Player(players[i], i) for i in range(len(players))]
-        self.players: cycle[Player] = cycle(self.player_list)
-        self.winner: Player | None = None
+        self.players: List[Player] = [Player(players[i], i) for i in range(len(players))]
+        self.turns = cycle(self.players)
+        self.winner: Player = None
         self.moves = 0
 
         counter = 0
@@ -191,7 +191,7 @@ class GameView(discord.ui.View):
 
         self.game = Game(players)
 
-        self.turn = next(self.game.players)
+        self.turn = next(self.game.turns)
         self.original_message: discord.Message = None
 
         if len(players) == 1:
@@ -245,7 +245,7 @@ class GameView(discord.ui.View):
                 break
 
     async def interaction_check(self, interaction: Interaction) -> bool:
-        if interaction.user not in self.game.player_list:
+        if interaction.user not in self.game.players:
             await interaction.response.send_message("its not your game", ephemeral=True)
             return False
 
@@ -277,7 +277,7 @@ class GameView(discord.ui.View):
                 self.hovering = 1
         self.game.drop_to_bottom(self.hovering - 1, self.turn)
 
-        self.turn = next(self.game.players)
+        self.turn = next(self.game.turns)
 
         if None not in [s.occupant for s in self.game.slots]:
             for c in self.children:
@@ -320,7 +320,7 @@ class GameView(discord.ui.View):
             )
 
         else:
-            for player in self.game.player_list:
+            for player in self.game.players:
                 if player.id != self.game.winner.id:
                     content = f"{player.mention} you lose. imagine losing\n\n"
                     break
@@ -380,13 +380,14 @@ class GameView(discord.ui.View):
             ]
             counter = 0
             for c in self.children[:-1]:
-                if self.turn.number == 0:
-                    c.emoji = reds[counter]
+                if not c.disabled:
+                    if self.turn.number == 0:
+                        c.emoji = reds[counter]
 
-                elif self.turn.number == 1:
-                    c.emoji = yellows[counter]
+                    elif self.turn.number == 1:
+                        c.emoji = yellows[counter]
 
-                counter += 1
+                    counter += 1
 
         if interaction:
             try:
@@ -400,19 +401,18 @@ class GameView(discord.ui.View):
         elif message and not interaction:
             return await self.original_message.edit(content=content, view=self)
 
-    @discord.ui.button(emoji="<:redleft:964765364212863056> ", style=discord.ButtonStyle.secondary, disabled=True)
+    @discord.ui.button(emoji="<:redleft:964765364212863056> ", style=discord.ButtonStyle.secondary)
     async def move_left(self, interaction: Interaction, btn: discord.ui.Button):
         if interaction.user.id != self.turn.id:
             return await interaction.response.send_message("wait your turn", ephemeral=True)
 
         self.timed_out = 0
         self.move_right.disabled = False
-        if self.hovering > 1:
-            self.hovering -= 1
-            btn.disabled = False
-        
         if not self.hovering > 1:
-            btn.disabled = True
+            self.hovering = 7
+        
+        elif self.hovering > 1:
+            self.hovering -= 1
 
         await self.update_board(interaction=interaction)
 
@@ -423,14 +423,17 @@ class GameView(discord.ui.View):
 
         self.timed_out = 0
         self.move_left.disabled = False
-        if self.hovering < 7:
-            self.hovering += 1
-            btn.disabled = False
-        
         if not self.hovering < 7:
-            btn.disabled = True
+            self.hovering = 1
+        
+        elif self.hovering < 7:
+            self.hovering += 1
 
         await self.update_board(interaction=interaction)
+    
+    @discord.ui.button(label="\u200b", style=discord.ButtonStyle.secondary, disabled=True)
+    async def separator(*args):
+        ...
 
     @discord.ui.button(emoji="<:reddrop:964771745691213844> ", style=discord.ButtonStyle.secondary)
     async def drop_piece(self, interaction: Interaction, btn: discord.ui.Button):
@@ -442,7 +445,7 @@ class GameView(discord.ui.View):
 
         self.timed_out = 0
         self.game.drop_to_bottom(self.hovering - 1, self.turn)
-        self.turn = next(self.game.players)
+        self.turn = next(self.game.turns)
 
         if None not in [s.occupant for s in self.game.slots]:
             for c in self.children:
@@ -504,7 +507,7 @@ class ConnectFour(commands.Cog):
 
         for game in self.client._connect4_games:
             game: GameView
-            if interaction.user.id in [u.id for u in game.game.player_list]:
+            if interaction.user.id in [u.id for u in game.game.players]:
                 raise MaxConcurrencyReached
 
         if opponent.id == interaction.user.id or opponent.bot:
@@ -527,9 +530,23 @@ class ConnectFour(commands.Cog):
 
         if not view.choice:
             embed = msg.embeds[0].copy()
-            embed.colour = 0xC0382B
+            embed.colour = Botcolours.red
             await msg.edit(embed=embed, view=view)
             return
+        
+        for game in self.client._connect4_games:
+            game: GameView
+            if interaction.user.id in [u.id for u in game.game.players]:
+                author_game = game.original_message.jump_url
+                
+                embed = msg.embeds[0].copy()
+                embed.colour = Botcolours.red
+                embed.description = (
+                    "you already have a game going on"
+                    f"\n{'[jump to game](<' + author_game + '>)' if author_game is not None else ''}"
+                )
+                await msg.edit(embed=embed, view=view)
+                raise MaxConcurrencyReached
 
         view = GameView(interaction, [opponent, interaction.user])
 
@@ -583,18 +600,18 @@ class ConnectFour(commands.Cog):
     @connect4.error
     async def connect4_error(self, interaction: Interaction, error):
         print("".join(traceback.format_exc()))
-        if isinstance(error, commands.MaxConcurrencyReached):
+        if isinstance(error, MaxConcurrencyReached):
             author_game = None
 
             for gameview in self.client._connect4_games:
                 gameview: GameView
 
-                if gameview.game.player.id == interaction.user.id:
+                if interaction.user.id in [p.id for p in gameview.game.players]:
                     author_game = gameview.original_message.jump_url
 
             return await interaction.response.send_message(
                 "you already have a game going on"
-                f"\n{'[jump to game message](<' + author_game + '>)' if author_game is not None else ''}",
+                f"\n{'[jump to game](<' + author_game + '>)' if author_game is not None else ''}",
                 ephemeral=True,
             )
 

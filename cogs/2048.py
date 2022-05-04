@@ -995,7 +995,7 @@ class TwentyFortyEight(commands.Cog):
 
             return await interaction.response.send_message(
                 "you already have a game going on"
-                f"\n{'[jump to game message](<' + author_game + '>)' if author_game is not None else ''}",
+                f"\n{'[jump to game](<' + author_game + '>)' if author_game is not None else ''}",
                 ephemeral=True,
             )
 
