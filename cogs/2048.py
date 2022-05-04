@@ -851,7 +851,7 @@ class TwentyFortyEight(commands.Cog):
         infoEmbed.set_footer(text="newly spawned blocks are highlighted in green")
 
         infoEmbed.set_author(
-            name=f"{grid_size}x{grid_size} grid (win at {win_map[grid_size]})",
+            name=f"{grid_size}x{grid_size} grid (win at {win_map[grid_size]} tile)",
             icon_url=interaction.client.user.avatar.url,
         )
 

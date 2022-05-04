@@ -392,11 +392,11 @@ class GameView(discord.ui.View):
             else:
                 to_use = yellows
 
-            self.move_left = to_use[0]
-            self.move_right = to_use[1]
-            self.drop_piece = to_use[2]
-            self.move_lefter = to_use[3]
-            self.move_righter = to_use[4]
+            self.move_left.emoji = to_use[0]
+            self.move_right.emoji = to_use[1]
+            self.drop_piece.emoji = to_use[2]
+            self.move_lefter.emoji = to_use[3]
+            self.move_righter.emoji = to_use[4]
 
         if interaction:
             try:
