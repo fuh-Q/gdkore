@@ -372,7 +372,13 @@ class GameView(discord.ui.View):
         )
 
         if not self.game.winner:
-            reds = ["<:redleft:964765364212863056>", "<:redright:964765364242243614>", "<:reddrop:964771745691213844>", "<:redlefter:971241618059452416>", "<:redrighter:971241618004930600>",]
+            reds = [
+                "<:redleft:964765364212863056>",
+                "<:redright:964765364242243614>",
+                "<:reddrop:964771745691213844>",
+                "<:redlefter:971241618059452416>",
+                "<:redrighter:971241618004930600>",
+            ]
             yellows = [
                 "<:yellowleft:964765364259012608>",
                 "<:yellowright:964765364212863059>",
@@ -380,7 +386,7 @@ class GameView(discord.ui.View):
                 "<:yellowlefter:971241618189479936>",
                 "<:yellowrighter:971241618055258152>",
             ]
-            
+
             if self.turn.number == 0:
                 to_use = reds
             else:
@@ -430,7 +436,7 @@ class GameView(discord.ui.View):
             self.hovering += 1
 
         await self.update_board(interaction=interaction)
-    
+
     @discord.ui.button(emoji="<:redlefter:971241618059452416>", row=1)
     async def move_lefter(self, interaction: Interaction, btn: discord.ui.Button):
         if interaction.user.id != self.turn.id:
@@ -440,7 +446,7 @@ class GameView(discord.ui.View):
         self.hovering = 1
 
         await self.update_board(interaction=interaction)
-    
+
     @discord.ui.button(emoji="<:redrighter:971241618004930600>", row=1)
     async def move_righter(self, interaction: Interaction, btn: discord.ui.Button):
         if interaction.user.id != self.turn.id:
