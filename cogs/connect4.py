@@ -410,7 +410,7 @@ class GameView(discord.ui.View):
         self.move_right.disabled = False
         if not self.hovering > 1:
             self.hovering = 7
-        
+
         elif self.hovering > 1:
             self.hovering -= 1
 
@@ -425,12 +425,12 @@ class GameView(discord.ui.View):
         self.move_left.disabled = False
         if not self.hovering < 7:
             self.hovering = 1
-        
+
         elif self.hovering < 7:
             self.hovering += 1
 
         await self.update_board(interaction=interaction)
-    
+
     @discord.ui.button(label="\u200b", style=discord.ButtonStyle.secondary, disabled=True)
     async def separator(*args):
         ...
@@ -533,12 +533,12 @@ class ConnectFour(commands.Cog):
             embed.colour = Botcolours.red
             await msg.edit(embed=embed, view=view)
             return
-        
+
         for game in self.client._connect4_games:
             game: GameView
             if interaction.user.id in [u.id for u in game.game.players]:
                 author_game = game.original_message.jump_url
-                
+
                 embed = msg.embeds[0].copy()
                 embed.colour = Botcolours.red
                 embed.description = (

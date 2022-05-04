@@ -2,18 +2,11 @@ from itertools import cycle
 from typing import Dict, List
 
 import discord
-from discord import Interaction, ui
+from discord.app_commands import CheckFailure
 from discord.ext import commands
-from discord.app_commands import (
-    command,
-    describe,
-    choices,
-    checks,
-    Choice,
-    CheckFailure
-)
 
 from bot import NotGDKID
+
 
 class MaxConcurrencyReached(CheckFailure):
     ...
@@ -66,10 +59,10 @@ class Piece:
         self.x = x
         self.y = y
         self.king: bool = False
-        
+
         if owner.number == 0:
             self.valid_directions = [MoveDirection.NORTHWEST, MoveDirection.NORTHEAST]
-        
+
         else:
             self.valid_directions = [MoveDirection.SOUTHWEST, MoveDirection.SOUTHEAST]
 
@@ -81,34 +74,31 @@ class Game:
         self.turns = cycle(self.players)
         self.winner: Player = None
         self.challenger, self.opponent = [Player(players[i], i) for i in range(len(players))]
-        
+
         # board generation
         counter = 0
         for y in range(8):
             for x in range(8):
-                if (
-                    y % 2 == 0 and x % 2 == 1
-                    or y % 2 == 1 and x % 2 == 0
-                ):
+                if y % 2 == 0 and x % 2 == 1 or y % 2 == 1 and x % 2 == 0:
                     self.slots.append(Slot(x, y, counter, False))
-                
+
                 else:
                     self.slots.append(Slot(x, y, counter, False))
-                
+
                 counter += 1
-        
+
         for sl in self.slots[:24]:
             if not sl.null:
                 piece = Piece(self.challenger, sl.x, sl.y)
                 sl.occupant = piece
                 self.pieces.append(piece)
-        
+
         for sl in self.slots[-24:]:
             if not sl.null:
                 piece = Piece(self.opponent, sl.x, sl.y)
                 sl.occupant = piece
                 self.pieces.append(piece)
-    
+
     def look_around(self, piece: Piece) -> Dict[int, Slot | None]:
         if piece.king:
             return {
@@ -117,46 +107,46 @@ class Game:
                 MoveDirection.SOUTHEAST: self._get_slot(piece.x + 1, piece.y + 1),
                 MoveDirection.SOUTHWEST: self._get_slot(piece.x - 1, piece.y + 1),
             }
-        
+
         if piece.owner == self.challenger:
             return {
                 MoveDirection.NORTHWEST: self._get_slot(piece.x - 1, piece.y - 1),
                 MoveDirection.NORTHEAST: self._get_slot(piece.x + 1, piece.y - 1),
             }
-        
+
         if piece.owner == self.opponent:
             return {
                 MoveDirection.SOUTHEAST: self._get_slot(piece.x + 1, piece.y + 1),
                 MoveDirection.SOUTHWEST: self._get_slot(piece.x - 1, piece.y + 1),
             }
-    
+
     def check_jump(self, piece: Piece, direction: MoveDirection) -> bool:
         if direction not in piece.valid_directions and not piece.king:
             return False
-        
+
         surroundings = self.look_around(piece)
         if surroundings[direction].occupant == next(self.turns):
             if direction == MoveDirection.NORTHWEST:
                 args = (piece.x - 2, piece.y - 2)
-            
+
             if direction == MoveDirection.NORTHEAST:
                 args = (piece.x + 2, piece.y - 2)
-            
+
             if direction == MoveDirection.SOUTHEAST:
                 args = (piece.x + 2, piece.y + 2)
-            
+
             if direction == MoveDirection.SOUTHWEST:
                 args = (piece.x - 2, piece.y + 2)
-            
+
             sl = self._get_slot(*args)
             if not sl or sl and sl.occupant:
                 return False
-            
+
             if sl and not sl.occupant:
                 return True
-        
+
         return False
-    
+
     def _get_slot(self, x: int, y: int) -> Slot | None:
         try:
             return [s for s in self.slots if s.x == x and s.y == y][0]
