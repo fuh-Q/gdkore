@@ -392,10 +392,11 @@ class GameView(discord.ui.View):
             else:
                 to_use = yellows
 
-            counter = 0
-            for i in [0, 1, 3, 5, 6]:
-                self.children[i].emoji = to_use[counter]
-                counter += 1
+            self.move_left = to_use[0]
+            self.move_right = to_use[1]
+            self.drop_piece = to_use[2]
+            self.move_lefter = to_use[3]
+            self.move_righter = to_use[4]
 
         if interaction:
             try:
