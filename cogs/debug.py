@@ -167,7 +167,7 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
         help="**Checks**\nBot Owner",
     )
     @commands.is_owner()
-    async def jsk(self, ctx: commands.Context):
+    async def _jsk(self, ctx: commands.Context):
         summary = [
             f"Jishaku `v{package_version('jishaku')}`, discord.py `v{package_version('discord.py')}`, "
             f"`Python v{sys.version}` on `{sys.platform}`".replace("\n", ""),
