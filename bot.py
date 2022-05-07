@@ -17,7 +17,7 @@ from jishaku.shim.paginator_200 import PaginatorInterface
 from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo import MongoClient
 
-from config.utils import mobile
+from config.utils import Botcolours, mobile
 
 with open("./config/secrets.json", "r") as f:
     secrets: Dict[str, str] = json.load(f)
@@ -100,7 +100,7 @@ class NotGDKID(commands.Bot):
         self.init_extensions = [
             "cogs.2048",
             "cogs.connect4",
-            "cogs.checkers",
+            #"cogs.checkers",
             "cogs.debug",
             "cogs.dev",
             "cogs.Eval",
@@ -159,6 +159,8 @@ class NotGDKID(commands.Bot):
         now = datetime.now(timezone(timedelta(hours=-4)))
         fmt = now.strftime("%I:%M")
 
+        self.guild_logs = await self.fetch_webhook(905343987555131403)
+        
         await self.change_presence(
             status=discord.Status.online,
             activity=discord.Activity(
@@ -202,6 +204,38 @@ class NotGDKID(commands.Bot):
 
             except discord.HTTPException:
                 pass
+    
+    async def on_guild_join(self, guild: discord.Guild):
+        e = discord.Embed(colour=Botcolours.green)
+        e.set_author(
+            name=f"Guild Joined ({len(self.guilds)} servers)",
+            icon_url="https://cdn.discordapp.com/emojis/816263605686894612.png?size=160",
+        )
+        e.add_field(name="Guild Name", value=guild.name)
+        e.add_field(name="Guild ID", value=guild.id)
+        e.add_field(name="Guild Member Count", value=guild.member_count)
+        e.add_field(
+            name="Guild Owner",
+            value=f"{guild.owner.name}#{guild.owner.discriminator} [ {guild.owner.mention} ]",
+        )
+        if guild.icon:
+            e.set_thumbnail(url=guild.icon.url)
+
+        await self.guild_logs.send(embed=e)
+
+    async def on_guild_remove(self, guild: discord.Guild):
+        e = discord.Embed(colour=Botcolours.red)
+        e.set_author(
+            name=f"Guild Left ({len(self.guilds)} servers)",
+            icon_url="https://cdn.discordapp.com/emojis/816263605837103164.png?size=160",
+        )
+        e.add_field(name="Guild Name", value=guild.name)
+        e.add_field(name="Guild ID", value=guild.id)
+        e.add_field(name="Guild Member Count", value=guild.member_count)
+        if guild.icon:
+            e.set_thumbnail(url=guild.icon.url)
+
+        await self.guild_logs.send(embed=e)
 
     async def start(self):
         if str(__file__).lower() == r"d:\gdkore\bot.py":
