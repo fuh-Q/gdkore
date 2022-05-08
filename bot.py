@@ -100,7 +100,7 @@ class NotGDKID(commands.Bot):
         self.init_extensions = [
             "cogs.2048",
             "cogs.connect4",
-            #"cogs.checkers",
+            # "cogs.checkers",
             "cogs.debug",
             "cogs.dev",
             "cogs.Eval",
@@ -160,7 +160,7 @@ class NotGDKID(commands.Bot):
         fmt = now.strftime("%I:%M")
 
         self.guild_logs = await self.fetch_webhook(905343987555131403)
-        
+
         await self.change_presence(
             status=discord.Status.online,
             activity=discord.Activity(
@@ -204,7 +204,7 @@ class NotGDKID(commands.Bot):
 
             except discord.HTTPException:
                 pass
-    
+
     async def on_guild_join(self, guild: discord.Guild):
         e = discord.Embed(colour=Botcolours.green)
         e.set_author(
