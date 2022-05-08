@@ -216,7 +216,7 @@ class NotGDKID(commands.Bot):
         e.add_field(name="Guild Member Count", value=guild.member_count)
         e.add_field(
             name="Guild Owner",
-            value=f"{guild.owner.name}#{guild.owner.discriminator} [ {guild.owner.mention} ]",
+            value=f"<@!{guild.owner_id}>",
         )
         if guild.icon:
             e.set_thumbnail(url=guild.icon.url)
