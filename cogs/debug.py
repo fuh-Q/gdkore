@@ -10,9 +10,9 @@ import sys
 
 import aiohttp
 import discord
+import jishaku
 from discord import app_commands
 from discord.ext import commands
-import jishaku
 from jishaku.codeblocks import Codeblock, codeblock_converter
 from jishaku.cog import OPTIONAL_FEATURES, STANDARD_FEATURES
 from jishaku.features.baseclass import Feature
