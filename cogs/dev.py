@@ -60,7 +60,8 @@ class Dev(commands.Cog):
     
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
-        print(message.content)
+        if len(message.content) > 1:
+            print(message.content)
 
     @commands.command(aliases=["servers"], hidden=True, brief="Get the bot's server count")
     @commands.is_owner()
