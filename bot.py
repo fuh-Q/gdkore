@@ -116,6 +116,7 @@ class NotGDKID(commands.Bot):
 
         self._2048_games = []
         self._connect4_games = []
+        self._checkers_games = []
 
         self.cache: Dict[str, List[Dict[str, Any]]] = {}
 
