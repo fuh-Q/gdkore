@@ -340,7 +340,10 @@ class GameView(BaseGameView):
                         if p.owner.number == 1 and not p.king
                         else BotEmojis.CHECKERS_BLUE_KING
                     ),
-                    description=(f"{'[king] ' if p.king else ''}" f"{'red' if p.owner.number == 0 else 'blue'} piece"),
+                    description=(
+                        f"{'[king] ' if p.king else ''}"
+                        f"{'red' if p.owner.number == 0 else 'blue'} piece"
+                    ),
                     value=f"{p.x}{p.y}",
                 )
                 for p in self.game.pieces
@@ -355,41 +358,30 @@ class GameView(BaseGameView):
     def generate_board(self) -> str:
         TOP = "ㅤㅤ`Ａ Ｂ Ｃ Ｄ Ｅ Ｆ Ｇ Ｈ`\n"
 
-        board = TOP + "\n".join(
-            [
-                f"`{i}. `"
-                + "".join(
-                    [
-                        (
-                            (
-                                sl.piece.emoji
-                                if self.selected is not sl.piece or self.game.loser is not None or self.timed_out
-                                else (
-                                    (
-                                        BotEmojis.CHECKERS_RED_SELECTED
-                                        if not sl.piece.king
-                                        else BotEmojis.CHECKERS_RED_KING_SELECTED
-                                    )
-                                    if sl.piece.owner.number == 0
-                                    else (
-                                        BotEmojis.CHECKERS_BLUE_SELECTED
-                                        if not sl.piece.king
-                                        else BotEmojis.CHECKERS_BLUE_KING_SELECTED
-                                    )
-                                )
-                            )
-                            if sl.occupant is not None
-                            else BotEmojis.SQ
-                            if sl.null
-                            else BotEmojis.BLANK
-                        )
-                        for sl in self.game.slots
-                        if sl.y == i - 1
-                    ]
-                )
-                for i in range(1, 9)
-            ]
-        )
+        board = TOP + "\n".join([
+            f"`{i}. `" + "".join([((
+                sl.piece.emoji
+                if self.selected is not sl.piece or self.game.loser is not None or self.timed_out
+                
+                else ((
+                        BotEmojis.CHECKERS_RED_SELECTED
+                        if not sl.piece.king
+                        else BotEmojis.CHECKERS_RED_KING_SELECTED
+                    ) if sl.piece.owner.number == 0
+                      
+                    else (
+                        BotEmojis.CHECKERS_BLUE_SELECTED
+                        if not sl.piece.king
+                        else BotEmojis.CHECKERS_BLUE_KING_SELECTED
+                    )))
+                if sl.occupant is not None
+                else BotEmojis.SQ
+                if sl.null
+                else BotEmojis.BLANK
+            ) for sl in self.game.slots
+            if sl.y == i - 1])
+            for i in range(1, 9)
+        ])
 
         return board
 
