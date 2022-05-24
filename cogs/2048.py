@@ -9,13 +9,13 @@ from random import randint as r
 from typing import Iterable, List, Optional
 
 import discord
-from discord import Embed, Interaction, InteractionMessage, SelectOption
+from discord import ui, Embed, Interaction, InteractionMessage, SelectOption
 from discord.app_commands import (CheckFailure, Choice, Group, choices,
                                   command, describe)
 from discord.ext import commands
 
-from bot import NotGDKID
-from config.utils import CHOICES, Botcolours, NewEmote
+from bot import NotGDKID, BotEmojis
+from config.utils import CHOICES, BaseGameView, Botcolours, NewEmote
 
 weights = (90, 10)  # 2, 4
 
@@ -34,11 +34,11 @@ class Directions(Enum):
 
 
 class DirectionEmotes:
-    LEFT = NewEmote.from_name("<a:arrowleft:951720658256134144>")
-    UP = NewEmote.from_name("<a:arrowup:951720658440708097>")
-    DOWN = NewEmote.from_name("<a:arrowdown:951720657509564417>")
-    RIGHT = NewEmote.from_name("<a:arrowright:951720658365186058>")
-    BYE = NewEmote.from_name("<:bye:954097284482736128>")
+    LEFT = NewEmote.from_name(BotEmojis.ARROW_LEFT)
+    UP = NewEmote.from_name(BotEmojis.ARROW_UP)
+    DOWN = NewEmote.from_name(BotEmojis.ARROW_DOWN)
+    RIGHT = NewEmote.from_name(BotEmojis.ARROW_RIGHT)
+    BYE = NewEmote.from_name(BotEmojis.QUIT_GAME)
 
 
 class MaxConcurrencyReached(CheckFailure):
@@ -283,7 +283,7 @@ class Game:
         return
 
 
-class GameView(discord.ui.View):
+class GameView(BaseGameView):
     grid_size = 4
 
     def __init__(
@@ -324,7 +324,7 @@ class GameView(discord.ui.View):
 
         for i in range(self.grid_size):
             for _ in range(self.grid_size):
-                btn = discord.ui.Button(
+                btn = ui.Button(
                     label=self.game.blocks[counter].display,
                     row=i,
                     disabled=False if self.game.blocks[counter].value > 0 else True,
@@ -351,32 +351,14 @@ class GameView(discord.ui.View):
                 if self.controls[i] == "bye":
                     style = discord.ButtonStyle.danger
 
-                item = discord.ui.Button(emoji=emoji, style=style, row=self.control_row)
+                item = ui.Button(emoji=emoji, style=style, row=self.control_row)
                 item.callback = attr
                 self.add_item(item)
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} game={self.game}>"
 
-    async def _scheduled_task(self, item: discord.ui.Item, interaction: Interaction):
-        try:
-            allow = await self.interaction_check(interaction)
-            if not allow:
-                return
-
-            if self.timeout:
-                self.__timeout_expiry = time.monotonic() + self.timeout
-
-            if item._provided_custom_id:
-                await interaction.response.defer()
-
-            await item.callback(interaction)
-            if not interaction.response._responded:
-                await interaction.response.defer()
-        except Exception as e:
-            return await self.on_error(e, item, interaction)
-
-    async def interaction_check(self, interaction: Interaction) -> bool:
+    async def interaction_check(self, interaction: Interaction, item: ui.Item) -> bool:
         if interaction.user.id != self.game.player.id:
             await interaction.response.send_message(content=c(CHOICES), ephemeral=True)
             return False
@@ -384,7 +366,7 @@ class GameView(discord.ui.View):
 
     async def on_timeout(self):
         for btn in self.children:
-            if isinstance(btn, discord.ui.Button):
+            if isinstance(btn, ui.Button):
                 btn.disabled = True
 
                 if btn.style == discord.ButtonStyle.success:
@@ -398,7 +380,7 @@ class GameView(discord.ui.View):
         await self.original_message.reply(
             "\n".join(
                 [
-                    "ok im guessing you just <a:peace:951323779756326912>'d out on me "
+                    f"ok im guessing you just {BotEmojis.PEACE}'d out on me "
                     f"cuz you havent clicked anything for 2 minutes {self.game.player.mention}",
                     "",
                     "(i saved your game btw, you can keep playing with `/2048`, setting `load` to true)",
@@ -411,7 +393,7 @@ class GameView(discord.ui.View):
     def update(self):
         self._children = sorted(self.children, key=lambda o: o.row)
         for block in self.game.blocks:
-            btn: discord.ui.Button = self.children[block.list_index]
+            btn: ui.Button = self.children[block.list_index]
             btn.label = block.display
             btn.style = discord.ButtonStyle.secondary
 
@@ -490,6 +472,7 @@ class GameView(discord.ui.View):
             if won and not already_won:
                 await interaction.response.edit_message(embed=self.embed, view=self)
                 await self.won(interaction)
+                return
 
             await interaction.response.edit_message(embed=self.embed, view=self)
 
@@ -511,6 +494,7 @@ class GameView(discord.ui.View):
             if won and not already_won:
                 await interaction.response.edit_message(embed=self.embed, view=self)
                 await self.won(interaction)
+                return
 
             await interaction.response.edit_message(embed=self.embed, view=self)
 
@@ -532,6 +516,7 @@ class GameView(discord.ui.View):
             if won and not already_won:
                 await interaction.response.edit_message(embed=self.embed, view=self)
                 await self.won(interaction)
+                return
 
             await interaction.response.edit_message(embed=self.embed, view=self)
 
@@ -553,6 +538,7 @@ class GameView(discord.ui.View):
             if won and not already_won:
                 await interaction.response.edit_message(embed=self.embed, view=self)
                 await self.won(interaction)
+                return
 
             await interaction.response.edit_message(embed=self.embed, view=self)
 
@@ -574,7 +560,7 @@ class GameView(discord.ui.View):
             print("".join(traceback.format_exception(e, e, e.__traceback__)))
 
 
-class QuitConfirmationView(discord.ui.View):
+class QuitConfirmationView(ui.View):
     def __init__(self, game: "GameView"):
         super().__init__(timeout=120)
         self.game = game
@@ -588,7 +574,7 @@ class QuitConfirmationView(discord.ui.View):
             return False
         return True
 
-    @discord.ui.select(
+    @ui.select(
         placeholder="ye / nu",
         max_values=1,
         min_values=1,
@@ -596,16 +582,16 @@ class QuitConfirmationView(discord.ui.View):
             discord.SelectOption(
                 label="ye",
                 description="keep playing later with /2048 and set load to true",
-                emoji=NewEmote.from_name(NotGDKID.yes),
+                emoji=NewEmote.from_name(BotEmojis.YES)
             ),
             discord.SelectOption(
                 label="nu",
                 description="trash out this current game",
-                emoji=NewEmote.from_name(NotGDKID.no),
+                emoji=NewEmote.from_name(BotEmojis.NO),
             ),
         ],
     )
-    async def select_callback(self, interaction: Interaction, select: discord.ui.Select):
+    async def select_callback(self, interaction: Interaction, select: ui.Select):
         bool_map = {"ye": True, "nu": False}
         self.game.stop(save=bool_map[self.children[0].values[0]])
         self.stop()
@@ -614,7 +600,7 @@ class QuitConfirmationView(discord.ui.View):
         await interaction.followup.send("kbai", ephemeral=True)
 
 
-class EditControlsView(discord.ui.View):
+class EditControlsView(ui.View):
     def __init__(self, interaction: Interaction, client: NotGDKID) -> None:
         self.interaction = interaction
         self.client = client
@@ -632,7 +618,7 @@ class EditControlsView(discord.ui.View):
         super().__init__(timeout=120)
 
         for i in range(5):
-            btn: discord.ui.Button = self.children[i]
+            btn: ui.Button = self.children[i]
 
             emoji = getattr(DirectionEmotes, self.changes[i].upper(), None)
             if emoji is not None:
@@ -651,7 +637,7 @@ class EditControlsView(discord.ui.View):
     async def on_timeout(self) -> None:
         for c in self.children:
             c.disabled = True
-            if isinstance(c, discord.ui.Button):
+            if isinstance(c, ui.Button):
                 c.style = discord.ButtonStyle.secondary
 
         self.children[-1].style = discord.ButtonStyle.success
@@ -687,10 +673,10 @@ class EditControlsView(discord.ui.View):
 
         return [o for o in [left, up, down, right, bye, none] if o.label != self.changes[self.editing]]
 
-    @discord.ui.button(style=discord.ButtonStyle.secondary)
-    async def slot_1(self, interaction: Interaction, button: discord.ui.Button):
+    @ui.button(style=discord.ButtonStyle.secondary)
+    async def slot_1(self, interaction: Interaction, button: ui.Button):
         for c in self.children:
-            if isinstance(c, discord.ui.Button):
+            if isinstance(c, ui.Button):
                 c.style = discord.ButtonStyle.secondary
                 c.disabled = False
 
@@ -705,10 +691,10 @@ class EditControlsView(discord.ui.View):
 
         return await interaction.response.edit_message(view=self)
 
-    @discord.ui.button(style=discord.ButtonStyle.secondary)
-    async def slot_2(self, interaction: Interaction, button: discord.ui.Button):
+    @ui.button(style=discord.ButtonStyle.secondary)
+    async def slot_2(self, interaction: Interaction, button: ui.Button):
         for c in self.children:
-            if isinstance(c, discord.ui.Button):
+            if isinstance(c, ui.Button):
                 c.style = discord.ButtonStyle.secondary
                 c.disabled = False
 
@@ -723,10 +709,10 @@ class EditControlsView(discord.ui.View):
 
         return await interaction.response.edit_message(view=self)
 
-    @discord.ui.button(style=discord.ButtonStyle.secondary)
-    async def slot_3(self, interaction: Interaction, button: discord.ui.Button):
+    @ui.button(style=discord.ButtonStyle.secondary)
+    async def slot_3(self, interaction: Interaction, button: ui.Button):
         for c in self.children:
-            if isinstance(c, discord.ui.Button):
+            if isinstance(c, ui.Button):
                 c.style = discord.ButtonStyle.secondary
                 c.disabled = False
 
@@ -741,10 +727,10 @@ class EditControlsView(discord.ui.View):
 
         return await interaction.response.edit_message(view=self)
 
-    @discord.ui.button(style=discord.ButtonStyle.secondary)
-    async def slot_4(self, interaction: Interaction, button: discord.ui.Button):
+    @ui.button(style=discord.ButtonStyle.secondary)
+    async def slot_4(self, interaction: Interaction, button: ui.Button):
         for c in self.children:
-            if isinstance(c, discord.ui.Button):
+            if isinstance(c, ui.Button):
                 c.style = discord.ButtonStyle.secondary
                 c.disabled = False
 
@@ -759,10 +745,10 @@ class EditControlsView(discord.ui.View):
 
         return await interaction.response.edit_message(view=self)
 
-    @discord.ui.button(style=discord.ButtonStyle.secondary)
-    async def slot_5(self, interaction: Interaction, button: discord.ui.Button):
+    @ui.button(style=discord.ButtonStyle.secondary)
+    async def slot_5(self, interaction: Interaction, button: ui.Button):
         for c in self.children:
-            if isinstance(c, discord.ui.Button):
+            if isinstance(c, ui.Button):
                 c.style = discord.ButtonStyle.secondary
                 c.disabled = False
 
@@ -777,20 +763,20 @@ class EditControlsView(discord.ui.View):
 
         return await interaction.response.edit_message(view=self)
 
-    @discord.ui.select(
+    @ui.select(
         placeholder="pick an option...",
         disabled=True,
         max_values=1,
         min_values=1,
         options=[discord.SelectOption(label="\u200b")],
     )
-    async def select(self, interaction: Interaction, select: discord.ui.Select):
+    async def select(self, interaction: Interaction, select: ui.Select):
         changed_to = select.values[0]
         self.changes[self.editing] = changed_to
         select.options = self.generate_options()
 
         for i in range(5):
-            btn: discord.ui.Button = self.children[i]
+            btn: ui.Button = self.children[i]
 
             emoji = getattr(DirectionEmotes, self.changes[i].upper(), None)
             if emoji is not None:
@@ -803,11 +789,11 @@ class EditControlsView(discord.ui.View):
 
         return await interaction.response.edit_message(view=self)
 
-    @discord.ui.button(label="save changes", style=discord.ButtonStyle.success, row=2)
-    async def exit_menu(self, interaction: Interaction, btn: discord.ui.Button):
+    @ui.button(label="save changes", style=discord.ButtonStyle.success, row=2)
+    async def exit_menu(self, interaction: Interaction, btn: ui.Button):
         for c in self.children:
             c.disabled = True
-            if isinstance(c, discord.ui.Button):
+            if isinstance(c, ui.Button):
                 c.style = discord.ButtonStyle.secondary
 
         btn.style = discord.ButtonStyle.success
@@ -878,62 +864,6 @@ class TwentyFortyEight(commands.Cog):
 
     twentyfortyeightconf = Group(name="2048conf", description="configuration commands")
 
-    howto = Group(name="howto", description="2048 game guide")
-
-    @howto.command(name="2048")
-    async def howto2048(self, interaction: Interaction):
-        """2048 game guide"""
-
-        avatars = [
-            "https://cdn.discordapp.com/avatars/596481615253733408/742f6979fe30ab201350bf99dafd2624.png?size=4096",
-            "https://cdn.discordapp.com/avatars/865596669999054910/5f55d7e0003edaa83f9fd6801f887ccd.png?size=4096",
-            "https://cdn.discordapp.com/avatars/930701221424164905/b9e644732993f675c3636636da1bfb89.png?size=4096",
-            "https://cdn.discordapp.com/avatars/859104775429947432/c55ae057136a15df6bf17f2c1fd4b5a2.png?size=4096",
-        ]
-
-        info_embed = (
-            discord.Embed(
-                description="""
-            **▫️ How to Play 2048**
-            
-            Click the controls {0} {1} {2} {3} to move the tiles around
-            Each move will shift **all tiles** in that direction (wherever possible).
-            
-            When two tiles of the same value move into each other,
-            they merge into one and their values are added together.
-            
-            Your job is to get to the **2048** {4} tile (if you're playing a 4x4 grid)
-            *The winning tile on a 3x3 grid is **1024*** {5},
-            *and **32** {6} if you're playing on a 2x2 grid*
-            
-            Each move spawns in a new tile to the board, highlighted 
-            in green {7} for visibility. Once your board fills up with no more 
-            possible moves, **you *__lose__. {8}***
-            """.format(
-                    str(DirectionEmotes.LEFT),
-                    str(DirectionEmotes.UP),
-                    str(DirectionEmotes.DOWN),
-                    str(DirectionEmotes.RIGHT),
-                    "<:2048:960746063285878795>",
-                    "<:1024:960746063537528852>",
-                    "<:32:960746063571075112>",
-                    "🟩",
-                    "💀",
-                ),
-                colour=Botcolours.yellow,
-                timestamp=datetime.now(),
-            )
-            .set_author(
-                name=interaction.client.user.name,
-                url="https://levelskip.com/puzzle/How-to-play-2048",
-                icon_url=c(avatars),
-            )
-            .set_thumbnail(url="https://www.gamebrew.org/images/6/64/2048_Screenshot.png")
-            .set_footer(text="\u200b", icon_url=c(avatars))
-        )
-
-        return await interaction.response.send_message(embed=info_embed, ephemeral=True)
-
     @twentyfortyeightconf.command(name="controls")
     @commands.max_concurrency(1, commands.BucketType.user)
     async def twentyfortyeight_config_controls(self, interaction: Interaction):
@@ -957,10 +887,10 @@ class TwentyFortyEight(commands.Cog):
                 found = True
 
         if found:
-            msg = "reset your control layout to default <:heheboi:953811490304061440>"
+            msg = f"reset your control layout to default {BotEmojis.HEHEBOI}"
 
         else:
-            msg = "couldnt find your control layout <a:hahalol:953811854201868340>"
+            msg = f"couldnt find your control layout {BotEmojis.HAHALOL}"
 
         await interaction.response.send_message(msg, ephemeral=True)
 
@@ -975,10 +905,10 @@ class TwentyFortyEight(commands.Cog):
                 found = True
 
         if found:
-            msg = "found your save <:heheboi:953811490304061440> its gone now :)"
+            msg = f"found your save {BotEmojis.HEHEBOI} its gone now :)"
 
         else:
-            msg = "no save found <a:hahalol:953811854201868340>"
+            msg = f"no save found {BotEmojis.HAHALOL}"
 
         await interaction.response.send_message(msg, ephemeral=True)
 
@@ -992,6 +922,7 @@ class TwentyFortyEight(commands.Cog):
 
                 if gameview.game.player.id == interaction.user.id:
                     author_game = gameview.original_message.jump_url
+                    break
 
             return await interaction.response.send_message(
                 "you already have a game going on"

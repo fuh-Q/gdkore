@@ -1,14 +1,16 @@
 import datetime
+import json
 import random
 import re
 import sys
-from typing import Generator, Optional, SupportsInt
+import time
+from typing import Any, Dict, Generator, Optional, SupportsInt, Type
 
 import discord
 from discord import Interaction, InteractionMessage, PartialEmoji, User
 from discord.ext import commands
 from discord.gateway import DiscordWebSocket
-from discord.ui import Button, View, button
+from discord.ui import Item, Button, View, button
 
 CHOICES = [
     "no",
@@ -220,7 +222,7 @@ class Confirm(View):
     choice: `bool`
         The choice that the user picked.
     interaction: `Interaction`
-        The (unresponded to) `Interaction` object from the user's button click.
+        The (unresponded) `Interaction` object from the user's button click.
     """
 
     def __init__(self, owner: User):
@@ -267,3 +269,40 @@ class Confirm(View):
         btn.style = discord.ButtonStyle.success
         self.interaction = interaction
         return self.stop()
+
+
+class BaseGameView(View):
+    """
+    A subclass of `View` that reworks the timeout logic
+    """
+    async def _scheduled_task(self, item: Item, interaction: Interaction):
+        try:
+            allow = await self.interaction_check(interaction, item)
+            if allow is False:
+                return
+
+            if allow is not None:
+                self._refresh_timeout()
+
+            if item._provided_custom_id:
+                await interaction.response.defer()
+
+            await item.callback(interaction)
+            if not interaction.response._responded:
+                await interaction.response.defer()
+        except Exception as e:
+            return await self.on_error(e, item, interaction)
+
+
+def emojiclass(cls: Type[Any]):
+    with open("config/emojis.json", "r") as f:
+        emojis: Dict[str, str] = json.load(f)
+    
+    for k, v in emojis.items():
+        setattr(cls, k, v)
+    
+    return cls
+
+@emojiclass
+class BotEmojis:
+    pass

@@ -15,7 +15,7 @@ import aiohttp
 import discord
 from discord.ext import commands
 
-from config.utils import CHOICES, NewEmote
+from config.utils import CHOICES, BotEmojis, NewEmote
 
 quote = r'"'
 wraps = r"\(\)\[\]\{\}"
@@ -239,7 +239,7 @@ class Eval(commands.Cog):
             else:
                 break
         await ctx.send(embeds=[embed for embed in list_of_embeds])
-        await ctx.message.add_reaction(self.client.yes)
+        await ctx.message.add_reaction(BotEmojis.YES)
 
     @commands.group(
         invoke_without_command=True,
@@ -479,7 +479,7 @@ class Eval(commands.Cog):
                         embed = discord.Embed(description=f"```py\n{page}\n```", color=color)
                         await ctx.send(embed=embed)
 
-            await ctx.message.add_reaction(self.client.yes)
+            await ctx.message.add_reaction(BotEmojis.YES)
 
     @repl.command(name="exec", aliases=["run"], brief="Runs code", hidden=True)
     @commands.is_owner()

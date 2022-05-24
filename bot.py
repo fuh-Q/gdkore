@@ -6,7 +6,7 @@ import sys
 import time
 import traceback
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Set
+from typing import Any, Dict, List, Set, Type
 
 import discord
 from discord.app_commands import Command
@@ -17,13 +17,10 @@ from jishaku.shim.paginator_200 import PaginatorInterface
 from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo import MongoClient
 
-from config.utils import Botcolours, mobile
+from config.utils import Botcolours, BotEmojis, mobile
 
-with open("./config/secrets.json", "r") as f:
+with open("config/secrets.json", "r") as f:
     secrets: Dict[str, str] = json.load(f)
-
-with open("./config/restart.json", "r") as f:
-    secondary_config: Dict[str, str] = json.load(f)
 
 
 def new_call_soon(self: asyncio.BaseEventLoop, callback, *args, context=None):
@@ -36,6 +33,8 @@ def new_call_soon(self: asyncio.BaseEventLoop, callback, *args, context=None):
             del handle._source_traceback[-1]
         return handle
 
+
+start = time.monotonic()
 
 asyncio.BaseEventLoop.call_soon = new_call_soon
 
@@ -64,9 +63,6 @@ class NotGDKID(commands.Bot):
     """
     The sexiest bot of all time.
     """
-
-    yes = "<:checkmark:970213925637484546>"  # Checkmark
-    no = "<:cross:970214651784736818>"  # X
     __file__ = __file__
 
     def __init__(self):
@@ -100,10 +96,11 @@ class NotGDKID(commands.Bot):
         self.init_extensions = [
             "cogs.2048",
             "cogs.connect4",
-            # "cogs.checkers",
+            "cogs.checkers",
             "cogs.debug",
             "cogs.dev",
             "cogs.Eval",
+            "cogs.howto",
             "cogs.typerace",
             "cogs.utility",
             "config.utils",
@@ -127,6 +124,13 @@ class NotGDKID(commands.Bot):
         self.uptime = datetime.utcnow().astimezone(timezone(timedelta(hours=-4)))
 
         self.add_commands()
+    
+    @property
+    def emotes(self) -> Type[BotEmojis]:
+        """
+        Type[:class:`BotEmojis`]: The string format of emojis used on this bot
+        """
+        return BotEmojis
 
     @property
     def app_commands(self) -> Set[Command[Any, ..., Any]]:
@@ -154,7 +158,6 @@ class NotGDKID(commands.Bot):
 
     async def first_ready(self):
         await self.wait_until_ready()
-        end = time.monotonic()
         log.info(f"Logged in as: {self.user.name} : {self.user.id}\n----- Cogs and Extensions -----\nMain bot online")
 
         now = datetime.now(timezone(timedelta(hours=-4)))
@@ -176,18 +179,12 @@ class NotGDKID(commands.Bot):
 
         if sys.platform == "linux":
             self.dweebhook = await self.fetch_webhook(954211358231130204)
-
-        if len(secondary_config) > 0 and secondary_config["chan_id"] is not None:
-            start: float = secondary_config["now"]
-            restart_channel = self.get_channel(secondary_config["chan_id"])
-            msg = await restart_channel.fetch_message(secondary_config["id"])
-
-            e = msg.embeds[0].copy()
-            e.description = f"❯❯  Aight brb\n" f"❯❯  k im back\n" f"❯❯  reboot took around `{round(end - start, 1)}s`"
-            await msg.edit(embed=e)
-
-            with open("./config/restart.json", "w") as f:
-                json.dump({}, f)
+        
+        owner = await self.fetch_user(596481615253733408)
+        
+        end = time.monotonic()
+        e = discord.Embed(description=f"❯❯  started up in ~`{round(end - start, 1)}s`")
+        await owner.send(embed=e)
 
     async def on_message(self, message: discord.Message):
         if message.content in [f"<@!{self.user.id}>", f"<@{self.user.id}>"]:
