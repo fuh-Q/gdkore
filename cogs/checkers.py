@@ -424,7 +424,7 @@ class GameView(BaseGameView):
             )
 
             for c in self.children:
-                if c is not self.forfeit and c is not self.piece_selector:
+                if c is not self.forfeit:
                     c.disabled = True
 
             directions = self.game.verify_directions(
@@ -440,6 +440,8 @@ class GameView(BaseGameView):
                 self.game.jumping_piece = None
                 self.game.jumped_counter = 0
                 self.turn = next(self.game.turns)
+                
+                self.piece_selector.disabled = False
 
         # checking it again as it might've changed
         if (
