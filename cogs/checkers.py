@@ -423,9 +423,8 @@ class GameView(BaseGameView):
                 f"{self.turn.mention} jumped `{self.game.jumped_counter}` piece{s}!"
             )
 
-            for c in self.children:
-                if c is not self.forfeit:
-                    c.disabled = True
+            for c in self.children[:-1]:
+                c.disabled = True
 
             directions = self.game.verify_directions(
                 self.game.jumping_piece, jump_only=True
