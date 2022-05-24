@@ -33,10 +33,15 @@ class TTS(commands.Cog):
 
             except Exception as e:
                 print(e)
-                return await interaction.response.send_message("something went wrong there", ephemeral=True)
+                return await interaction.response.send_message(
+                    "something went wrong there", ephemeral=True
+                )
 
             src = discord.FFmpegPCMAudio(
-                source=fp, executable=r"/usr/bin/ffmpeg" if sys.platform == "linux" else r"d:\thingyy\ffmpeg.exe"
+                source=fp,
+                executable=r"/usr/bin/ffmpeg"
+                if sys.platform == "linux"
+                else r"d:\thingyy\ffmpeg.exe",
             )
             vc.play(src, after=lambda _: os.remove("tts.mp3"))
 

@@ -11,7 +11,9 @@ class Dev(commands.Cog):
     async def on_ready(self):
         print("Dev cog loaded")
 
-    @commands.command(aliases=["servers"], hidden=True, brief="Get the bot's server count")
+    @commands.command(
+        aliases=["servers"], hidden=True, brief="Get the bot's server count"
+    )
     @commands.is_owner()
     async def guilds(self, ctx: commands.Context):
         command = self.client.get_command("repl exec")

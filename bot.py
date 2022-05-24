@@ -50,7 +50,8 @@ async def status_task(client: "NotGDKID"):
         await client.change_presence(
             status=discord.Status.online,
             activity=discord.Activity(
-                name=f"the time, its {fmt[1:] if fmt[0] == '0' else fmt}", type=discord.ActivityType.watching
+                name=f"the time, its {fmt[1:] if fmt[0] == '0' else fmt}",
+                type=discord.ActivityType.watching,
             ),
         )
 
@@ -145,13 +146,17 @@ class NotGDKID(commands.Bot):
         return cmds
 
     async def setup_hook(self) -> None:
-        cluster: MongoClient = AsyncIOMotorClient(secrets["mongoURI"], io_loop=self.loop)
+        cluster: MongoClient = AsyncIOMotorClient(
+            secrets["mongoURI"], io_loop=self.loop
+        )
 
         self.db = cluster["NotGDKIDDB"]
 
         ready_task = self.loop.create_task(self.first_ready())
         ready_task.add_done_callback(
-            lambda exc: print(traceback.format_exception(e, e, e.__traceback__)) if (e := exc.exception()) else ...
+            lambda exc: print(traceback.format_exception(e, e, e.__traceback__))
+            if (e := exc.exception())
+            else ...
         )
 
         for extension in self.init_extensions:
@@ -159,7 +164,9 @@ class NotGDKID(commands.Bot):
 
     async def first_ready(self):
         await self.wait_until_ready()
-        log.info(f"Logged in as: {self.user.name} : {self.user.id}\n----- Cogs and Extensions -----\nMain bot online")
+        log.info(
+            f"Logged in as: {self.user.name} : {self.user.id}\n----- Cogs and Extensions -----\nMain bot online"
+        )
 
         now = datetime.now(timezone(timedelta(hours=-4)))
         fmt = now.strftime("%I:%M")
@@ -169,7 +176,8 @@ class NotGDKID(commands.Bot):
         await self.change_presence(
             status=discord.Status.online,
             activity=discord.Activity(
-                name=f"the time, its {fmt[1:] if fmt[0] == '0' else fmt}", type=discord.ActivityType.watching
+                name=f"the time, its {fmt[1:] if fmt[0] == '0' else fmt}",
+                type=discord.ActivityType.watching,
             ),
         )
         status_task.start(self)
@@ -196,7 +204,9 @@ class NotGDKID(commands.Bot):
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
         if payload.user_id in self.owner_ids and payload.emoji.name == "❌":
             try:
-                msg = await self.get_channel(payload.channel_id).fetch_message(payload.message_id)
+                msg = await self.get_channel(payload.channel_id).fetch_message(
+                    payload.message_id
+                )
 
                 if msg.author == self.user:
                     await msg.delete()
@@ -256,7 +266,9 @@ class NotGDKID(commands.Bot):
         for pag in self.active_jishaku_paginators:
             try:
                 await pag.message.edit(view=None)
-                self.active_jishaku_paginators.pop(self.active_jishaku_paginators.index(pag))
+                self.active_jishaku_paginators.pop(
+                    self.active_jishaku_paginators.index(pag)
+                )
 
             except:
                 continue
@@ -297,7 +309,9 @@ class NotGDKID(commands.Bot):
             try:
                 await self.load_extension(cog)
             except commands.ExtensionAlreadyLoaded:
-                return await ctx.reply(content=f"`{cog[5:]}` is already loaded", mention_author=True)
+                return await ctx.reply(
+                    content=f"`{cog[5:]}` is already loaded", mention_author=True
+                )
             else:
                 await ctx.reply(content=f"Loaded `{cog[5:]}`", mention_author=True)
 
@@ -314,7 +328,9 @@ class NotGDKID(commands.Bot):
             try:
                 await self.unload_extension(cog)
             except commands.ExtensionNotLoaded:
-                return await ctx.reply(content=f"`{cog[5:]}` is not loaded", mention_author=True)
+                return await ctx.reply(
+                    content=f"`{cog[5:]}` is not loaded", mention_author=True
+                )
             else:
                 await ctx.reply(content=f"Unloaded `{cog[5:]}`", mention_author=True)
 
@@ -326,7 +342,9 @@ class NotGDKID(commands.Bot):
                 for extension in list(self.extensions):
                     await self.reload_extension(extension)
                     List.append(f"`{extension[5:]}`")
-                return await ctx.reply(content=f"Reloaded {', '.join(List)}", mention_author=True)
+                return await ctx.reply(
+                    content=f"Reloaded {', '.join(List)}", mention_author=True
+                )
             the_match = match.extractOne(extension, self.extensions)
             if the_match[1] < 0.1:
                 return await ctx.reply(

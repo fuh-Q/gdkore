@@ -64,7 +64,9 @@ class HowTo(commands.GroupCog, name="howto"):
                 url="https://levelskip.com/puzzle/How-to-play-2048",
                 icon_url=choice(avatars),
             )
-            .set_thumbnail(url="https://www.gamebrew.org/images/6/64/2048_Screenshot.png")
+            .set_thumbnail(
+                url="https://www.gamebrew.org/images/6/64/2048_Screenshot.png"
+            )
             .set_footer(text="\u200b", icon_url=choice(avatars))
         )
 

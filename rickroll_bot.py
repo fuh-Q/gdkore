@@ -73,7 +73,9 @@ class PaginatorInterface(OGPaginatorInterface):
         if self.page_count == 1:
             stop_after_send = True
 
-        self.message: discord.Interaction = await interaction.response.send_message(**self.send_kwargs, ephemeral=True)
+        self.message: discord.Interaction = await interaction.response.send_message(
+            **self.send_kwargs, ephemeral=True
+        )
 
         if stop_after_send:
             self.stop()
@@ -187,18 +189,26 @@ class RoleNameModal(Modal, title="Rename Owner Role"):
     async def on_submit(self, interaction: discord.Interaction):
         r = client.get_guild(831692952027791431).get_role(946435442553810993)
         await r.edit(name=self.children[0].value)
-        return await interaction.response.send_message(f"Role renamed to {self.name}", ephemeral=True)
+        return await interaction.response.send_message(
+            f"Role renamed to {self.name}", ephemeral=True
+        )
 
 
 class EvalModal(Modal, title="Execute Code"):
-    code = TextInput(label="Code Here", placeholder=PLACEHOLDER, style=discord.TextStyle.paragraph)
+    code = TextInput(
+        label="Code Here", placeholder=PLACEHOLDER, style=discord.TextStyle.paragraph
+    )
 
     async def on_submit(self, interaction: discord.Interaction):
         result = await _eval(interaction, code=self.code.value)
 
-        paginator = WrappedPaginator(prefix="```py", suffix="```", max_size=1975, force_wrap=True)
+        paginator = WrappedPaginator(
+            prefix="```py", suffix="```", max_size=1975, force_wrap=True
+        )
 
-        paginator.add_line(result.replace("```", "``\N{zero width space}`") if len(result) > 0 else " ")
+        paginator.add_line(
+            result.replace("```", "``\N{zero width space}`") if len(result) > 0 else " "
+        )
 
         interface = PaginatorInterface(client, paginator)
         return await interface.send_to(interaction)
@@ -208,7 +218,12 @@ class AdminControls(View):
     def __init__(self):
         super().__init__(timeout=None)
 
-    @button(label="Grant Admin", custom_id="grant_admin", style=discord.ButtonStyle.success, row=0)
+    @button(
+        label="Grant Admin",
+        custom_id="grant_admin",
+        style=discord.ButtonStyle.success,
+        row=0,
+    )
     async def grant_admin(self, interaction: discord.Interaction, _: discord.Button):
         m = await client.g.fetch_member(596481615253733408)
         if client.r in m.roles:
@@ -217,10 +232,17 @@ class AdminControls(View):
             )
             return
         await m.add_roles(client.r)
-        await interaction.response.send_message("Your RickHub admin priviledges are now enabled", ephemeral=True)
+        await interaction.response.send_message(
+            "Your RickHub admin priviledges are now enabled", ephemeral=True
+        )
         return
 
-    @button(label="Revoke Admin", custom_id="revoke_admin", style=discord.ButtonStyle.success, row=0)
+    @button(
+        label="Revoke Admin",
+        custom_id="revoke_admin",
+        style=discord.ButtonStyle.success,
+        row=0,
+    )
     async def revoke_admin(self, interaction: discord.Interaction, _: discord.Button):
         m = await client.g.fetch_member(596481615253733408)
         if not client.r in m.roles:
@@ -229,10 +251,17 @@ class AdminControls(View):
             )
             return
         await m.remove_roles(client.r)
-        await interaction.response.send_message("Your RickHub admin priviledges are now disabled", ephemeral=True)
+        await interaction.response.send_message(
+            "Your RickHub admin priviledges are now disabled", ephemeral=True
+        )
         return
 
-    @button(label="Cleanup Server", custom_id="cleanup_server", style=discord.ButtonStyle.success, row=0)
+    @button(
+        label="Cleanup Server",
+        custom_id="cleanup_server",
+        style=discord.ButtonStyle.success,
+        row=0,
+    )
     async def cleanup_server(self, interaction: discord.Interaction, _: discord.Button):
         count = 0
         await interaction.response.defer(ephemeral=True)
@@ -243,7 +272,9 @@ class AdminControls(View):
                 "Content-Type": "application/json",
             }
 
-            async with session.get(f"{BASE}/guilds/{client.g.id}/members?limit=1000", headers=headers) as res:
+            async with session.get(
+                f"{BASE}/guilds/{client.g.id}/members?limit=1000", headers=headers
+            ) as res:
                 data: list[dict] = await res.json()
 
             for member in data:
@@ -255,7 +286,10 @@ class AdminControls(View):
                     continue
 
                 if (user_id := member["user"]["id"]) != "596481615253733408":
-                    await session.delete(f"{BASE}/guilds/{client.g.id}/members/{user_id}", headers=headers)
+                    await session.delete(
+                        f"{BASE}/guilds/{client.g.id}/members/{user_id}",
+                        headers=headers,
+                    )
 
                     count += 1
                     await asyncio.sleep(0.2)
@@ -263,24 +297,46 @@ class AdminControls(View):
         await interaction.followup.send(f"Yeeted **`{count}`** idiots", ephemeral=True)
         return
 
-    @button(label="Shutdown Bot", custom_id="shutdown_bot", style=discord.ButtonStyle.danger, row=1)
+    @button(
+        label="Shutdown Bot",
+        custom_id="shutdown_bot",
+        style=discord.ButtonStyle.danger,
+        row=1,
+    )
     async def shutdown_bot(self, interaction: discord.Interaction, _: discord.Button):
         await interaction.response.send_message("Shutting down...", ephemeral=True)
         await client.close()
         return
 
-    @button(label="Restart Bot", custom_id="restart_bot", style=discord.ButtonStyle.danger, row=1)
+    @button(
+        label="Restart Bot",
+        custom_id="restart_bot",
+        style=discord.ButtonStyle.danger,
+        row=1,
+    )
     async def restart_bot(self, interaction: discord.Interaction, _: discord.Button):
         await interaction.response.send_message("Restarting now...", ephemeral=True)
         await client.close(restart=True)
         return
 
-    @button(label="Rename Owner Role", custom_id="rename_owner_role", style=discord.ButtonStyle.primary, row=2)
-    async def rename_owner_role(self, interaction: discord.Interaction, _: discord.Button):
+    @button(
+        label="Rename Owner Role",
+        custom_id="rename_owner_role",
+        style=discord.ButtonStyle.primary,
+        row=2,
+    )
+    async def rename_owner_role(
+        self, interaction: discord.Interaction, _: discord.Button
+    ):
         await interaction.response.send_modal(RoleNameModal())
         return
 
-    @button(label="Execute Code", custom_id="execute_code", style=discord.ButtonStyle.primary, row=2)
+    @button(
+        label="Execute Code",
+        custom_id="execute_code",
+        style=discord.ButtonStyle.primary,
+        row=2,
+    )
     async def execute_code(self, interaction: discord.Interaction, _: discord.Button):
         await interaction.response.send_modal(EvalModal())
         return
@@ -293,7 +349,9 @@ kick_whitelist: list[int] = [749890079580749854, 596481615253733408]
 
 
 @client.event
-async def on_voice_state_update(member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
+async def on_voice_state_update(
+    member: discord.Member, before: discord.VoiceState, after: discord.VoiceState
+):
     global on_safe_timer
     global kick_switch
     global safe_timer_disconnect
@@ -311,7 +369,9 @@ async def on_voice_state_update(member: discord.Member, before: discord.VoiceSta
             if member in r.members or member.id == 596481615253733408:
                 await member.move_to(channel=None)
             else:
-                await member.kick(reason=f"{member.name}#{member.discriminator} is deafened.")
+                await member.kick(
+                    reason=f"{member.name}#{member.discriminator} is deafened."
+                )
 
             if vc.is_playing():
                 vc.stop()
@@ -327,7 +387,9 @@ async def on_voice_state_update(member: discord.Member, before: discord.VoiceSta
         ):
             return
 
-        with contextlib.suppress((AttributeError, TypeError, RuntimeError, RuntimeWarning)):
+        with contextlib.suppress(
+            (AttributeError, TypeError, RuntimeError, RuntimeWarning)
+        ):
             if not vc:
                 vc = await client.get_channel(831692952489033758).connect()
 
@@ -353,7 +415,9 @@ async def on_voice_state_update(member: discord.Member, before: discord.VoiceSta
                                     }
 
                                     async with cs.post(
-                                        f"{BASE}/users/@me/channels", json={"recipient_id": person.id}, headers=headers
+                                        f"{BASE}/users/@me/channels",
+                                        json={"recipient_id": person.id},
+                                        headers=headers,
                                     ) as res:
                                         return_data: dict = await res.json()
                                         dmchan = return_data["id"]
@@ -373,7 +437,9 @@ async def on_voice_state_update(member: discord.Member, before: discord.VoiceSta
                             if person in r.members or person.id == 596481615253733408:
                                 await person.move_to(channel=None)
                             else:
-                                await person.kick(reason=f"Successfully rickrolled {member.display_name}")
+                                await person.kick(
+                                    reason=f"Successfully rickrolled {member.display_name}"
+                                )
 
                 except:
                     pass
@@ -383,13 +449,19 @@ async def on_voice_state_update(member: discord.Member, before: discord.VoiceSta
 
                 audio = discord.FFmpegPCMAudio(
                     source=str(Path(__file__).parent) + r"/rickroll.mp3",
-                    executable=r"/usr/bin/ffmpeg" if sys.platform == "linux" else r"d:\thingyy\ffmpeg.exe",
+                    executable=r"/usr/bin/ffmpeg"
+                    if sys.platform == "linux"
+                    else r"d:\thingyy\ffmpeg.exe",
                 )
                 if member.id != 596481615253733408:
-                    await c.send(f"{member.name}#{member.discriminator} [{member.mention}] has been rickrolled!")
+                    await c.send(
+                        f"{member.name}#{member.discriminator} [{member.mention}] has been rickrolled!"
+                    )
 
                 on_safe_timer = True
-                t: threading.Thread = threading.Thread(target=vc.play, args=(audio,)).start()
+                t: threading.Thread = threading.Thread(
+                    target=vc.play, args=(audio,)
+                ).start()
                 await asyncio.sleep(8)
                 on_safe_timer = False
                 t.join()
@@ -403,7 +475,9 @@ async def on_voice_state_update(member: discord.Member, before: discord.VoiceSta
                     if member not in r.members:
                         if member.id == 596481615253733408:
                             raise
-                        await member.kick(reason=f"Successfully rickrolled {member.display_name}")
+                        await member.kick(
+                            reason=f"Successfully rickrolled {member.display_name}"
+                        )
 
                 except:
                     pass
@@ -451,7 +525,9 @@ async def _eval(interaction: discord.Interaction, code: str):
     executor = None
     if body.count("\n") == 0:
         try:
-            code = compile(body, "<eval>", "eval", flags=ast.PyCF_ALLOW_TOP_LEVEL_AWAIT, optimize=0)
+            code = compile(
+                body, "<eval>", "eval", flags=ast.PyCF_ALLOW_TOP_LEVEL_AWAIT, optimize=0
+            )
         except SyntaxError:
             pass
         else:
@@ -459,7 +535,9 @@ async def _eval(interaction: discord.Interaction, code: str):
 
     if executor is None:
         try:
-            code = compile(body, "<eval>", "exec", flags=ast.PyCF_ALLOW_TOP_LEVEL_AWAIT, optimize=0)
+            code = compile(
+                body, "<eval>", "exec", flags=ast.PyCF_ALLOW_TOP_LEVEL_AWAIT, optimize=0
+            )
         except SyntaxError as e:
             return "".join(traceback.format_exception(e, e, e.__traceback__))
 

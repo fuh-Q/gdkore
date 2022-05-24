@@ -109,7 +109,9 @@ def prompt():
             bot_to_launch = user_input
             if process_map[list(process_map)[user_input - 1]] is True:
                 print("")
-                print(f"{G + bot_map[user_input][:-3] + W} is already running - Start bot regardless? [y|n]")
+                print(
+                    f"{G + bot_map[user_input][:-3] + W} is already running - Start bot regardless? [y|n]"
+                )
                 confirm = input(ask)
 
                 if confirm.lower() in ["y", "yes", "true"]:
@@ -134,7 +136,9 @@ def main():
         code = proc.wait()
         proc.kill()  # Just in case
 
-        os.system("cls" if sys.platform == "win32" else "clear")  # Makes things look nicer
+        os.system(
+            "cls" if sys.platform == "win32" else "clear"
+        )  # Makes things look nicer
 
         if code != 69:
             break

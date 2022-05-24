@@ -36,7 +36,9 @@ class Actions:
 
         counter = 0
         while arg != "":
-            takeaway = random.choices(population=[1, 2], weights=(70, 30), k=20)[random.randint(0, 19)]
+            takeaway = random.choices(population=[1, 2], weights=(70, 30), k=20)[
+                random.randint(0, 19)
+            ]
             groups[counter] = arg[:takeaway]
             arg = arg[takeaway:]
             counter += 1
@@ -74,7 +76,9 @@ def markdownify(string: str):
 
         popped_action = actions_list.pop(actions_list.index(action))
 
-        again: bool = random.choices(population=[True, False], weights=(20, 80), k=20)[random.randint(0, 19)]
+        again: bool = random.choices(population=[True, False], weights=(20, 80), k=20)[
+            random.randint(0, 19)
+        ]
 
         if again:
             action = random.choice(actions_list)
@@ -107,7 +111,9 @@ class InviteView(discord.ui.View):
             url="https://discord.com/api/oauth2/authorize?client_id=859104775429947432&permissions=412384484416&scope=bot%20applications.commands",
         )
         support = discord.ui.Button(
-            label="get support", style=discord.ButtonStyle.link, url="https://discord.gg/DzN4U8veab"
+            label="get support",
+            style=discord.ButtonStyle.link,
+            url="https://discord.gg/DzN4U8veab",
         )
 
         self.add_item(bot)
@@ -119,7 +125,9 @@ class InviteView(discord.ui.View):
 @context_menu(name="Invite Bot")
 async def invite_bot(interaction: Interaction, member: discord.Member):
     if not member.bot:
-        return await interaction.response.send_message(f"{member.mention} is not a bot", ephemeral=True)
+        return await interaction.response.send_message(
+            f"{member.mention} is not a bot", ephemeral=True
+        )
 
     url = f"https://discord.com/oauth2/authorize?client_id={member.id}&permissions=543312838143&scope=bot%20applications.commands"
 
@@ -147,7 +155,8 @@ class Utility(commands.Cog):
 
         try:
             await interaction.response.send_message(
-                f"```{output}```\n**copy paste the stuff above into the chat or smth**", ephemeral=True
+                f"```{output}```\n**copy paste the stuff above into the chat or smth**",
+                ephemeral=True,
             )
 
         except discord.HTTPException:
@@ -159,7 +168,9 @@ class Utility(commands.Cog):
     @command(name="ping")
     async def ping(self, interaction: Interaction):
         """latency"""
-        await interaction.response.send_message(f"`{round(self.client.latency * 1000, 2)}ms`", ephemeral=True)
+        await interaction.response.send_message(
+            f"`{round(self.client.latency * 1000, 2)}ms`", ephemeral=True
+        )
 
     @command(name="invite")
     async def invite(self, interaction: Interaction):
@@ -177,7 +188,9 @@ class Utility(commands.Cog):
             colour=0x09DFFF,
         )
 
-        await interaction.response.send_message(embed=confirm_embed, view=view, ephemeral=True)
+        await interaction.response.send_message(
+            embed=confirm_embed, view=view, ephemeral=True
+        )
         setattr(view, "original_message", await interaction.original_message())
 
         await view.wait()
@@ -197,7 +210,9 @@ class Utility(commands.Cog):
                     for c in g.children:
                         c.disabled = True
 
-                    await interaction.followup.edit_message(message_id=g.original_message.id, view=g)
+                    await interaction.followup.edit_message(
+                        message_id=g.original_message.id, view=g
+                    )
 
             for g in self.client._connect4_games:
                 if interaction.user in g.game.player_list:

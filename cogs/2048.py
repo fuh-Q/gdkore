@@ -70,7 +70,9 @@ class Block:
 
 
 class Game:
-    def __init__(self, grid_size: Optional[int] = 4, blocks: Optional[List[Block]] = None):
+    def __init__(
+        self, grid_size: Optional[int] = 4, blocks: Optional[List[Block]] = None
+    ):
         self.blocks: List[Block] = blocks or []
         self.grid_size = grid_size
         self.new_block = None
@@ -246,7 +248,9 @@ class Game:
 
         return False
 
-    def _get_row(self, row: int, iterable: Optional[Iterable[Block]] = None) -> List[Block]:
+    def _get_row(
+        self, row: int, iterable: Optional[Iterable[Block]] = None
+    ) -> List[Block]:
         if not iterable:
             iterable = self.blocks
 
@@ -258,7 +262,9 @@ class Game:
 
         return o
 
-    def _get_column(self, column: int, iterable: Optional[Iterable[Block]] = None) -> List[Block]:
+    def _get_column(
+        self, column: int, iterable: Optional[Iterable[Block]] = None
+    ) -> List[Block]:
         if not iterable:
             iterable = self.blocks
 
@@ -270,7 +276,9 @@ class Game:
 
         return o
 
-    def _get_block(self, x, y, iterable: Optional[Iterable[Block]] = None) -> Optional[Block]:
+    def _get_block(
+        self, x, y, iterable: Optional[Iterable[Block]] = None
+    ) -> Optional[Block]:
         if not iterable:
             iterable = self.blocks
 
@@ -294,7 +302,11 @@ class GameView(BaseGameView):
     ):
         super().__init__(timeout=120)
 
-        self.game = Game.from_values(blocks) if blocks is not None and grid_size is None else Game(grid_size=grid_size)
+        self.game = (
+            Game.from_values(blocks)
+            if blocks is not None and grid_size is None
+            else Game(grid_size=grid_size)
+        )
 
         setattr(self.game, "player", interaction.user)
 
@@ -312,10 +324,15 @@ class GameView(BaseGameView):
 
         for game in self.client.cache["2048games"]:
             if game["player"] == self.game.player.id:
-                self.client.cache["2048games"].pop(self.client.cache["2048games"].index(game))
+                self.client.cache["2048games"].pop(
+                    self.client.cache["2048games"].index(game)
+                )
 
         self.client.cache["2048games"].append(
-            {"player": self.game.player.id, "blocks": [b.value for b in self.game.blocks]}
+            {
+                "player": self.game.player.id,
+                "blocks": [b.value for b in self.game.blocks],
+            }
         )
 
         counter = 0
@@ -421,7 +438,9 @@ class GameView(BaseGameView):
         for game in self.client.cache["2048games"]:
             if game["player"] == self.game.player.id:
                 if save is not True:
-                    self.client.cache["2048games"].pop(self.client.cache["2048games"].index(game))
+                    self.client.cache["2048games"].pop(
+                        self.client.cache["2048games"].index(game)
+                    )
                     continue
 
                 else:
@@ -449,9 +468,13 @@ class GameView(BaseGameView):
             await interaction.response.send_message(f"you lose. imagine losing.")
 
         else:
-            await interaction.response.send_message(f"you lost but you still won :ok_hand:")
+            await interaction.response.send_message(
+                f"you lost but you still won :ok_hand:"
+            )
 
-        await interaction.followup.edit_message(message_id=self.original_message.id, view=self)
+        await interaction.followup.edit_message(
+            message_id=self.original_message.id, view=self
+        )
 
         return self.stop(save=False)
 
@@ -462,7 +485,9 @@ class GameView(BaseGameView):
             loss = self.game.check_loss(self.game.blocks)
             won = self.update()
 
-            self.embed.description = f"— **score** `{self.game.score:,}`\n— **moves** `{self.game.moves:,}`"
+            self.embed.description = (
+                f"— **score** `{self.game.score:,}`\n— **moves** `{self.game.moves:,}`"
+            )
 
             if loss:
                 return await self.loss(interaction)
@@ -484,7 +509,9 @@ class GameView(BaseGameView):
             loss = self.game.check_loss(self.game.blocks)
             won = self.update()
 
-            self.embed.description = f"— **score** `{self.game.score:,}`\n— **moves** `{self.game.moves:,}`"
+            self.embed.description = (
+                f"— **score** `{self.game.score:,}`\n— **moves** `{self.game.moves:,}`"
+            )
 
             if loss:
                 return await self.loss(interaction)
@@ -506,7 +533,9 @@ class GameView(BaseGameView):
             loss = self.game.check_loss(self.game.blocks)
             won = self.update()
 
-            self.embed.description = f"— **score** `{self.game.score:,}`\n— **moves** `{self.game.moves:,}`"
+            self.embed.description = (
+                f"— **score** `{self.game.score:,}`\n— **moves** `{self.game.moves:,}`"
+            )
 
             if loss:
                 return await self.loss(interaction)
@@ -528,7 +557,9 @@ class GameView(BaseGameView):
             loss = self.game.check_loss(self.game.blocks)
             won = self.update()
 
-            self.embed.description = f"— **score** `{self.game.score:,}`\n— **moves** `{self.game.moves:,}`"
+            self.embed.description = (
+                f"— **score** `{self.game.score:,}`\n— **moves** `{self.game.moves:,}`"
+            )
 
             if loss:
                 return await self.loss(interaction)
@@ -552,7 +583,9 @@ class GameView(BaseGameView):
                     btn.style = discord.ButtonStyle.secondary
 
             await interaction.response.edit_message(view=self)
-            await interaction.followup.send("wanna save your game?", view=QuitConfirmationView(self), ephemeral=True)
+            await interaction.followup.send(
+                "wanna save your game?", view=QuitConfirmationView(self), ephemeral=True
+            )
 
         except Exception as e:
             print("".join(traceback.format_exception(e, e, e.__traceback__)))
@@ -641,7 +674,9 @@ class EditControlsView(ui.View):
         self.children[-1].style = discord.ButtonStyle.success
 
         try:
-            msg = await self.original_message.channel.fetch_message(self.original_message.id)
+            msg = await self.original_message.channel.fetch_message(
+                self.original_message.id
+            )
             await msg.edit(view=self)
 
         except discord.NotFound:
@@ -657,19 +692,39 @@ class EditControlsView(ui.View):
                 _set = True
 
         if not _set:
-            self.client.cache["controls"].append({"user": self.interaction.user.id, "setup": self.changes})
+            self.client.cache["controls"].append(
+                {"user": self.interaction.user.id, "setup": self.changes}
+            )
 
         return super().stop()
 
     def generate_options(self):
-        left = SelectOption(emoji=DirectionEmotes.LEFT, label="left", description="button to move left")
-        up = SelectOption(emoji=DirectionEmotes.UP, label="up", description="button to move up")
-        down = SelectOption(emoji=DirectionEmotes.DOWN, label="down", description="button to move down")
-        right = SelectOption(emoji=DirectionEmotes.RIGHT, label="right", description="button to move right")
-        bye = SelectOption(emoji=DirectionEmotes.BYE, label="bye", description="button to quit the game")
+        left = SelectOption(
+            emoji=DirectionEmotes.LEFT, label="left", description="button to move left"
+        )
+        up = SelectOption(
+            emoji=DirectionEmotes.UP, label="up", description="button to move up"
+        )
+        down = SelectOption(
+            emoji=DirectionEmotes.DOWN, label="down", description="button to move down"
+        )
+        right = SelectOption(
+            emoji=DirectionEmotes.RIGHT,
+            label="right",
+            description="button to move right",
+        )
+        bye = SelectOption(
+            emoji=DirectionEmotes.BYE,
+            label="bye",
+            description="button to quit the game",
+        )
         none = SelectOption(emoji=None, label="none", description="no button")
 
-        return [o for o in [left, up, down, right, bye, none] if o.label != self.changes[self.editing]]
+        return [
+            o
+            for o in [left, up, down, right, bye, none]
+            if o.label != self.changes[self.editing]
+        ]
 
     @ui.button(style=discord.ButtonStyle.secondary)
     async def slot_1(self, interaction: Interaction, button: ui.Button):
@@ -819,7 +874,10 @@ class TwentyFortyEight(commands.Cog):
         ]
     )
     async def twentyfortyeight(
-        self, interaction: Interaction, grid_size: Optional[Choice[int]] = 4, load: Optional[bool] = False
+        self,
+        interaction: Interaction,
+        grid_size: Optional[Choice[int]] = 4,
+        load: Optional[bool] = False,
     ):
         """play 2048"""
 
@@ -831,7 +889,9 @@ class TwentyFortyEight(commands.Cog):
         if isinstance(grid_size, Choice):
             grid_size = grid_size.value
 
-        infoEmbed = discord.Embed(description="— **score** `0`\n— **moves** `0`", colour=Botcolours.green)
+        infoEmbed = discord.Embed(
+            description="— **score** `0`\n— **moves** `0`", colour=Botcolours.green
+        )
         infoEmbed.set_footer(text="newly spawned blocks are highlighted in green")
 
         infoEmbed.set_author(
@@ -850,7 +910,9 @@ class TwentyFortyEight(commands.Cog):
                     break
 
             if not found:
-                return await interaction.response.send_message("couldnt find a saved game", ephemeral=True)
+                return await interaction.response.send_message(
+                    "couldnt find a saved game", ephemeral=True
+                )
 
         else:
             view = GameView(interaction, grid_size, embed=infoEmbed)
@@ -881,7 +943,9 @@ class TwentyFortyEight(commands.Cog):
 
         for setup in self.client.cache["controls"]:
             if setup["user"] == interaction.user.id:
-                self.client.cache["controls"].pop(self.client.cache["controls"].index(setup))
+                self.client.cache["controls"].pop(
+                    self.client.cache["controls"].index(setup)
+                )
                 found = True
 
         if found:
@@ -899,7 +963,9 @@ class TwentyFortyEight(commands.Cog):
 
         for game in self.client.cache["2048games"]:
             if game["player"] == interaction.user.id:
-                self.client.cache["2048games"].pop(self.client.cache["2048games"].index(game))
+                self.client.cache["2048games"].pop(
+                    self.client.cache["2048games"].index(game)
+                )
                 found = True
 
         if found:

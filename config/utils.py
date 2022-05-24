@@ -155,7 +155,9 @@ async def mobile(self: DiscordWebSocket):
     if state._intents is not None:
         payload["d"]["intents"] = state._intents.value
 
-    await self.call_hooks("before_identify", self.shard_id, initial=self._initial_identify)
+    await self.call_hooks(
+        "before_identify", self.shard_id, initial=self._initial_identify
+    )
     await self.send_as_json(payload)
 
 
@@ -234,7 +236,9 @@ class Confirm(View):
 
     async def interaction_check(self, interaction: Interaction) -> bool:
         if interaction.user != self.owner:
-            await interaction.response.send_message(content=random.choice(CHOICES), ephemeral=True)
+            await interaction.response.send_message(
+                content=random.choice(CHOICES), ephemeral=True
+            )
             return False
         return True
 

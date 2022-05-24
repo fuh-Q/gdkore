@@ -59,7 +59,9 @@ class Slot:
 class Game:
     def __init__(self, players: List[discord.User]):
         self.slots: List[Slot] = []
-        self.players: List[Player] = [Player(players[i], i) for i in range(len(players))]
+        self.players: List[Player] = [
+            Player(players[i], i) for i in range(len(players))
+        ]
         self.turns = cycle(self.players)
         self.winner: Player = None
         self.moves = 0
@@ -211,7 +213,11 @@ class GameView(BaseGameView):
 
                     await asyncio.sleep(1)
 
-                if before_slots == self.game.slots and self.turn == before_turn and before_moves == self.game.moves:
+                if (
+                    before_slots == self.game.slots
+                    and self.turn == before_turn
+                    and before_moves == self.game.moves
+                ):
                     await self.on_turn_timeout()
                     self.timed_out += 1
 
@@ -232,7 +238,9 @@ class GameView(BaseGameView):
         for c in self.children:
             c.disabled = True
 
-        await self.original_message.edit(f"ok i think you both just {BotEmojis.PEACE}'d out on me", view=None)
+        await self.original_message.edit(
+            f"ok i think you both just {BotEmojis.PEACE}'d out on me", view=None
+        )
 
         self.stop()
 
@@ -246,7 +254,16 @@ class GameView(BaseGameView):
         if self.timed_out > 3:
             await self.on_game_timeout()
 
-        if len([s.occupant for s in self.game._get_column(self.hovering - 1) if s.occupant is not None]) == 6:
+        if (
+            len(
+                [
+                    s.occupant
+                    for s in self.game._get_column(self.hovering - 1)
+                    if s.occupant is not None
+                ]
+            )
+            == 6
+        ):
             if self.hovering < 7:
                 self.hovering += 1
 
@@ -311,12 +328,20 @@ class GameView(BaseGameView):
         content += "".join(
             [
                 BotEmojis.BLANK * (self.hovering - 1),
-                f"{BotEmojis.ARROW_DOWN}\n" if not self.game.winner and not gave_up and not tie else "\n",
+                f"{BotEmojis.ARROW_DOWN}\n"
+                if not self.game.winner and not gave_up and not tie
+                else "\n",
                 BotEmojis.C4_LINE_NEUTRAL * (self.hovering - 1),
                 BotEmojis.C4_LINE_RED
-                if self.turn.number == 0 and not self.game.winner and not gave_up and not tie
+                if self.turn.number == 0
+                and not self.game.winner
+                and not gave_up
+                and not tie
                 else BotEmojis.C4_LINE_YELLOW
-                if self.turn.number == 1 and not self.game.winner and not gave_up and not tie
+                if self.turn.number == 1
+                and not self.game.winner
+                and not gave_up
+                and not tie
                 else BotEmojis.C4_LINE_NEUTRAL,
                 BotEmojis.C4_LINE_NEUTRAL * (7 - self.hovering),
                 "\n",
@@ -339,9 +364,15 @@ class GameView(BaseGameView):
             [
                 BotEmojis.C4_LINE_NEUTRAL * (self.hovering - 1),
                 BotEmojis.C4_LINE_RED
-                if self.turn.number == 0 and not self.game.winner and not gave_up and not tie
+                if self.turn.number == 0
+                and not self.game.winner
+                and not gave_up
+                and not tie
                 else BotEmojis.C4_LINE_YELLOW
-                if self.turn.number == 1 and not self.game.winner and not gave_up and not tie
+                if self.turn.number == 1
+                and not self.game.winner
+                and not gave_up
+                and not tie
                 else BotEmojis.C4_LINE_NEUTRAL,
                 BotEmojis.C4_LINE_NEUTRAL * (7 - self.hovering),
                 "\n",
@@ -377,7 +408,9 @@ class GameView(BaseGameView):
 
         if interaction:
             try:
-                return await interaction.response.edit_message(content=content, view=self)
+                return await interaction.response.edit_message(
+                    content=content, view=self
+                )
 
             except discord.InteractionResponded:
                 return await interaction.followup.edit_message(
@@ -390,7 +423,9 @@ class GameView(BaseGameView):
     @ui.button(emoji=BotEmojis.C4_RED_LEFT)
     async def move_left(self, interaction: Interaction, btn: ui.Button):
         if interaction.user.id != self.turn.id:
-            return await interaction.response.send_message("wait your turn", ephemeral=True)
+            return await interaction.response.send_message(
+                "wait your turn", ephemeral=True
+            )
 
         self.timed_out = 0
         if not self.hovering > 1:
@@ -404,7 +439,9 @@ class GameView(BaseGameView):
     @ui.button(emoji=BotEmojis.C4_RED_RIGHT)
     async def move_right(self, interaction: Interaction, btn: ui.Button):
         if interaction.user.id != self.turn.id:
-            return await interaction.response.send_message("wait your turn", ephemeral=True)
+            return await interaction.response.send_message(
+                "wait your turn", ephemeral=True
+            )
 
         self.timed_out = 0
         if not self.hovering < 7:
@@ -418,7 +455,9 @@ class GameView(BaseGameView):
     @ui.button(emoji=BotEmojis.C4_RED_LEFTER, row=1)
     async def move_lefter(self, interaction: Interaction, btn: ui.Button):
         if interaction.user.id != self.turn.id:
-            return await interaction.response.send_message("wait your turn", ephemeral=True)
+            return await interaction.response.send_message(
+                "wait your turn", ephemeral=True
+            )
 
         self.timed_out = 0
         self.hovering = 1
@@ -428,7 +467,9 @@ class GameView(BaseGameView):
     @ui.button(emoji=BotEmojis.C4_RED_RIGHTER, row=1)
     async def move_righter(self, interaction: Interaction, btn: ui.Button):
         if interaction.user.id != self.turn.id:
-            return await interaction.response.send_message("wait your turn", ephemeral=True)
+            return await interaction.response.send_message(
+                "wait your turn", ephemeral=True
+            )
 
         self.timed_out = 0
         self.hovering = 7
@@ -442,7 +483,9 @@ class GameView(BaseGameView):
     @ui.button(emoji=BotEmojis.C4_RED_DROP, style=discord.ButtonStyle.secondary)
     async def drop_piece(self, interaction: Interaction, btn: ui.Button):
         if interaction.user.id != self.turn.id:
-            return await interaction.response.send_message("wait your turn", ephemeral=True)
+            return await interaction.response.send_message(
+                "wait your turn", ephemeral=True
+            )
 
         if self.game._get_column(self.hovering - 1)[0].occupant:
             return
@@ -513,7 +556,9 @@ class ConnectFour(commands.Cog):
                 raise MaxConcurrencyReached
 
         if opponent.id == interaction.user.id or opponent.bot:
-            return await interaction.response.send_message("aw hell nah", ephemeral=True)
+            return await interaction.response.send_message(
+                "aw hell nah", ephemeral=True
+            )
 
         view = Confirm(opponent)
         embed = discord.Embed(
@@ -522,9 +567,13 @@ class ConnectFour(commands.Cog):
             colour=0x09DFFF,
         )
 
-        await interaction.response.send_message(opponent.mention, embed=embed, view=view)
+        await interaction.response.send_message(
+            opponent.mention, embed=embed, view=view
+        )
         view.original_message = (
-            msg := await interaction.channel.fetch_message((await interaction.original_message()).id)
+            msg := await interaction.channel.fetch_message(
+                (await interaction.original_message()).id
+            )
         )
 
         await view.wait()
@@ -594,13 +643,17 @@ class ConnectFour(commands.Cog):
             ]
         )
 
-        await interaction.followup.edit_message(message_id=msg.id, embed=None, content=content, view=view)
+        await interaction.followup.edit_message(
+            message_id=msg.id, embed=None, content=content, view=view
+        )
         view.original_message = msg
 
         await view.wait()
 
     @connect4.error
-    async def connect4_error(self, interaction: Interaction, error: errors.AppCommandError):
+    async def connect4_error(
+        self, interaction: Interaction, error: errors.AppCommandError
+    ):
         print("".join(traceback.format_exc()))
         if isinstance(error, MaxConcurrencyReached):
             author_game = None
