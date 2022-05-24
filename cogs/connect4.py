@@ -6,11 +6,11 @@ from itertools import cycle
 from typing import List
 
 import discord
-from discord import ui, Interaction
-from discord.app_commands import CheckFailure, errors, command, describe
+from discord import Interaction, ui
+from discord.app_commands import CheckFailure, command, describe, errors
 from discord.ext import commands
 
-from bot import NotGDKID, BotEmojis
+from bot import BotEmojis, NotGDKID
 from config.utils import BaseGameView, Botcolours, Confirm
 
 

@@ -1,7 +1,5 @@
 import math
-import time
 import traceback
-from datetime import datetime
 from enum import Enum
 from random import choice as c
 from random import choices as ch
@@ -9,12 +7,12 @@ from random import randint as r
 from typing import Iterable, List, Optional
 
 import discord
-from discord import ui, Embed, Interaction, InteractionMessage, SelectOption
+from discord import Embed, Interaction, InteractionMessage, SelectOption, ui
 from discord.app_commands import (CheckFailure, Choice, Group, choices,
                                   command, describe)
 from discord.ext import commands
 
-from bot import NotGDKID, BotEmojis
+from bot import BotEmojis, NotGDKID
 from config.utils import CHOICES, BaseGameView, Botcolours, NewEmote
 
 weights = (90, 10)  # 2, 4
@@ -582,7 +580,7 @@ class QuitConfirmationView(ui.View):
             discord.SelectOption(
                 label="ye",
                 description="keep playing later with /2048 and set load to true",
-                emoji=NewEmote.from_name(BotEmojis.YES)
+                emoji=NewEmote.from_name(BotEmojis.YES),
             ),
             discord.SelectOption(
                 label="nu",

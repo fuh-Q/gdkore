@@ -63,6 +63,7 @@ class NotGDKID(commands.Bot):
     """
     The sexiest bot of all time.
     """
+
     __file__ = __file__
 
     def __init__(self):
@@ -124,7 +125,7 @@ class NotGDKID(commands.Bot):
         self.uptime = datetime.utcnow().astimezone(timezone(timedelta(hours=-4)))
 
         self.add_commands()
-    
+
     @property
     def emotes(self) -> Type[BotEmojis]:
         """
@@ -179,9 +180,9 @@ class NotGDKID(commands.Bot):
 
         if sys.platform == "linux":
             self.dweebhook = await self.fetch_webhook(954211358231130204)
-        
+
         owner = await self.fetch_user(596481615253733408)
-        
+
         end = time.monotonic()
         e = discord.Embed(description=f"❯❯  started up in ~`{round(end - start, 1)}s`")
         await owner.send(embed=e)

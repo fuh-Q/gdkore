@@ -3,14 +3,13 @@ import json
 import random
 import re
 import sys
-import time
 from typing import Any, Dict, Generator, Optional, SupportsInt, Type
 
 import discord
 from discord import Interaction, InteractionMessage, PartialEmoji, User
 from discord.ext import commands
 from discord.gateway import DiscordWebSocket
-from discord.ui import Item, Button, View, button
+from discord.ui import Button, Item, View, button
 
 CHOICES = [
     "no",
@@ -275,6 +274,7 @@ class BaseGameView(View):
     """
     A subclass of `View` that reworks the timeout logic
     """
+
     async def _scheduled_task(self, item: Item, interaction: Interaction):
         try:
             allow = await self.interaction_check(interaction, item)
@@ -297,11 +297,12 @@ class BaseGameView(View):
 def emojiclass(cls: Type[Any]):
     with open("config/emojis.json", "r") as f:
         emojis: Dict[str, str] = json.load(f)
-    
+
     for k, v in emojis.items():
         setattr(cls, k, v)
-    
+
     return cls
+
 
 @emojiclass
 class BotEmojis:

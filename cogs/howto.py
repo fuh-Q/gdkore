@@ -20,9 +20,9 @@ avatars = [
 class HowTo(commands.GroupCog, name="howto"):
     def __init__(self, client: NotGDKID) -> None:
         self.client = client
-        
+
         super().__init__()
-    
+
     @command(name="2048")
     async def howto2048(self, interaction: Interaction):
         """2048 game guide"""
@@ -69,11 +69,11 @@ class HowTo(commands.GroupCog, name="howto"):
         )
 
         return await interaction.response.send_message(embed=info_embed, ephemeral=True)
-    
+
     @command(name="connect4")
     async def howtoconnect4(self, interaction: Interaction):
         """connect 4 game guide"""
-        
+
         info_embed = (
             discord.Embed(
                 description="""
@@ -101,18 +101,20 @@ class HowTo(commands.GroupCog, name="howto"):
             .set_author(
                 name=interaction.client.user.name,
                 url="https://rulesofplaying.com/connect-4-rules/",
-                icon_url=choice(avatars)
+                icon_url=choice(avatars),
             )
-            .set_thumbnail(url="https://cdn.discordapp.com/attachments/749892811905564677/978511031468949504/unknown.png")
+            .set_thumbnail(
+                url="https://cdn.discordapp.com/attachments/749892811905564677/978511031468949504/unknown.png"
+            )
             .set_footer(text="\u200b", icon_url=choice(avatars))
         )
-        
+
         return await interaction.response.send_message(embed=info_embed, ephemeral=True)
-    
+
     @command(name="checkers")
     async def howtocheckers(self, interaction: Interaction):
         """checkers game guide"""
-        
+
         info_embed = (
             discord.Embed(
                 description="""
@@ -145,7 +147,7 @@ class HowTo(commands.GroupCog, name="howto"):
             .set_thumbnail(url="http://stockarch.com/files/10/03/checkers_board.JPG")
             .set_footer(text="\u200b", icon_url=choice(avatars))
         )
-        
+
         return await interaction.response.send_message(embed=info_embed, ephemeral=True)
 
 
