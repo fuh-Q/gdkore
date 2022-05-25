@@ -592,7 +592,7 @@ class GameView(BaseGameView):
 
 
 class QuitConfirmationView(ui.View):
-    def __init__(self, game: "GameView"):
+    def __init__(self, game: GameView):
         super().__init__(timeout=120)
         self.game = game
 

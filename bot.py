@@ -310,10 +310,10 @@ class NotGDKID(commands.Bot):
                 await self.load_extension(cog)
             except commands.ExtensionAlreadyLoaded:
                 return await ctx.reply(
-                    content=f"`{cog[5:]}` is already loaded", mention_author=True
+                    content=f"`{cog.split('.')[1]}` is already loaded", mention_author=True
                 )
             else:
-                await ctx.reply(content=f"Loaded `{cog[5:]}`", mention_author=True)
+                await ctx.reply(content=f"Loaded `{cog.split('.')[1]}`", mention_author=True)
 
         @self.command(name="unload", brief="Unload cogs", hidden=True)
         @commands.is_owner()
@@ -329,10 +329,10 @@ class NotGDKID(commands.Bot):
                 await self.unload_extension(cog)
             except commands.ExtensionNotLoaded:
                 return await ctx.reply(
-                    content=f"`{cog[5:]}` is not loaded", mention_author=True
+                    content=f"`{cog.split('.')[1]}` is not loaded", mention_author=True
                 )
             else:
-                await ctx.reply(content=f"Unloaded `{cog[5:]}`", mention_author=True)
+                await ctx.reply(content=f"Unloaded `{cog.split('.')[1]}`", mention_author=True)
 
         @self.command(name="reload", brief="Reload cogs", hidden=True)
         @commands.is_owner()
@@ -341,7 +341,7 @@ class NotGDKID(commands.Bot):
                 List = []
                 for extension in list(self.extensions):
                     await self.reload_extension(extension)
-                    List.append(f"`{extension[5:]}`")
+                    List.append(f"`{extension.split('.')[1]}`")
                 return await ctx.reply(
                     content=f"Reloaded {', '.join(List)}", mention_author=True
                 )
@@ -353,7 +353,7 @@ class NotGDKID(commands.Bot):
                 )
             cog = str(the_match[0])
             await self.reload_extension(cog)
-            await ctx.reply(content=f"Reloaded `{cog[5:]}`", mention_author=True)
+            await ctx.reply(content=f"Reloaded `{cog.split('.')[1]}`", mention_author=True)
 
 
 if __name__ == "__main__":

@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import traceback
 from itertools import cycle
-from typing import Dict, List, Tuple, Type, TypeVar
+from typing import Dict, List, Tuple, Type
 
 import discord
 from discord import Interaction, ui
@@ -11,9 +13,6 @@ from bot import BotEmojis, NotGDKID
 from config.utils import BaseGameView, Botcolours, Confirm
 
 MOVEMENTS: List[str] = ["NORTHWEST", "NORTHEAST", "SOUTHWEST", "SOUTHEAST"]
-
-G = TypeVar("G", bound="Game")
-GV = TypeVar("GV", bound="GameView")
 
 
 def directional_button(direction: str) -> Type[ui.Button]:
@@ -96,7 +95,7 @@ class Slot:
 
 
 class Piece:
-    def __init__(self, game: G, owner: Player, x: int, y: int, number: int):
+    def __init__(self, game: Game, owner: Player, x: int, y: int, number: int):
         self.owner = owner
         self.x = x
         self.y = y
@@ -116,7 +115,7 @@ class Piece:
 
 
 class Game:
-    def __init__(self, players: List[discord.User], view: GV) -> None:
+    def __init__(self, players: List[discord.User], view: GameView) -> None:
         self.slots: List[Slot] = []
         self.pieces: List[Piece] = []
         self.view: GameView = view
@@ -296,10 +295,10 @@ class Game:
 
 class GameView(BaseGameView):
     children: List[ui.Select | ui.Button]
-    northwest: ui.Button[GV]
-    northeast: ui.Button[GV]
-    southwest: ui.Button[GV]
-    southeast: ui.Button[GV]
+    northwest: ui.Button[GameView]
+    northeast: ui.Button[GameView]
+    southwest: ui.Button[GameView]
+    southeast: ui.Button[GameView]
     client: NotGDKID = None
 
     def __init__(
