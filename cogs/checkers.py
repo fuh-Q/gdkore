@@ -95,11 +95,10 @@ class Slot:
 
 
 class Piece:
-    def __init__(self, game: Game, owner: Player, x: int, y: int, number: int):
+    def __init__(self, game: Game, owner: Player, x: int, y: int):
         self.owner = owner
         self.x = x
         self.y = y
-        self.number = number
         self.king: bool = False
 
         self.game: Game = game
@@ -139,20 +138,16 @@ class Game:
                 self.slots.append(Slot(x, y, counter, null))
                 counter += 1
 
-        counter = 0
         for sl in self.slots[:24]:
             if not sl.null:
-                counter += 1
-                piece = Piece(self, self.opponent, sl.x, sl.y, counter)
+                piece = Piece(self, self.opponent, sl.x, sl.y)
                 sl.occupant = piece.owner
                 sl.piece = piece
                 self.pieces.append(piece)
 
-        counter = 0
         for sl in self.slots[-24:]:
             if not sl.null:
-                counter += 1
-                piece = Piece(self, self.challenger, sl.x, sl.y, counter)
+                piece = Piece(self, self.challenger, sl.x, sl.y)
                 sl.occupant = piece.owner
                 sl.piece = piece
                 self.pieces.append(piece)
@@ -438,7 +433,7 @@ class GameView(BaseGameView):
                 self.game.jumping_piece = None
                 self.game.jumped_counter = 0
                 self.turn = next(self.game.turns)
-                
+
                 self.piece_selector.disabled = False
 
         # checking it again as it might've changed
