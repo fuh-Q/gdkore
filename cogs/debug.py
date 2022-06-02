@@ -176,7 +176,7 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
     @commands.is_owner()
     async def jsk(self, ctx: commands.Context):
         summary = [
-            f"Jishaku `v{jishaku.__version__}`, discord.py `v{package_version('discord.py')}`, "
+            f"Jishaku `v{package_version('jishaku')}`, discord.py `v{package_version('discord.py')}`, "
             f"`Python v{sys.version}` on `{sys.platform}`".replace("\n", ""),
             f"Bot was started <t:{self.bot.uptime.timestamp():.0f}:R>, "
             f"cog was loaded <t:{self.start_time.timestamp():.0f}:R>.",
