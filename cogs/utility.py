@@ -199,24 +199,16 @@ class Utility(commands.Cog):
             await view.interaction.response.edit_message(view=view)
             await view.interaction.followup.send("data cleared", ephemeral=True)
 
-            for i in self.client.cache.values():
-                for item in i:
-                    if interaction.user.id in item.values():
-                        i.pop(i.index(item))
+            query = """SELECT tablename FROM pg_tables
+                        WHERE tableowner = 'GDKID'
+                    """
+            data = await self.client.db.fetch(query)
 
-            for g in self.client._2048_games:
-                if g.game.player.id == interaction.user.id:
-                    g.stop(save=False)
-                    for c in g.children:
-                        c.disabled = True
+            for record in data:
+                tablename = record[0]
 
-                    await interaction.followup.edit_message(
-                        message_id=g.original_message.id, view=g
-                    )
-
-            for g in self.client._connect4_games:
-                if interaction.user in g.game.player_list:
-                    await g.children[-1].callback(interaction)
+                query = "DELETE FROM %s WHERE user_id = $1" % tablename
+                await self.client.db.execute(query, interaction.user.id)
 
         else:
             await view.interaction.response.edit_message(view=view)

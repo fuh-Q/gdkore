@@ -11,11 +11,8 @@ from discord.app_commands import CheckFailure, command, describe, errors
 from discord.ext import commands
 
 from bot import BotEmojis, NotGDKID
-from config.utils import BaseGameView, Botcolours, Confirm
-
-
-class MaxConcurrencyReached(CheckFailure):
-    ...
+from config.utils import (BaseGameView, Botcolours, Confirm,
+                          MaxConcurrencyReached)
 
 
 class DiagonalDirection:
@@ -56,7 +53,7 @@ class Slot:
         return f"<{self.__class__.__name__} x={self.x} y={self.y}>"
 
 
-class Game:
+class Logic:
     def __init__(self, players: List[discord.User]):
         self.slots: List[Slot] = []
         self.players: List[Player] = [
@@ -175,7 +172,7 @@ class Game:
         return diag or None
 
 
-class GameView(BaseGameView):
+class Game(BaseGameView):
     def __init__(
         self,
         interaction: Interaction,
@@ -189,9 +186,9 @@ class GameView(BaseGameView):
         self.moved_at = time.time()
         self.turn_timeout = 30
 
-        self.game = Game(players)
+        self.logic = Logic(players)
 
-        self.turn = next(self.game.turns)
+        self.turn = next(self.logic.turns)
         self.original_message: discord.Message = None
 
         self.client._connect4_games.append(self)
@@ -203,9 +200,9 @@ class GameView(BaseGameView):
     async def turn_timeout_loop(self):
         while hasattr(self, "game"):
             try:
-                before_slots = self.game.slots.copy()
+                before_slots = self.logic.slots.copy()
                 before_turn = copy.copy(self.turn)
-                before_moves = copy.copy(self.game.moves)
+                before_moves = copy.copy(self.logic.moves)
 
                 while (time.time() - self.moved_at) < self.turn_timeout:
                     if not hasattr(self, "game"):
@@ -214,9 +211,9 @@ class GameView(BaseGameView):
                     await asyncio.sleep(1)
 
                 if (
-                    before_slots == self.game.slots
+                    before_slots == self.logic.slots
                     and self.turn == before_turn
-                    and before_moves == self.game.moves
+                    and before_moves == self.logic.moves
                 ):
                     await self.on_turn_timeout()
                     self.timed_out += 1
@@ -228,7 +225,7 @@ class GameView(BaseGameView):
                 break
 
     async def interaction_check(self, interaction: Interaction, item: ui.Item) -> bool:
-        if interaction.user not in self.game.players:
+        if interaction.user not in self.logic.players:
             await interaction.response.send_message("its not your game", ephemeral=True)
             return False
 
@@ -258,7 +255,7 @@ class GameView(BaseGameView):
             len(
                 [
                     s.occupant
-                    for s in self.game._get_column(self.hovering - 1)
+                    for s in self.logic._get_column(self.hovering - 1)
                     if s.occupant is not None
                 ]
             )
@@ -269,18 +266,18 @@ class GameView(BaseGameView):
 
             else:
                 self.hovering = 1
-        self.game.drop_to_bottom(self.hovering - 1, self.turn)
+        self.logic.drop_to_bottom(self.hovering - 1, self.turn)
 
-        self.turn = next(self.game.turns)
+        self.turn = next(self.logic.turns)
 
-        if None not in [s.occupant for s in self.game.slots]:
+        if None not in [s.occupant for s in self.logic.slots]:
             for c in self.children:
                 c.disabled = True
 
             await self.update_board(message=self.original_message, tie=True)
             return self.stop()
 
-        winner = self.game.check_4()
+        winner = self.logic.check_4()
         if winner:
             return await self.on_win(winner)
 
@@ -288,8 +285,8 @@ class GameView(BaseGameView):
             await self.update_board(message=self.original_message)
 
     def stop(self):
-        self.client._connect4_games.pop(self.client._connect4_games.index(self))
-        del self.game
+        self.client._connect4_games.remove(self)
+        del self.logic
 
         return super().stop()
 
@@ -305,7 +302,7 @@ class GameView(BaseGameView):
             add = time.time() - self.moved_at
             self.moved_at += add
 
-        if not self.game.winner:
+        if not self.logic.winner:
             content = "".join(
                 [
                     f"{self.turn.mention} your turn! you have `{self.turn_timeout}` seconds to make a move\n",
@@ -314,8 +311,8 @@ class GameView(BaseGameView):
             )
 
         else:
-            for player in self.game.players:
-                if player.id != self.game.winner.id:
+            for player in self.logic.players:
+                if player.id != self.logic.winner.id:
                     content = f"{player.mention} you lose. imagine losing\n\n"
                     break
 
@@ -329,17 +326,17 @@ class GameView(BaseGameView):
             [
                 BotEmojis.BLANK * (self.hovering - 1),
                 f"{BotEmojis.ARROW_DOWN}\n"
-                if not self.game.winner and not gave_up and not tie
+                if not self.logic.winner and not gave_up and not tie
                 else "\n",
                 BotEmojis.C4_LINE_NEUTRAL * (self.hovering - 1),
                 BotEmojis.C4_LINE_RED
                 if self.turn.number == 0
-                and not self.game.winner
+                and not self.logic.winner
                 and not gave_up
                 and not tie
                 else BotEmojis.C4_LINE_YELLOW
                 if self.turn.number == 1
-                and not self.game.winner
+                and not self.logic.winner
                 and not gave_up
                 and not tie
                 else BotEmojis.C4_LINE_NEUTRAL,
@@ -349,7 +346,7 @@ class GameView(BaseGameView):
         )
 
         for i in range(6):
-            ro = self.game._get_row(i)
+            ro = self.logic._get_row(i)
 
             for s in ro:
                 try:
@@ -365,12 +362,12 @@ class GameView(BaseGameView):
                 BotEmojis.C4_LINE_NEUTRAL * (self.hovering - 1),
                 BotEmojis.C4_LINE_RED
                 if self.turn.number == 0
-                and not self.game.winner
+                and not self.logic.winner
                 and not gave_up
                 and not tie
                 else BotEmojis.C4_LINE_YELLOW
                 if self.turn.number == 1
-                and not self.game.winner
+                and not self.logic.winner
                 and not gave_up
                 and not tie
                 else BotEmojis.C4_LINE_NEUTRAL,
@@ -379,7 +376,7 @@ class GameView(BaseGameView):
             ]
         )
 
-        if not self.game.winner:
+        if not self.logic.winner:
             reds = [
                 BotEmojis.C4_RED_LEFT,
                 BotEmojis.C4_RED_RIGHT,
@@ -487,21 +484,21 @@ class GameView(BaseGameView):
                 "wait your turn", ephemeral=True
             )
 
-        if self.game._get_column(self.hovering - 1)[0].occupant:
+        if self.logic._get_column(self.hovering - 1)[0].occupant:
             return
 
         self.timed_out = 0
-        self.game.drop_to_bottom(self.hovering - 1, self.turn)
-        self.turn = next(self.game.turns)
+        self.logic.drop_to_bottom(self.hovering - 1, self.turn)
+        self.turn = next(self.logic.turns)
 
-        if None not in [s.occupant for s in self.game.slots]:
+        if None not in [s.occupant for s in self.logic.slots]:
             for c in self.children:
                 c.disabled = True
 
             await self.update_board(interaction=interaction)
             return self.stop()
 
-        winner = self.game.check_4()
+        winner = self.logic.check_4()
         if winner:
             for c in self.children:
                 c.disabled = True
@@ -551,9 +548,9 @@ class ConnectFour(commands.Cog):
         """play connect4 with someone"""
 
         for game in self.client._connect4_games:
-            game: GameView
-            if interaction.user.id in [u.id for u in game.game.players]:
-                raise MaxConcurrencyReached
+            game: Game
+            if interaction.user.id in [u.id for u in game.logic.players]:
+                raise MaxConcurrencyReached(game.original_message.jump_url)
 
         if opponent.id == interaction.user.id or opponent.bot:
             return await interaction.response.send_message(
@@ -586,8 +583,8 @@ class ConnectFour(commands.Cog):
             return
 
         for game in self.client._connect4_games:
-            game: GameView
-            if interaction.user.id in [u.id for u in game.game.players]:
+            game: Game
+            if interaction.user.id in [u.id for u in game.logic.players]:
                 author_game = game.original_message.jump_url
 
                 embed = msg.embeds[0].copy()
@@ -597,9 +594,9 @@ class ConnectFour(commands.Cog):
                     f"\n{'[jump to game](<' + author_game + '>)' if author_game is not None else ''}"
                 )
                 await msg.edit(embed=embed, view=view)
-                raise MaxConcurrencyReached
+                raise MaxConcurrencyReached(author_game)
 
-        view = GameView(interaction, [opponent, interaction.user])
+        view = Game(interaction, [opponent, interaction.user])
 
         content = "".join(
             [
@@ -619,7 +616,7 @@ class ConnectFour(commands.Cog):
         )
 
         for i in range(6):
-            ro = view.game._get_row(i)
+            ro = view.logic._get_row(i)
 
             for s in ro:
                 try:
@@ -654,20 +651,11 @@ class ConnectFour(commands.Cog):
     async def connect4_error(
         self, interaction: Interaction, error: errors.AppCommandError
     ):
-        print("".join(traceback.format_exc()))
         if isinstance(error, MaxConcurrencyReached):
-            author_game = None
-
-            for gameview in self.client._connect4_games:
-                gameview: GameView
-
-                if interaction.user.id in [p.id for p in gameview.game.players]:
-                    author_game = gameview.original_message.jump_url
-                    break
+            author_game = error.jump_url
 
             return await interaction.response.send_message(
-                "you already have a game going on"
-                f"\n{'[jump to game](<' + author_game + '>)' if author_game is not None else ''}",
+                "you already have a game going on" f"\n[jump to game](<{author_game}>)",
                 ephemeral=True,
             )
 

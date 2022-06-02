@@ -13,7 +13,8 @@ from discord.app_commands import (CheckFailure, Choice, Group, choices,
 from discord.ext import commands
 
 from bot import BotEmojis, NotGDKID
-from config.utils import CHOICES, BaseGameView, Botcolours, NewEmote
+from config.utils import (CHOICES, BaseGameView, Botcolours,
+                          MaxConcurrencyReached, NewEmote)
 
 weights = (90, 10)  # 2, 4
 
@@ -37,10 +38,6 @@ class DirectionEmotes:
     DOWN = NewEmote.from_name(BotEmojis.ARROW_DOWN)
     RIGHT = NewEmote.from_name(BotEmojis.ARROW_RIGHT)
     BYE = NewEmote.from_name(BotEmojis.QUIT_GAME)
-
-
-class MaxConcurrencyReached(CheckFailure):
-    ...
 
 
 class Block:
@@ -69,7 +66,7 @@ class Block:
         return f"{self.value}"
 
 
-class Game:
+class Logic:
     def __init__(
         self, grid_size: Optional[int] = 4, blocks: Optional[List[Block]] = None
     ):
@@ -289,7 +286,7 @@ class Game:
         return
 
 
-class GameView(BaseGameView):
+class Game(BaseGameView):
     grid_size = 4
 
     def __init__(
@@ -298,17 +295,18 @@ class GameView(BaseGameView):
         grid_size: Optional[int] = None,
         blocks: Optional[List[int]] = None,
         embed: Optional[Embed] = None,
+        controls: List[str] = [],
         client: Optional[NotGDKID] = None,
     ):
         super().__init__(timeout=120)
 
-        self.game = (
-            Game.from_values(blocks)
+        self.logic = (
+            Logic.from_values(blocks)
             if blocks is not None and grid_size is None
-            else Game(grid_size=grid_size)
+            else Logic(grid_size=grid_size)
         )
 
-        setattr(self.game, "player", interaction.user)
+        setattr(self.logic, "player", interaction.user)
 
         self.interaction = interaction
         self.client: NotGDKID = client or interaction.client
@@ -316,33 +314,20 @@ class GameView(BaseGameView):
 
         self.original_message: Optional[InteractionMessage] = None
 
-        self.controls: List[str] = []
-        self.control_row = grid_size or self.game.grid_size
-        self.grid_size = grid_size or self.game.grid_size
+        self.controls: List[str] = controls or ["left", "up", "down", "right", "bye"]
+        self.control_row = grid_size or self.logic.grid_size
+        self.grid_size = grid_size or self.logic.grid_size
 
         self.client._2048_games.append(self)
-
-        for game in self.client.cache["2048games"]:
-            if game["player"] == self.game.player.id:
-                self.client.cache["2048games"].pop(
-                    self.client.cache["2048games"].index(game)
-                )
-
-        self.client.cache["2048games"].append(
-            {
-                "player": self.game.player.id,
-                "blocks": [b.value for b in self.game.blocks],
-            }
-        )
 
         counter = 0
 
         for i in range(self.grid_size):
             for _ in range(self.grid_size):
                 btn = ui.Button(
-                    label=self.game.blocks[counter].display,
+                    label=self.logic.blocks[counter].display,
                     row=i,
-                    disabled=False if self.game.blocks[counter].value > 0 else True,
+                    disabled=False if self.logic.blocks[counter].value > 0 else True,
                     style=discord.ButtonStyle.secondary,
                     custom_id=f"2048-button-{counter}",
                 )
@@ -350,13 +335,6 @@ class GameView(BaseGameView):
                 self.add_item(btn)
 
                 counter += 1
-
-        for setup in self.client.cache["controls"]:
-            if setup["user"] == self.interaction.user.id:
-                self.controls = setup["setup"]
-
-        if len(self.controls) == 0:
-            self.controls = ["left", "up", "down", "right", "bye"]
 
         for i in range(5):
             attr = getattr(self, self.controls[i], None)
@@ -371,10 +349,10 @@ class GameView(BaseGameView):
                 self.add_item(item)
 
     def __repr__(self) -> str:
-        return f"<{self.__class__.__name__} game={self.game}>"
+        return f"<{self.__class__.__name__} game={self.logic}>"
 
     async def interaction_check(self, interaction: Interaction, item: ui.Item) -> bool:
-        if interaction.user.id != self.game.player.id:
+        if interaction.user.id != self.logic.player.id:
             await interaction.response.send_message(content=c(CHOICES), ephemeral=True)
             return False
         return True
@@ -396,29 +374,29 @@ class GameView(BaseGameView):
             "\n".join(
                 [
                     f"ok im guessing you just {BotEmojis.PEACE}'d out on me "
-                    f"cuz you havent clicked anything for 2 minutes {self.game.player.mention}",
+                    f"cuz you havent clicked anything for 2 minutes {self.logic.player.mention}",
                     "",
                     "(i saved your game btw, you can keep playing with `/2048`, setting `load` to true)",
                 ]
             )
         )
 
-        self.stop(save=True)
+        await self.async_stop(save=True)
 
     def update(self):
         self._children = sorted(self.children, key=lambda o: o.row)
-        for block in self.game.blocks:
+        for block in self.logic.blocks:
             btn: ui.Button = self.children[block.list_index]
             btn.label = block.display
             btn.style = discord.ButtonStyle.secondary
 
             btn.disabled = False if block.value > 0 else True
 
-            if block == self.game.new_block:
+            if block == self.logic.new_block:
                 btn.style = discord.ButtonStyle.success
                 btn.disabled = True
 
-            if not self.game._won:
+            if not self.logic._won:
                 if (
                     block.value == 2048
                     and self.grid_size == 4
@@ -427,30 +405,29 @@ class GameView(BaseGameView):
                     or block.value == 32
                     and self.grid_size == 2
                 ):
-                    self.game._won = True
+                    self.logic._won = True
 
-        return self.game._won
+        return self.logic._won
 
-    def stop(self, save: bool = True):
-        self.client._2048_games.pop(self.client._2048_games.index(self))
+    async def async_stop(self, save: bool = True):
+        self.client._2048_games.remove(self)
 
-        index = 0
-        for game in self.client.cache["2048games"]:
-            if game["player"] == self.game.player.id:
-                if save is not True:
-                    self.client.cache["2048games"].pop(
-                        self.client.cache["2048games"].index(game)
-                    )
-                    continue
-
-                else:
-                    self.client.cache["2048games"][index] = {
-                        "player": self.game.player.id,
-                        "blocks": [b.value for b in self.game.blocks],
-                    }
-                    break
-
-            index += 1
+        if save is True:
+            query = """INSERT INTO twfe_games (user_id, blocks)
+                        VALUES ($1, $2)
+                        ON CONFLICT ON CONSTRAINT twfe_games_pkey
+                        DO UPDATE SET
+                            blocks = $2
+                        WHERE twfe_games.user_id = $1
+                    """
+            await self.client.db.execute(
+                query, self.logic.player.id, [b.value for b in self.logic.blocks]
+            )
+        else:
+            query = """DELETE FROM twfe_games
+                        WHERE user_id = $1
+                    """
+            await self.client.db.execute(query, self.logic.player.id)
 
         return super().stop()
 
@@ -464,7 +441,7 @@ class GameView(BaseGameView):
             if btn.style == discord.ButtonStyle.success:
                 btn.style = discord.ButtonStyle.secondary
 
-        if not self.game._won:
+        if not self.logic._won:
             await interaction.response.send_message(f"you lose. imagine losing.")
 
         else:
@@ -476,18 +453,16 @@ class GameView(BaseGameView):
             message_id=self.original_message.id, view=self
         )
 
-        return self.stop(save=False)
+        return await self.async_stop(save=False)
 
     async def left(self, interaction: Interaction):
         try:
-            already_won = self.game._won
-            self.game.move(Directions.LEFT)
-            loss = self.game.check_loss(self.game.blocks)
+            already_won = self.logic._won
+            self.logic.move(Directions.LEFT)
+            loss = self.logic.check_loss(self.logic.blocks)
             won = self.update()
 
-            self.embed.description = (
-                f"— **score** `{self.game.score:,}`\n— **moves** `{self.game.moves:,}`"
-            )
+            self.embed.description = f"— **score** `{self.logic.score:,}`\n— **moves** `{self.logic.moves:,}`"
 
             if loss:
                 return await self.loss(interaction)
@@ -504,14 +479,12 @@ class GameView(BaseGameView):
 
     async def up(self, interaction: Interaction):
         try:
-            already_won = self.game._won
-            self.game.move(Directions.UP)
-            loss = self.game.check_loss(self.game.blocks)
+            already_won = self.logic._won
+            self.logic.move(Directions.UP)
+            loss = self.logic.check_loss(self.logic.blocks)
             won = self.update()
 
-            self.embed.description = (
-                f"— **score** `{self.game.score:,}`\n— **moves** `{self.game.moves:,}`"
-            )
+            self.embed.description = f"— **score** `{self.logic.score:,}`\n— **moves** `{self.logic.moves:,}`"
 
             if loss:
                 return await self.loss(interaction)
@@ -528,14 +501,12 @@ class GameView(BaseGameView):
 
     async def down(self, interaction: Interaction):
         try:
-            already_won = self.game._won
-            self.game.move(Directions.DOWN)
-            loss = self.game.check_loss(self.game.blocks)
+            already_won = self.logic._won
+            self.logic.move(Directions.DOWN)
+            loss = self.logic.check_loss(self.logic.blocks)
             won = self.update()
 
-            self.embed.description = (
-                f"— **score** `{self.game.score:,}`\n— **moves** `{self.game.moves:,}`"
-            )
+            self.embed.description = f"— **score** `{self.logic.score:,}`\n— **moves** `{self.logic.moves:,}`"
 
             if loss:
                 return await self.loss(interaction)
@@ -552,14 +523,12 @@ class GameView(BaseGameView):
 
     async def right(self, interaction: Interaction):
         try:
-            already_won = self.game._won
-            self.game.move(Directions.RIGHT)
-            loss = self.game.check_loss(self.game.blocks)
+            already_won = self.logic._won
+            self.logic.move(Directions.RIGHT)
+            loss = self.logic.check_loss(self.logic.blocks)
             won = self.update()
 
-            self.embed.description = (
-                f"— **score** `{self.game.score:,}`\n— **moves** `{self.game.moves:,}`"
-            )
+            self.embed.description = f"— **score** `{self.logic.score:,}`\n— **moves** `{self.logic.moves:,}`"
 
             if loss:
                 return await self.loss(interaction)
@@ -592,15 +561,15 @@ class GameView(BaseGameView):
 
 
 class QuitConfirmationView(ui.View):
-    def __init__(self, game: GameView):
+    def __init__(self, game: Game):
         super().__init__(timeout=120)
         self.game = game
 
     async def on_timeout(self) -> None:
-        return self.game.stop()
+        return await self.game.async_stop()
 
     async def interaction_check(self, interaction: Interaction) -> bool:
-        if interaction.user.id != self.game.game.player.id:
+        if interaction.user.id != self.game.logic.player.id:
             await interaction.response.send_message(content=c(CHOICES), ephemeral=True)
             return False
         return True
@@ -624,7 +593,7 @@ class QuitConfirmationView(ui.View):
     )
     async def select_callback(self, interaction: Interaction, select: ui.Select):
         bool_map = {"ye": True, "nu": False}
-        self.game.stop(save=bool_map[self.children[0].values[0]])
+        await self.game.async_stop(save=bool_map[self.children[0].values[0]])
         self.stop()
         select.disabled = True
         await interaction.response.edit_message(view=self)
@@ -632,26 +601,26 @@ class QuitConfirmationView(ui.View):
 
 
 class EditControlsView(ui.View):
-    def __init__(self, interaction: Interaction, client: NotGDKID) -> None:
+    def __init__(
+        self, interaction: Interaction, client: NotGDKID, controls: List[str | None]
+    ) -> None:
         self.interaction = interaction
         self.client = client
         self.original_message: InteractionMessage = None
-        self.changes = []
+        self.changes = controls or ["left", "up", "down", "right", "bye"]
+        self.original = self.changes.copy()
         self.editing = 0
-
-        for setup in self.client.cache["controls"]:
-            if setup["user"] == self.interaction.user.id:
-                self.changes = setup["setup"]
-
-        if len(self.changes) == 0:
-            self.changes = ["left", "up", "down", "right", "bye"]
 
         super().__init__(timeout=120)
 
         for i in range(5):
             btn: ui.Button = self.children[i]
+            if hasattr(self.changes[i], "upper"):
+                search = self.changes[i].upper()
+            else:
+                search = "ass"
 
-            emoji = getattr(DirectionEmotes, self.changes[i].upper(), None)
+            emoji = getattr(DirectionEmotes, search, None)
             if emoji is not None:
                 btn.emoji = emoji
                 btn.label = None
@@ -682,19 +651,24 @@ class EditControlsView(ui.View):
         except discord.NotFound:
             pass
 
-        return self.stop()
+        return await self.async_stop()
 
-    def stop(self) -> None:
-        _set = False
-        for setup in self.client.cache["controls"]:
-            if setup["user"] == self.interaction.user.id:
-                setup["setup"] = self.changes
-                _set = True
-
-        if not _set:
-            self.client.cache["controls"].append(
-                {"user": self.interaction.user.id, "setup": self.changes}
+    async def async_stop(self) -> None:
+        if self.changes != self.original:
+            query = """INSERT INTO twfe_controls (
+                            user_id,
+                            {0}
+                        ) VALUES ($6, $1, $2, $3, $4, $5)
+                        ON CONFLICT ON CONSTRAINT twfe_controls_pkey
+                        DO UPDATE SET 
+                            {1}
+                        WHERE twfe_controls.user_id = $6
+                    """.format(
+                ", ".join([f"slot_{i + 1}" for i in range(5)]),
+                ", ".join([f"slot_{i + 1} = ${i + 1}" for i in range(5)]),
             )
+
+            await self.client.db.execute(query, *self.changes, self.interaction.user.id)
 
         return super().stop()
 
@@ -824,14 +798,22 @@ class EditControlsView(ui.View):
         options=[discord.SelectOption(label="\u200b")],
     )
     async def select(self, interaction: Interaction, select: ui.Select):
-        changed_to = select.values[0]
+        if select.values[0] == "none":
+            changed_to = None
+        else:
+            changed_to = select.values[0]
+
         self.changes[self.editing] = changed_to
         select.options = self.generate_options()
 
         for i in range(5):
             btn: ui.Button = self.children[i]
+            if hasattr(self.changes[i], "upper"):
+                search = self.changes[i].upper()
+            else:
+                search = "ass"
 
-            emoji = getattr(DirectionEmotes, self.changes[i].upper(), None)
+            emoji = getattr(DirectionEmotes, search, None)
             if emoji is not None:
                 btn.emoji = emoji
                 btn.label = None
@@ -853,7 +835,7 @@ class EditControlsView(ui.View):
 
         await interaction.response.edit_message(view=self)
         await interaction.followup.send("done", ephemeral=True)
-        return self.stop()
+        return await self.async_stop()
 
 
 class TwentyFortyEight(commands.Cog):
@@ -882,9 +864,9 @@ class TwentyFortyEight(commands.Cog):
         """play 2048"""
 
         for game in self.client._2048_games:
-            game: GameView
-            if game.game.player.id == interaction.user.id:
-                raise MaxConcurrencyReached
+            game: Game
+            if game.logic.player.id == interaction.user.id:
+                raise MaxConcurrencyReached(game.original_message.jump_url)
 
         if isinstance(grid_size, Choice):
             grid_size = grid_size.value
@@ -899,23 +881,34 @@ class TwentyFortyEight(commands.Cog):
             icon_url=interaction.client.user.avatar.url,
         )
 
+        controls = []
+        query = """SELECT (
+                        slot_1,
+                        slot_2,
+                        slot_3,
+                        slot_4,
+                        slot_5
+                    ) FROM twfe_controls WHERE user_id = $1
+                """
+        data = await self.client.db.fetchrow(query, interaction.user.id)
+        if data:
+            controls = [str(data[0][i]).lower() for i in range(5)]
+
         if load is True:
-            found = False
-
-            for game in self.client.cache["2048games"]:
-                if game["player"] == interaction.user.id:
-                    found = True
-                    grid_size = round(math.sqrt(len(game["blocks"])))
-                    view = GameView(interaction, blocks=game["blocks"], embed=infoEmbed)
-                    break
-
-            if not found:
+            query = """SELECT blocks FROM twfe_games 
+                        WHERE user_id = $1
+                    """
+            data = await self.client.db.fetchrow(query, interaction.user.id)
+            if not data:
                 return await interaction.response.send_message(
                     "couldnt find a saved game", ephemeral=True
                 )
 
+            # grid_size = round(math.sqrt(len(data[0][1])))
+            view = Game(interaction, blocks=data[0], embed=infoEmbed, controls=controls)
+
         else:
-            view = GameView(interaction, grid_size, embed=infoEmbed)
+            view = Game(interaction, grid_size, embed=infoEmbed, controls=controls)
 
         await interaction.response.send_message(embed=infoEmbed, view=view)
         setattr(view, "original_message", await interaction.original_message())
@@ -929,7 +922,20 @@ class TwentyFortyEight(commands.Cog):
     async def twentyfortyeight_config_controls(self, interaction: Interaction):
         """edit controls"""
 
-        view = EditControlsView(interaction, self.client)
+        li = []
+        query = """SELECT (
+                        slot_1,
+                        slot_2,
+                        slot_3,
+                        slot_4,
+                        slot_5
+                    ) FROM twfe_controls WHERE user_id = $1
+                """
+        data = await self.client.db.fetchrow(query, interaction.user.id)
+        if data:
+            li = [data[0][i] for i in range(5)]
+
+        view = EditControlsView(interaction, self.client, li)
 
         await interaction.response.send_message(view=view)
         setattr(view, "original_message", await interaction.original_message())
@@ -938,17 +944,12 @@ class TwentyFortyEight(commands.Cog):
     @twentyfortyeightconf.command(name="resetcontrols")
     async def twentyfortyeight_config_reset_controls(self, interaction: Interaction):
         """resets your control setup"""
+        query = """DELETE FROM twfe_controls
+                    WHERE user_id = $1 RETURNING user_id
+                """
+        data = await self.client.db.fetchrow(query, interaction.user.id)
 
-        found = False
-
-        for setup in self.client.cache["controls"]:
-            if setup["user"] == interaction.user.id:
-                self.client.cache["controls"].pop(
-                    self.client.cache["controls"].index(setup)
-                )
-                found = True
-
-        if found:
+        if data:
             msg = f"reset your control layout to default {BotEmojis.HEHEBOI}"
 
         else:
@@ -959,16 +960,12 @@ class TwentyFortyEight(commands.Cog):
     @twentyfortyeightconf.command(name="deletesave")
     async def twentyfortyeight_delete_save(self, interaction: Interaction):
         """delete your saved game"""
-        found = False
+        query = """DELETE FROM twfe_games
+                    WHERE user_id = $1 RETURNING user_id
+                """
+        data = await self.client.db.fetchrow(query, interaction.user.id)
 
-        for game in self.client.cache["2048games"]:
-            if game["player"] == interaction.user.id:
-                self.client.cache["2048games"].pop(
-                    self.client.cache["2048games"].index(game)
-                )
-                found = True
-
-        if found:
+        if data:
             msg = f"found your save {BotEmojis.HEHEBOI} its gone now :)"
 
         else:
@@ -978,19 +975,12 @@ class TwentyFortyEight(commands.Cog):
 
     @twentyfortyeight.error
     async def twentyfortyeight_error(self, interaction: Interaction, error):
+        print(traceback.format_exc())
         if isinstance(error, MaxConcurrencyReached):
-            author_game = None
-
-            for gameview in self.client._2048_games:
-                gameview: GameView
-
-                if gameview.game.player.id == interaction.user.id:
-                    author_game = gameview.original_message.jump_url
-                    break
+            author_game = error.jump_url
 
             return await interaction.response.send_message(
-                "you already have a game going on"
-                f"\n{'[jump to game](<' + author_game + '>)' if author_game is not None else ''}",
+                "you already have a game going on" f"\n[jump to game](<{author_game}>)",
                 ephemeral=True,
             )
 

@@ -10,7 +10,8 @@ from discord.app_commands import CheckFailure, command, describe, errors
 from discord.ext import commands
 
 from bot import BotEmojis, NotGDKID
-from config.utils import BaseGameView, Botcolours, Confirm
+from config.utils import (BaseGameView, Botcolours, Confirm,
+                          MaxConcurrencyReached)
 
 MOVEMENTS: List[str] = ["NORTHWEST", "NORTHEAST", "SOUTHWEST", "SOUTHEAST"]
 
@@ -18,10 +19,10 @@ MOVEMENTS: List[str] = ["NORTHWEST", "NORTHEAST", "SOUTHWEST", "SOUTHEAST"]
 def directional_button(direction: str) -> Type[ui.Button]:
     class cls(ui.Button):
         @property
-        def view(self) -> GameView:
+        def view(self) -> Game:
             return self._view
 
-        def __init__(self, view: GameView) -> None:
+        def __init__(self, view: Game) -> None:
             self._view = view
 
             row = 1 if direction.startswith("north") else 2
@@ -39,26 +40,24 @@ def directional_button(direction: str) -> Type[ui.Button]:
                     "wait your turn", ephemeral=True
                 )
 
-            piece = self.view.selected or self.view.game.jumping_piece
-            self.view.game.move_piece(
+            piece = self.view.selected or self.view.logic.jumping_piece
+            self.view.logic.move_piece(
                 piece,
                 direction.upper(),
-                jump_confirm=(True if piece is self.view.game.jumping_piece else False),
+                jump_confirm=(
+                    True if piece is self.view.logic.jumping_piece else False
+                ),
             )
 
-            if self.view.game.jumping_piece is None:
-                self.view.turn = next(self.view.game.turns)
+            if self.view.logic.jumping_piece is None:
+                self.view.turn = next(self.view.logic.turns)
 
-            if loser := self.view.game.check_loser():
-                self.view.game.loser = loser
+            if loser := self.view.logic.check_loser():
+                self.view.logic.loser = loser
 
             await self.view.update_ui(interaction)
 
     return cls
-
-
-class MaxConcurrencyReached(CheckFailure):
-    ...
 
 
 class Player(discord.User):
@@ -95,14 +94,14 @@ class Slot:
 
 
 class Piece:
-    def __init__(self, game: Game, owner: Player, x: int, y: int):
+    def __init__(self, logic: Logic, owner: Player, x: int, y: int):
         self.owner = owner
         self.x = x
         self.y = y
         self.king: bool = False
 
-        self.game: Game = game
-        self.slot: Slot = self.game._get_slot(x, y)
+        self.logic: Logic = logic
+        self.slot: Slot = self.logic._get_slot(x, y)
 
         if owner.number == 0:
             self.valid_directions = ["NORTHWEST", "NORTHEAST"]
@@ -113,11 +112,11 @@ class Piece:
             self.emoji: str = BotEmojis.CHECKERS_BLUE
 
 
-class Game:
-    def __init__(self, players: List[discord.User], view: GameView) -> None:
+class Logic:
+    def __init__(self, players: List[discord.User], view: Game) -> None:
         self.slots: List[Slot] = []
         self.pieces: List[Piece] = []
-        self.view: GameView = view
+        self.view: Game = view
 
         self.jumping_piece: Piece | None = None
         self.jumped_counter: int = 0
@@ -288,12 +287,12 @@ class Game:
             return None
 
 
-class GameView(BaseGameView):
+class Game(BaseGameView):
     children: List[ui.Select | ui.Button]
-    northwest: ui.Button[GameView]
-    northeast: ui.Button[GameView]
-    southwest: ui.Button[GameView]
-    southeast: ui.Button[GameView]
+    northwest: ui.Button[Game]
+    northeast: ui.Button[Game]
+    southwest: ui.Button[Game]
+    southeast: ui.Button[Game]
     client: NotGDKID = None
 
     def __init__(
@@ -301,14 +300,14 @@ class GameView(BaseGameView):
         interaction: Interaction,
         players: List[discord.User],
     ) -> None:
-        self.game = Game(players, self)
+        self.logic = Logic(players, self)
 
         self.interaction: Interaction = interaction
         self.client: NotGDKID = self.client or interaction.client
         self.selected: Piece | None = None
 
         self.timed_out: bool = False
-        self.turn = next(self.game.turns)
+        self.turn = next(self.logic.turns)
         self.original_message: discord.Message = None
 
         self.client._checkers_games.append(self)
@@ -331,28 +330,30 @@ class GameView(BaseGameView):
     def _generate_select_options(self) -> List[discord.SelectOption]:
         ALPHABET = ["A", "B", "C", "D", "E", "F", "G", "H"]
 
-        options: List[discord.SelectOption] = sorted([
-            discord.SelectOption(
-                label=f"{ALPHABET[p.x]}{p.y + 1}",
-                emoji=(
-                    BotEmojis.CHECKERS_RED
-                    if p.owner.number == 0 and not p.king
-                    else BotEmojis.CHECKERS_RED_KING
-                    if p.owner.number == 0 and p.king
-                    else BotEmojis.CHECKERS_BLUE
-                    if p.owner.number == 1 and not p.king
-                    else BotEmojis.CHECKERS_BLUE_KING
-                ),
-                description=(
-                    f"{'[king] ' if p.king else ''}"
-                    f"{'red' if p.owner.number == 0 else 'blue'} piece"
-                ),
-                value=f"{p.x}{p.y}",
-            )
-            for p in self.game.pieces
-            if p.owner is self.turn and p is not self.selected],
+        options: List[discord.SelectOption] = sorted(
+            [
+                discord.SelectOption(
+                    label=f"{ALPHABET[p.x]}{p.y + 1}",
+                    emoji=(
+                        BotEmojis.CHECKERS_RED
+                        if p.owner.number == 0 and not p.king
+                        else BotEmojis.CHECKERS_RED_KING
+                        if p.owner.number == 0 and p.king
+                        else BotEmojis.CHECKERS_BLUE
+                        if p.owner.number == 1 and not p.king
+                        else BotEmojis.CHECKERS_BLUE_KING
+                    ),
+                    description=(
+                        f"{'[king] ' if p.king else ''}"
+                        f"{'red' if p.owner.number == 0 else 'blue'} piece"
+                    ),
+                    value=f"{p.x}{p.y}",
+                )
+                for p in self.logic.pieces
+                if p.owner is self.turn and p is not self.selected
+            ],
             key=lambda k: k.value[1],
-            reverse=True if self.turn is self.game.opponent else False,
+            reverse=True if self.turn is self.logic.opponent else False,
         )
 
         return options
@@ -360,32 +361,43 @@ class GameView(BaseGameView):
     def generate_board(self) -> str:
         TOP = "ㅤㅤ`Ａ Ｂ Ｃ Ｄ Ｅ Ｆ Ｇ Ｈ`\n"
 
-        board = TOP + "\n".join([
-            f"`{i}. `" + "".join([((
-                sl.piece.emoji
-                if self.selected is not sl.piece
-                or self.game.loser is not None
-                or self.timed_out
-                
-                else ((
-                        BotEmojis.CHECKERS_RED_SELECTED
-                        if not sl.piece.king
-                        else BotEmojis.CHECKERS_RED_KING_SELECTED
-                    ) if sl.piece.owner.number == 0
-                      
-                    else (
-                        BotEmojis.CHECKERS_BLUE_SELECTED
-                        if not sl.piece.king
-                        else BotEmojis.CHECKERS_BLUE_KING_SELECTED
-                    )))
-                if sl.occupant is not None
-                else BotEmojis.SQ
-                if sl.null
-                else BotEmojis.BLANK
-            ) for sl in self.game.slots
-            if sl.y == i - 1])
-            for i in range(1, 9)
-        ])
+        board = TOP + "\n".join(
+            [
+                f"`{i}. `"
+                + "".join(
+                    [
+                        (
+                            (
+                                sl.piece.emoji
+                                if self.selected is not sl.piece
+                                or self.logic.loser is not None
+                                or self.timed_out
+                                else (
+                                    (
+                                        BotEmojis.CHECKERS_RED_SELECTED
+                                        if not sl.piece.king
+                                        else BotEmojis.CHECKERS_RED_KING_SELECTED
+                                    )
+                                    if sl.piece.owner.number == 0
+                                    else (
+                                        BotEmojis.CHECKERS_BLUE_SELECTED
+                                        if not sl.piece.king
+                                        else BotEmojis.CHECKERS_BLUE_KING_SELECTED
+                                    )
+                                )
+                            )
+                            if sl.occupant is not None
+                            else BotEmojis.SQ
+                            if sl.null
+                            else BotEmojis.BLANK
+                        )
+                        for sl in self.logic.slots
+                        if sl.y == i - 1
+                    ]
+                )
+                for i in range(1, 9)
+            ]
+        )
 
         return board
 
@@ -393,14 +405,14 @@ class GameView(BaseGameView):
         header = ""
         board = self.generate_board()
 
-        if self.game.loser:
+        if self.logic.loser:
             self.stop()
 
-            if self.game.check_loser():
-                header = f"{self.game.loser.mention} you lose. imagine losing"
+            if self.logic.check_loser():
+                header = f"{self.logic.loser.mention} you lose. imagine losing"
 
             else:
-                header = f"{self.game.loser.mention} gave up lol"
+                header = f"{self.logic.loser.mention} gave up lol"
 
             self.disable_all()
 
@@ -411,17 +423,17 @@ class GameView(BaseGameView):
 
             self.disable_all()
 
-        elif self.game.jumping_piece is not None:
-            s = "" if self.game.jumped_counter == 1 else "s"
+        elif self.logic.jumping_piece is not None:
+            s = "" if self.logic.jumped_counter == 1 else "s"
             header = (
-                f"{self.turn.mention} jumped `{self.game.jumped_counter}` piece{s}!"
+                f"{self.turn.mention} jumped `{self.logic.jumped_counter}` piece{s}!"
             )
 
             for c in self.children[:-1]:
                 c.disabled = True
 
-            directions = self.game.verify_directions(
-                self.game.jumping_piece, jump_only=True
+            directions = self.logic.verify_directions(
+                self.logic.jumping_piece, jump_only=True
             )
 
             for direction, value in directions.items():
@@ -430,16 +442,16 @@ class GameView(BaseGameView):
                     btn.disabled = False
 
             if True not in directions.values():
-                self.game.jumping_piece = None
-                self.game.jumped_counter = 0
-                self.turn = next(self.game.turns)
+                self.logic.jumping_piece = None
+                self.logic.jumped_counter = 0
+                self.turn = next(self.logic.turns)
 
                 self.piece_selector.disabled = False
 
         # checking it again as it might've changed
         if (
-            self.game.jumping_piece is None
-            and self.game.loser is None
+            self.logic.jumping_piece is None
+            and self.logic.loser is None
             and not self.timed_out
         ):
             header = (
@@ -465,7 +477,7 @@ class GameView(BaseGameView):
                 )
 
             if self.selected is not None:
-                for direction, value in self.game.verify_directions(
+                for direction, value in self.logic.verify_directions(
                     self.selected
                 ).items():
                     if value is True:
@@ -492,7 +504,7 @@ class GameView(BaseGameView):
         if item.__class__.__name__ != "cls":
             return None
 
-        if interaction.user not in self.game.users:
+        if interaction.user not in self.logic.users:
             await interaction.response.send_message("its not your game", ephemeral=True)
             return False
 
@@ -504,13 +516,9 @@ class GameView(BaseGameView):
         await self.update_ui()
 
     def stop(self) -> None:
-        self.client._checkers_games.pop(self.client._checkers_games.index(self))
+        self.client._checkers_games.remove(self)
 
         return super().stop()
-
-    def disable_all(self) -> None:
-        for c in self.children:
-            c.disabled = True
 
     @ui.button(emoji=BotEmojis.QUIT_GAME, style=discord.ButtonStyle.danger)
     async def forfeit(self, interaction: Interaction, btn: ui.Button):
@@ -532,21 +540,21 @@ class GameView(BaseGameView):
         if not self.is_finished():
             self.disable_all()
 
-            if interaction.user.id == self.game.opponent.id:
-                self.game.loser = self.game.opponent
+            if interaction.user.id == self.logic.opponent.id:
+                self.logic.loser = self.logic.opponent
 
             else:
-                self.game.loser = self.game.challenger
+                self.logic.loser = self.logic.challenger
 
             return await self.update_ui(interaction)
 
 
 class PieceSelector(ui.Select):
     @property
-    def view(self) -> GameView:
+    def view(self) -> Game:
         return self._view
 
-    def __init__(self, view: GameView) -> None:
+    def __init__(self, view: Game) -> None:
         self._view = view
         options = self.view._generate_select_options()
 
@@ -565,7 +573,7 @@ class PieceSelector(ui.Select):
 
         x, y = map(lambda x: int(x), self.values[0])
 
-        self.view.selected = self.view.game._get_piece(x, y)
+        self.view.selected = self.view.logic._get_piece(x, y)
 
         await self.view.update_ui(interaction)
 
@@ -584,9 +592,9 @@ class Checkers(commands.Cog):
         """play checkers with someone"""
 
         for game in self.client._checkers_games:
-            game: GameView
-            if interaction.user in game.game.users:
-                raise MaxConcurrencyReached
+            game: Game
+            if interaction.user in game.logic.users:
+                raise MaxConcurrencyReached(game.original_message.jump_url)
 
         if opponent.id == interaction.user.id or opponent.bot:
             return await interaction.response.send_message(
@@ -619,8 +627,8 @@ class Checkers(commands.Cog):
             return
 
         for game in self.client._checkers_games:
-            game: GameView
-            if interaction.user in game.game.users:
+            game: Game
+            if interaction.user in game.logic.users:
                 author_game = game.original_message.jump_url
 
                 embed = msg.embeds[0].copy()
@@ -632,7 +640,7 @@ class Checkers(commands.Cog):
                 await msg.edit(embed=embed, view=view)
                 return
 
-        view = GameView(interaction, [interaction.user, opponent])
+        view = Game(interaction, [interaction.user, opponent])
 
         header = f"{view.turn.mention} your turn! you have `2 minutes` to make a move"
         board = view.generate_board()
@@ -648,22 +656,13 @@ class Checkers(commands.Cog):
     async def checkers_error(
         self, interaction: Interaction, error: errors.AppCommandError
     ):
-        print("".join(traceback.format_exc()))
         if isinstance(error, MaxConcurrencyReached):
-            author_game = None
+            author_game = error.jump_url
 
-            for gameview in self.client._checkers_games:
-                gameview: GameView
-                if interaction.user in gameview.game.users:
-                    author_game = gameview.original_message.jump_url
-                    break
-
-            if not interaction.response._responded:
-                return await interaction.response.send_message(
-                    "you already have a game going on"
-                    f"\n{'[jump to game](<' + author_game + '>)' if author_game is not None else ''}",
-                    ephemeral=True,
-                )
+            return await interaction.response.send_message(
+                "you already have a game going on" f"\n[jump to game](<{author_game}>)",
+                ephemeral=True,
+            )
 
 
 async def setup(client: NotGDKID):

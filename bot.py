@@ -8,14 +8,13 @@ import traceback
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Set, Type
 
+import asyncpg
 import discord
 from discord.app_commands import Command
 from discord.ext import commands, tasks
 from discord.gateway import DiscordWebSocket
 from fuzzy_match import match
 from jishaku.shim.paginator_200 import PaginatorInterface
-from motor.motor_asyncio import AsyncIOMotorClient
-from pymongo import MongoClient
 
 from config.utils import Botcolours, BotEmojis, mobile
 
@@ -105,6 +104,7 @@ class NotGDKID(commands.Bot):
             "cogs.howto",
             "cogs.typerace",
             "cogs.utility",
+            "cogs.words",
             "config.utils",
         ]
 
@@ -116,11 +116,11 @@ class NotGDKID(commands.Bot):
         self._2048_games = []
         self._connect4_games = []
         self._checkers_games = []
-
-        self.cache: Dict[str, List[Dict[str, Any]]] = {}
+        self._hangman_games = []
 
         self.token = secrets["token"]
         self.testing_token = secrets["testing_token"]
+        self.postgres_dsn = secrets["postgres_dns"]
         self.description = self.__doc__
 
         self.uptime = datetime.utcnow().astimezone(timezone(timedelta(hours=-4)))
@@ -146,11 +146,7 @@ class NotGDKID(commands.Bot):
         return cmds
 
     async def setup_hook(self) -> None:
-        cluster: MongoClient = AsyncIOMotorClient(
-            secrets["mongoURI"], io_loop=self.loop
-        )
-
-        self.db = cluster["NotGDKIDDB"]
+        self.db = await asyncpg.create_pool(self.postgres_dsn)
 
         ready_task = self.loop.create_task(self.first_ready())
         ready_task.add_done_callback(
@@ -181,10 +177,6 @@ class NotGDKID(commands.Bot):
             ),
         )
         status_task.start(self)
-
-        collection_names: List[str] = await self.db.list_collection_names()
-        for name in collection_names:
-            self.cache[name] = [d["item"] async for d in self.db[name].find()]
 
         if sys.platform == "linux":
             self.dweebhook = await self.fetch_webhook(954211358231130204)
@@ -254,14 +246,7 @@ class NotGDKID(commands.Bot):
             await super().start(self.token)
 
     async def close(self, restart: bool = False):
-        if self.http.token != self.testing_token:
-            for k, v in self.cache.items():
-                counter = 0
-                await self.db[k].delete_many({})
-                for i in v:
-                    await self.db[k].insert_one({"_id": counter, "item": i})
-
-                    counter += 1
+        await self.db.close()
 
         for pag in self.active_jishaku_paginators:
             try:
@@ -277,7 +262,7 @@ class NotGDKID(commands.Bot):
                 await asyncio.sleep(0.25)
 
         for game in self._2048_games:
-            game.stop(save=True)
+            await game.async_stop(save=True)
 
         if restart is True:
             for voice in self.voice_clients:
@@ -310,10 +295,13 @@ class NotGDKID(commands.Bot):
                 await self.load_extension(cog)
             except commands.ExtensionAlreadyLoaded:
                 return await ctx.reply(
-                    content=f"`{cog.split('.')[1]}` is already loaded", mention_author=True
+                    content=f"`{cog.split('.')[1]}` is already loaded",
+                    mention_author=True,
                 )
             else:
-                await ctx.reply(content=f"Loaded `{cog.split('.')[1]}`", mention_author=True)
+                await ctx.reply(
+                    content=f"Loaded `{cog.split('.')[1]}`", mention_author=True
+                )
 
         @self.command(name="unload", brief="Unload cogs", hidden=True)
         @commands.is_owner()
@@ -332,7 +320,9 @@ class NotGDKID(commands.Bot):
                     content=f"`{cog.split('.')[1]}` is not loaded", mention_author=True
                 )
             else:
-                await ctx.reply(content=f"Unloaded `{cog.split('.')[1]}`", mention_author=True)
+                await ctx.reply(
+                    content=f"Unloaded `{cog.split('.')[1]}`", mention_author=True
+                )
 
         @self.command(name="reload", brief="Reload cogs", hidden=True)
         @commands.is_owner()
@@ -353,7 +343,9 @@ class NotGDKID(commands.Bot):
                 )
             cog = str(the_match[0])
             await self.reload_extension(cog)
-            await ctx.reply(content=f"Reloaded `{cog.split('.')[1]}`", mention_author=True)
+            await ctx.reply(
+                content=f"Reloaded `{cog.split('.')[1]}`", mention_author=True
+            )
 
 
 if __name__ == "__main__":

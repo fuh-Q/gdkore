@@ -6,7 +6,7 @@ fuzzy-match
 numpy
 
 dnspython
-motor
+asyncpg
 
 psutil
 jishaku

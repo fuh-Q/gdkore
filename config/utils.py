@@ -3,10 +3,12 @@ import json
 import random
 import re
 import sys
+import traceback
 from typing import Any, Dict, Generator, Optional, SupportsInt, Type
 
 import discord
-from discord import Interaction, InteractionMessage, PartialEmoji, User
+from discord import Interaction, InteractionMessage, PartialEmoji, User, ui
+from discord.app_commands import CheckFailure
 from discord.ext import commands
 from discord.gateway import DiscordWebSocket
 from discord.ui import Button, Item, View, button
@@ -297,8 +299,18 @@ class BaseGameView(View):
         except Exception as e:
             return await self.on_error(e, item, interaction)
 
+    def disable_all(self) -> None:
+        for c in self.children:
+            c.disabled = True
+
+    async def interaction_check(self, interaction: Interaction, item: ui.Item) -> bool:
+        raise NotImplementedError
+
 
 def emojiclass(cls: Type[Any]):
+    """
+    A decorator that takes in a class and fills it with emojis from config
+    """
     with open("config/emojis.json", "r") as f:
         emojis: Dict[str, str] = json.load(f)
 
@@ -310,4 +322,22 @@ def emojiclass(cls: Type[Any]):
 
 @emojiclass
 class BotEmojis:
+    """
+    Config class containing emojis
+    """
+
     pass
+
+
+class MaxConcurrencyReached(CheckFailure):
+    """
+    An error subclass typically for game commands
+
+    Attributes
+    ---------
+    jump_url: `str`
+        The jump url to the ongoing game's message
+    """
+
+    def __init__(self, jump_url: str) -> None:
+        self.jump_url = jump_url
