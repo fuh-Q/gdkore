@@ -120,7 +120,7 @@ class NotGDKID(commands.Bot):
 
         self.token = secrets["token"]
         self.testing_token = secrets["testing_token"]
-        self.postgres_dsn = secrets["postgres_dns"]
+        self.postgres_dns = secrets["postgres_dns"]
         self.description = self.__doc__
 
         self.uptime = datetime.utcnow().astimezone(timezone(timedelta(hours=-4)))
@@ -146,7 +146,7 @@ class NotGDKID(commands.Bot):
         return cmds
 
     async def setup_hook(self) -> None:
-        self.db = await asyncpg.create_pool(self.postgres_dsn)
+        self.db = await asyncpg.create_pool(self.postgres_dns)
 
         ready_task = self.loop.create_task(self.first_ready())
         ready_task.add_done_callback(

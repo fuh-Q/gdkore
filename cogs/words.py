@@ -254,7 +254,7 @@ class Words(commands.Cog):
     @command(name="hangman")
     async def hangman(self, interaction: Interaction):
         """play hangman"""
-        
+
         for game in self.client._hangman_games:
             game: Hangman
             if interaction.user == game.player:

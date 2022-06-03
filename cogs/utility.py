@@ -1,4 +1,6 @@
 import random
+import time
+from datetime import datetime
 
 import discord
 from discord import Interaction
@@ -168,9 +170,30 @@ class Utility(commands.Cog):
     @command(name="ping")
     async def ping(self, interaction: Interaction):
         """latency"""
-        await interaction.response.send_message(
-            f"`{round(self.client.latency * 1000, 2)}ms`", ephemeral=True
+
+        receival = round(
+            (datetime.now().timestamp() - interaction.created_at.timestamp()) * 1000, 2
         )
+
+        start = time.monotonic()
+        await self.client.db.execute("SELECT 1")
+        database = round((time.monotonic() - start) * 1000, 2)
+
+        websocket = round(self.client.latency * 1000, 2)
+
+        embed = discord.Embed(
+            description="\n".join(
+                [
+                    "```yaml\n",
+                    f"receival  : {receival}ms",
+                    f"websocket : {websocket}ms",
+                    f"database  : {database}ms",
+                    "```",
+                ]
+            )
+        )
+
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @command(name="invite")
     async def invite(self, interaction: Interaction):
