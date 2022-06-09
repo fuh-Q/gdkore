@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 import datetime
 import json
 import random
 import re
 import sys
 import traceback
-from typing import Any, Dict, Generator, Optional, SupportsInt, Type
+from typing import TYPE_CHECKING, Any, Dict, Generator, Optional, SupportsInt, Type
 
 import discord
 from discord import Interaction, InteractionMessage, PartialEmoji, User, ui
@@ -12,6 +14,9 @@ from discord.app_commands import CheckFailure
 from discord.ext import commands
 from discord.gateway import DiscordWebSocket
 from discord.ui import Button, Item, View, button
+
+if TYPE_CHECKING:
+    from bot import NotGDKID
 
 CHOICES = [
     "no",
@@ -280,6 +285,8 @@ class BaseGameView(View):
     """
     A subclass of `View` that reworks the timeout logic
     """
+    client: NotGDKID = None
+    original_message: discord.Message = None
 
     async def _scheduled_task(self, item: Item, interaction: Interaction):
         try:
