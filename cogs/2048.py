@@ -4,7 +4,7 @@ from enum import Enum
 from random import choice as c
 from random import choices as ch
 from random import randint as r
-from typing import Iterable, List, Optional
+from typing import Iterable, List, Optional, Tuple
 
 import discord
 from discord import Embed, Interaction, InteractionMessage, SelectOption, ui
@@ -68,15 +68,19 @@ class Block:
 
 class Logic:
     def __init__(
-        self, grid_size: Optional[int] = 4, blocks: Optional[List[Block]] = None
+        self,
+        grid_size: Optional[int] = 4,
+        blocks: Optional[List[Block]] = None,
+        score: int = 0,
+        moves: int = 0
     ):
         self.blocks: List[Block] = blocks or []
         self.grid_size = grid_size
         self.new_block = None
         self.player: discord.User = None
 
-        self.score = 0
-        self.moves = 0
+        self.score = score
+        self.moves = moves
 
         self._moved: bool = False
         self._won: bool = False
@@ -109,7 +113,8 @@ class Logic:
                     self._won = True
 
     @classmethod
-    def from_values(cls, blocks: List[int]):
+    def from_data(cls, data: Tuple[List[int], int, int]):
+        blocks, score, moves = data
         new_blocks: List[Block] = []
 
         counter = 0
@@ -120,7 +125,7 @@ class Logic:
                 new_blocks.append(Block(x, y, counter, blocks[counter]))
                 counter += 1
 
-        return cls(grid_size, new_blocks)
+        return cls(grid_size, new_blocks, score, moves)
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} player={self.player} grid_size={self.grid_size}>"
@@ -294,6 +299,8 @@ class Game(BaseGameView):
         interaction: Interaction,
         grid_size: Optional[int] = None,
         blocks: Optional[List[int]] = None,
+        score: int = 0,
+        moves: int = 0,
         embed: Optional[Embed] = None,
         controls: List[str] = [],
         client: Optional[NotGDKID] = None,
@@ -301,7 +308,7 @@ class Game(BaseGameView):
         super().__init__(timeout=120)
 
         self.logic = (
-            Logic.from_values(blocks)
+            Logic.from_data((blocks, score, moves))
             if blocks is not None and grid_size is None
             else Logic(grid_size=grid_size)
         )
@@ -413,15 +420,17 @@ class Game(BaseGameView):
         self.client._2048_games.remove(self)
 
         if save is True:
-            query = """INSERT INTO twfe_games (user_id, blocks)
-                        VALUES ($1, $2)
+            query = """INSERT INTO twfe_games (user_id, blocks, score, moves)
+                        VALUES ($1, $2, $3, $4)
                         ON CONFLICT ON CONSTRAINT twfe_games_pkey
                         DO UPDATE SET
-                            blocks = $2
+                            blocks = $2,
+                            score = $3,
+                            moves = $4
                         WHERE twfe_games.user_id = $1
                     """
             await self.client.db.execute(
-                query, self.logic.player.id, [b.value for b in self.logic.blocks]
+                query, self.logic.player.id, [b.value for b in self.logic.blocks], self.logic.score, self.logic.moves
             )
         else:
             query = """DELETE FROM twfe_games
@@ -895,7 +904,7 @@ class TwentyFortyEight(commands.Cog):
             controls = [str(data[0][i]).lower() for i in range(5)]
 
         if load is True:
-            query = """SELECT blocks FROM twfe_games 
+            query = """SELECT (blocks, score, moves) FROM twfe_games 
                         WHERE user_id = $1
                     """
             data = await self.client.db.fetchrow(query, interaction.user.id)
@@ -903,9 +912,13 @@ class TwentyFortyEight(commands.Cog):
                 return await interaction.response.send_message(
                     "couldnt find a saved game", ephemeral=True
                 )
+            blocks, score, moves = data[0]
+            
+            infoEmbed.description = f"— **score** `{score}`\n— **moves** `{moves}`"
 
-            # grid_size = round(math.sqrt(len(data[0][1])))
-            view = Game(interaction, blocks=data[0], embed=infoEmbed, controls=controls)
+            view = Game(
+                interaction, blocks=blocks, score=score, moves=moves, embed=infoEmbed, controls=controls
+            )
 
         else:
             view = Game(interaction, grid_size, embed=infoEmbed, controls=controls)
