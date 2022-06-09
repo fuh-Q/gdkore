@@ -6,7 +6,8 @@ import random
 import re
 import sys
 import traceback
-from typing import TYPE_CHECKING, Any, Dict, Generator, Optional, SupportsInt, Type
+from typing import (TYPE_CHECKING, Any, Dict, Generator, Optional, SupportsInt,
+                    Type)
 
 import discord
 from discord import Interaction, InteractionMessage, PartialEmoji, User, ui
@@ -285,6 +286,7 @@ class BaseGameView(View):
     """
     A subclass of `View` that reworks the timeout logic
     """
+
     client: NotGDKID = None
     original_message: discord.Message = None
 

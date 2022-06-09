@@ -72,7 +72,7 @@ class Logic:
         grid_size: Optional[int] = 4,
         blocks: Optional[List[Block]] = None,
         score: int = 0,
-        moves: int = 0
+        moves: int = 0,
     ):
         self.blocks: List[Block] = blocks or []
         self.grid_size = grid_size
@@ -430,7 +430,11 @@ class Game(BaseGameView):
                         WHERE twfe_games.user_id = $1
                     """
             await self.client.db.execute(
-                query, self.logic.player.id, [b.value for b in self.logic.blocks], self.logic.score, self.logic.moves
+                query,
+                self.logic.player.id,
+                [b.value for b in self.logic.blocks],
+                self.logic.score,
+                self.logic.moves,
             )
         else:
             query = """DELETE FROM twfe_games
@@ -913,11 +917,16 @@ class TwentyFortyEight(commands.Cog):
                     "couldnt find a saved game", ephemeral=True
                 )
             blocks, score, moves = data[0]
-            
+
             infoEmbed.description = f"— **score** `{score}`\n— **moves** `{moves}`"
 
             view = Game(
-                interaction, blocks=blocks, score=score, moves=moves, embed=infoEmbed, controls=controls
+                interaction,
+                blocks=blocks,
+                score=score,
+                moves=moves,
+                embed=infoEmbed,
+                controls=controls,
             )
 
         else:
