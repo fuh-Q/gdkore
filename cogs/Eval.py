@@ -102,10 +102,8 @@ class SQLTable:
             self.columns[name] = column
 
         for index, tu in enumerate(self.columns.items()):
-            name, column_items = tu
-
-            max_width = len(name) + 2
-            for item in column_items:
+            max_width = len(tu[0]) + 2
+            for item in tu[1]:
                 if len(item) > max_width:
                     max_width = len(str(item)) + 2
 
@@ -123,8 +121,8 @@ class SQLTable:
     def render(self):
         LINE = f"+{'+'.join('-' * w for w in self.column_widths)}+"
         COLUMN_NAMES = "| " + "| ".join(self.column_names) + "|"
-
         final = [LINE, COLUMN_NAMES, LINE]
+
         for row in self.rows:
             final.append("| " + "| ".join(row) + "|")
 
