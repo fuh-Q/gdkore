@@ -93,7 +93,7 @@ class SQLTable:
         for item in list(items):
             self.rows.append([str(i) for i in item])
 
-    def prepare_for_render(self) -> None:
+    def even_out(self) -> None:
         for index, name in enumerate(self.column_names):
             column = []
             for row in self.rows:
@@ -118,7 +118,7 @@ class SQLTable:
                 for idx, width in enumerate(self.column_widths)
             ]
 
-    def render(self):
+    def build(self) -> str:
         LINE = f"+{'+'.join('-' * w for w in self.column_widths)}+"
         COLUMN_NAMES = "| " + "| ".join(self.column_names) + "|"
         final = [LINE, COLUMN_NAMES, LINE]
@@ -293,9 +293,9 @@ class Eval(commands.Cog):
 
         table.add_columns(list(results[0].keys()))
         table.add_rows(list(r.values()) for r in results)
-        table.prepare_for_render()
+        table.even_out()
 
-        table = table.render()
+        table = table.build()
 
         s = "s" if row_count != 1 else ""
         msg = (
