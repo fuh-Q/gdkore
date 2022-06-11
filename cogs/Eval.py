@@ -10,16 +10,15 @@ import time
 import traceback
 import types
 from contextlib import redirect_stdout
-from typing import Any, Coroutine, List, Dict, Literal, Optional
+from typing import Any, Coroutine, Dict, List, Literal, Optional
 
 import aiohttp
 import discord
+from asyncpg import Record
 from discord.ext import commands
 
-from config.utils import CHOICES, BotEmojis, NewEmote
 from bot import NotGDKID
-
-from asyncpg import Record
+from config.utils import CHOICES, BotEmojis, NewEmote
 
 quote = r'"'
 wraps = r"\(\)\[\]\{\}"
@@ -84,48 +83,53 @@ class SQLTable:
         self.columns: Dict[str, List[str]] = {}
         self.column_names: List[str] = []
         self.column_widths: List[int] = []
-    
+
     def add_columns(self, names: List[str]) -> None:
         for name in names:
             self.column_names.append(name)
             self.column_widths.append(len(name) + 2)
-    
+
     def add_rows(self, items: List[List[str]]) -> None:
         for item in list(items):
             self.rows.append([str(i) for i in item])
-    
+
     def prepare_for_render(self) -> None:
         for index, name in enumerate(self.column_names):
             column = []
             for row in self.rows:
                 column += [str(item) for idx, item in enumerate(row) if idx == index]
-            
+
             self.columns[name] = column
-        
+
         for index, tu in enumerate(self.columns.items()):
             name, column_items = tu
-            
+
             max_width = len(name) + 2
             for item in column_items:
                 if len(item) > max_width:
                     max_width = len(str(item)) + 2
-            
+
             self.column_widths[index] = max_width
-            self.column_names[index] += " " * (max_width - 1 - len(self.column_names[index]))
-        
+            self.column_names[index] += " " * (
+                max_width - 1 - len(self.column_names[index])
+            )
+
         for index, row in enumerate(self.rows):
-            self.rows[index] = [row[idx] + " " * (width - 1 - len(row[idx])) for idx, width in enumerate(self.column_widths)]
-    
+            self.rows[index] = [
+                row[idx] + " " * (width - 1 - len(row[idx]))
+                for idx, width in enumerate(self.column_widths)
+            ]
+
     def render(self):
         LINE = f"+{'+'.join('-' * w for w in self.column_widths)}+"
         COLUMN_NAMES = "| " + "| ".join(self.column_names) + "|"
-        
+
         final = [LINE, COLUMN_NAMES, LINE]
         for row in self.rows:
             final.append("| " + "| ".join(row) + "|")
-        
+
         final.append(LINE)
-        
+
         return "\n".join(final)
 
 
@@ -269,9 +273,11 @@ class Eval(commands.Cog):
     async def sql(self, ctx: commands.Context, *, query: str):
         gamer_strats: Coroutine[Any, Any, List[Record] | str]
         query = self.cleanup_code(query)
-        
-        gamer_strats = self.client.db.execute if query.count(";") > 1 else self.client.db.fetch
-        
+
+        gamer_strats = (
+            self.client.db.execute if query.count(";") > 1 else self.client.db.fetch
+        )
+
         try:
             start = time.monotonic()
             results = await gamer_strats(query)
@@ -279,24 +285,30 @@ class Eval(commands.Cog):
             row_count = len(results)
         except Exception:
             return await ctx.send(f"```py\n{traceback.format_exc()}\n```")
-        
+
         if isinstance(results, str) or not results:
-            return await ctx.send(f"```\n{results}\n\nquery completed in {exec_time}s\n```")
-        
+            return await ctx.send(
+                f"```\n{results}\n\nquery completed in {exec_time}s\n```"
+            )
+
         table = SQLTable()
-        
+
         table.add_columns(list(results[0].keys()))
         table.add_rows(list(r.values()) for r in results)
         table.prepare_for_render()
-        
+
         table = table.render()
-        
+
         s = "s" if row_count != 1 else ""
-        msg = f"```returned {row_count} row{s}\n{table}\n\nfinished in {exec_time}s\n```"
+        msg = (
+            f"```returned {row_count} row{s}\n{table}\n\nfinished in {exec_time}s\n```"
+        )
         if len(msg) > 2000:
             fp = io.BytesIO(msg.encode("utf-8"))
             file = discord.File(fp, "thiccc-results.txt")
-            await ctx.send("the result was too thiccc, so i yeeted it into a file", file=file)
+            await ctx.send(
+                "the result was too thiccc, so i yeeted it into a file", file=file
+            )
         else:
             await ctx.send(msg)
 
