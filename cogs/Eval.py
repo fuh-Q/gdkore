@@ -6,16 +6,20 @@ import os
 import random
 import re
 import textwrap
+import time
 import traceback
 import types
 from contextlib import redirect_stdout
-from typing import *
+from typing import Any, Coroutine, List, Dict, Literal, Optional
 
 import aiohttp
 import discord
 from discord.ext import commands
 
 from config.utils import CHOICES, BotEmojis, NewEmote
+from bot import NotGDKID
+
+from asyncpg import Record
 
 quote = r'"'
 wraps = r"\(\)\[\]\{\}"
@@ -74,8 +78,59 @@ class SuppressTraceback(discord.ui.View):
         self.stop()
 
 
+class SQLTable:
+    def __init__(self) -> None:
+        self.rows: List[List[str]] = []
+        self.columns: Dict[str, List[str]] = {}
+        self.column_names: List[str] = []
+        self.column_widths: List[int] = []
+    
+    def add_columns(self, names: List[str]) -> None:
+        for name in names:
+            self.column_names.append(name)
+            self.column_widths.append(len(name) + 2)
+    
+    def add_rows(self, items: List[List[str]]) -> None:
+        for item in list(items):
+            self.rows.append([str(i) for i in item])
+    
+    def prepare_for_render(self) -> None:
+        for index, name in enumerate(self.column_names):
+            column = []
+            for row in self.rows:
+                column += [str(item) for idx, item in enumerate(row) if idx == index]
+            
+            self.columns[name] = column
+        
+        for index, tu in enumerate(self.columns.items()):
+            name, column_items = tu
+            
+            max_width = len(name) + 2
+            for item in column_items:
+                if len(item) > max_width:
+                    max_width = len(str(item)) + 2
+            
+            self.column_widths[index] = max_width
+            self.column_names[index] += " " * (max_width - 1 - len(self.column_names[index]))
+        
+        for index, row in enumerate(self.rows):
+            self.rows[index] = [row[idx] + " " * (width - 1 - len(row[idx])) for idx, width in enumerate(self.column_widths)]
+    
+    def render(self):
+        LINE = f"+{'+'.join('-' * w for w in self.column_widths)}+"
+        COLUMN_NAMES = "| " + "| ".join(self.column_names) + "|"
+        
+        final = [LINE, COLUMN_NAMES, LINE]
+        for row in self.rows:
+            final.append("| " + "| ".join(row) + "|")
+        
+        final.append(LINE)
+        
+        return "\n".join(final)
+
+
 class Eval(commands.Cog):
-    def __init__(self, client: commands.Bot):
+    def __init__(self, client: NotGDKID):
         self.client = client
         self.emoji = ""
 
@@ -205,6 +260,47 @@ class Eval(commands.Cog):
         return env
 
     @commands.command(
+        name="sql",
+        aliases=["query"],
+        brief="Run some SQL",
+        hidden=True,
+    )
+    @commands.is_owner()
+    async def sql(self, ctx: commands.Context, *, query: str):
+        gamer_strats: Coroutine[Any, Any, List[Record] | str]
+        query = self.cleanup_code(query)
+        
+        gamer_strats = self.client.db.execute if query.count(";") > 1 else self.client.db.fetch
+        
+        try:
+            start = time.monotonic()
+            results = await gamer_strats(query)
+            exec_time = round((time.monotonic() - start) * 1000, 2)
+            row_count = len(results)
+        except Exception:
+            return await ctx.send(f"```py\n{traceback.format_exc()}\n```")
+        
+        if isinstance(results, str) or not results:
+            return await ctx.send(f"```\n{results}\n\nquery completed in {exec_time}s\n```")
+        
+        table = SQLTable()
+        
+        table.add_columns(list(results[0].keys()))
+        table.add_rows(list(r.values()) for r in results)
+        table.prepare_for_render()
+        
+        table = table.render()
+        
+        s = "s" if row_count != 1 else ""
+        msg = f"```returned {row_count} row{s}\n{table}\n\nfinished in {exec_time}s\n```"
+        if len(msg) > 2000:
+            fp = io.BytesIO(msg.encode("utf-8"))
+            file = discord.File(fp, "thiccc-results.txt")
+            await ctx.send("the result was too thiccc, so i yeeted it into a file", file=file)
+        else:
+            await ctx.send(msg)
+
+    @commands.command(
         name="debug",
         aliases=["dbg"],
         brief="Evaluate a line of python code",
@@ -225,7 +321,6 @@ class Eval(commands.Cog):
             embed = discord.Embed(
                 title="FUCK!", description=f"```py\n{stuff}```", color=0x2E3135
             )
-            embed.description = embed.description.replace(self.client.token, "[TOKEN]")
             message = await ctx.reply(embed=embed, mention_author=True, view=view)
 
             await view.wait()
@@ -244,13 +339,9 @@ class Eval(commands.Cog):
                     description=f"```py\n{page}\n```",
                     color=0x2E3135,
                 )
-                embed.description = embed.description.replace(
-                    self.client.token, "[TOKEN]"
-                )
                 list_of_embeds.append(embed)
                 break
             embed = discord.Embed(description=f"```py\n{page}\n```", color=0x2E3135)
-            embed.description = embed.description.replace(self.client.token, "[TOKEN]")
             list_of_embeds.append(embed)
             if len(list_of_embeds) == 3:
                 if len(paginated_result) == 3:
@@ -394,8 +485,6 @@ class Eval(commands.Cog):
                         else:
                             msg = "{}{}".format(value, result)
 
-                msg = msg.replace(self.client.token, "[TOKEN]")
-
                 __input = self.simulate_repl(cleaned)
 
                 embed = discord.Embed(
@@ -418,16 +507,10 @@ class Eval(commands.Cog):
                                     description=f"```py\n{page}\n```",
                                     color=0x2E3135,
                                 )
-                                embed.description = embed.description.replace(
-                                    self.client.token, "[TOKEN]"
-                                )
                                 list_of_embeds.append(embed)
                                 break
                             embed = discord.Embed(
                                 description=f"```py\n{page}\n```", color=0x2E3135
-                            )
-                            embed.description = embed.description.replace(
-                                self.client.token, "[TOKEN]"
                             )
                             list_of_embeds.append(embed)
                             if len(list_of_embeds) == 3:
@@ -446,11 +529,11 @@ class Eval(commands.Cog):
                 except discord.Forbidden:
                     pass
                 except discord.HTTPException as e:
-                    await ctx.send("Unexpected error: `{}`").format(e)
+                    await ctx.send("unexpected error: `{}`").format(e)
 
             except asyncio.TimeoutError:
                 await ctx.reply(
-                    content="Bro you're supposed to end these sessions once you're done wipe your own ass for once"
+                    content="bro you're supposed to end these sessions once you're done wipe your own ass for once"
                 )
                 return
 
@@ -602,8 +685,6 @@ class Eval(commands.Cog):
                 else:
                     msg = "{}{}".format(value, result)
 
-        msg = msg.replace(self.client.token, "[TOKEN]")
-
         __input = self.simulate_repl(cleaned)
 
         embed = discord.Embed(
@@ -626,16 +707,10 @@ class Eval(commands.Cog):
                             description=f"```py\n{page}\n```",
                             color=0x2E3135,
                         )
-                        embed.description = embed.description.replace(
-                            self.client.token, "[TOKEN]"
-                        )
                         list_of_embeds.append(embed)
                         break
                     embed = discord.Embed(
                         description=f"```py\n{page}\n```", color=0x2E3135
-                    )
-                    embed.description = embed.description.replace(
-                        self.client.token, "[TOKEN]"
                     )
                     list_of_embeds.append(embed)
                     if len(list_of_embeds) == 3:
@@ -654,7 +729,7 @@ class Eval(commands.Cog):
         except discord.Forbidden:
             pass
         except discord.HTTPException as e:
-            await ctx.send("Unexpected error: `{}`").format(e)
+            await ctx.send("unexpected error: `{}`").format(e)
 
 
 async def setup(client: commands.Bot):
