@@ -273,7 +273,7 @@ class Eval(commands.Cog):
         query = self.cleanup_code(query)
 
         gamer_strats = (
-            self.client.db.execute if query.count(";") > 1 else self.client.db.fetch
+            self.client.db.execute if query.count(";") >= 1 else self.client.db.fetch
         )
 
         try:
@@ -286,7 +286,7 @@ class Eval(commands.Cog):
 
         if isinstance(results, str) or not results:
             return await ctx.send(
-                f"```\n{results}\n\nquery completed in {exec_time}s\n```"
+                f"```\n{results}\n\nquery completed in {exec_time}ms\n```"
             )
 
         table = SQLTable()
@@ -299,7 +299,7 @@ class Eval(commands.Cog):
 
         s = "s" if row_count != 1 else ""
         msg = (
-            f"```returned {row_count} row{s}\n{table}\n\nfinished in {exec_time}s\n```"
+            f"```returned {row_count} row{s}\n{table}\n\nfinished in {exec_time}ms\n```"
         )
         if len(msg) > 2000:
             fp = io.BytesIO(msg.encode("utf-8"))
