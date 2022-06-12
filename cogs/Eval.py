@@ -81,12 +81,12 @@ class SQLTable:
     def __init__(self) -> None:
         self.rows: List[List[str]] = []
         self.columns: Dict[str, List[str]] = {}
-        self.column_widths: List[int] = []
+        self.widths: List[int] = []
 
     def add_columns(self, names: List[str]) -> None:
         for name in names:
             self.columns[name] = []
-            self.column_widths.append(len(name) + 2)
+            self.widths.append(len(name) + 2)
 
     def add_rows(self, items: Generator[List, None, None]) -> None:
         for row in list(items):
@@ -100,20 +100,19 @@ class SQLTable:
             for item in tu[1]:
                 if len(item) > max_width:
                     max_width = len(item)
-            max_width += 2
-            self.column_widths[index] = max_width
+            self.widths[index] = max_width = max_width + 2
         self.columns = {
-            tu[0] + " " * (self.column_widths[idx] - 1 - len(tu[0])): tu[1]
+            tu[0] + " " * (self.widths[idx] - 1 - len(tu[0])): tu[1]
             for idx, tu in enumerate(self.columns.items())
         }
         for index, row in enumerate(self.rows):
             self.rows[index] = [
                 row[idx] + " " * (width - 1 - len(row[idx]))
-                for idx, width in enumerate(self.column_widths)
+                for idx, width in enumerate(self.widths)
             ]
 
     def build(self) -> str:
-        LINE = f"+{'+'.join('-' * w for w in self.column_widths)}+"
+        LINE = f"+{'+'.join('-' * w for w in self.widths)}+"
         COLUMN_NAMES = "| " + "| ".join(list(self.columns.keys())) + "|"
         final = [LINE, COLUMN_NAMES, LINE]
         for row in self.rows:
@@ -291,7 +290,7 @@ class Eval(commands.Cog):
 
         s = "s" if row_count != 1 else ""
         msg = (
-            f"```returned {row_count} row{s}\n{table}\n\nfinished in {exec_time}ms\n```"
+            f"```{table}\n({row_count} rows)\n\nfinished in {exec_time}ms\n```"
         )
         if len(msg) > 2000:
             fp = io.BytesIO(msg.strip("```").encode("utf-8"))
