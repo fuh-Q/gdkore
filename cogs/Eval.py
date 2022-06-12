@@ -10,7 +10,7 @@ import time
 import traceback
 import types
 from contextlib import redirect_stdout
-from typing import Any, Coroutine, Dict, List, Literal, Optional
+from typing import Any, Coroutine, Dict, Generator, List, Literal, Optional
 
 import aiohttp
 import discord
@@ -81,36 +81,31 @@ class SQLTable:
     def __init__(self) -> None:
         self.rows: List[List[str]] = []
         self.columns: Dict[str, List[str]] = {}
-        self.column_names: List[str] = []
         self.column_widths: List[int] = []
 
     def add_columns(self, names: List[str]) -> None:
         for name in names:
-            self.column_names.append(name)
+            self.columns[name] = []
             self.column_widths.append(len(name) + 2)
 
-    def add_rows(self, items: List[List[str]]) -> None:
-        for item in list(items):
-            self.rows.append([str(i) for i in item])
+    def add_rows(self, items: Generator[List, None, None]) -> None:
+        for row in list(items):
+            self.rows.append([str(i) for i in row])
+            for idx, column in enumerate(self.columns.values()):
+                column.append(str(row[idx]))
 
     def even_out(self) -> None:
-        for index, name in enumerate(self.column_names):
-            column = []
-            for row in self.rows:
-                column += [str(item) for idx, item in enumerate(row) if idx == index]
-
-            self.columns[name] = column
         for index, tu in enumerate(self.columns.items()):
-            max_width = len(tu[0]) + 2
+            max_width = len(tu[0])
             for item in tu[1]:
                 if len(item) > max_width:
-                    max_width = len(str(item))
+                    max_width = len(item)
             max_width += 2
-
             self.column_widths[index] = max_width
-            self.column_names[index] += " " * (
-                max_width - 1 - len(self.column_names[index])
-            )
+        self.columns = {
+            tu[0] + " " * (self.column_widths[idx] - 1 - len(tu[0])): tu[1]
+            for idx, tu in enumerate(self.columns.items())
+        }
         for index, row in enumerate(self.rows):
             self.rows[index] = [
                 row[idx] + " " * (width - 1 - len(row[idx]))
@@ -119,12 +114,10 @@ class SQLTable:
 
     def build(self) -> str:
         LINE = f"+{'+'.join('-' * w for w in self.column_widths)}+"
-        COLUMN_NAMES = "| " + "| ".join(self.column_names) + "|"
+        COLUMN_NAMES = "| " + "| ".join(list(self.columns.keys())) + "|"
         final = [LINE, COLUMN_NAMES, LINE]
-
         for row in self.rows:
             final.append("| " + "| ".join(row) + "|")
-
         final.append(LINE)
 
         return "\n".join(final)
