@@ -100,18 +100,17 @@ class SQLTable:
                 column += [str(item) for idx, item in enumerate(row) if idx == index]
 
             self.columns[name] = column
-
         for index, tu in enumerate(self.columns.items()):
             max_width = len(tu[0]) + 2
             for item in tu[1]:
                 if len(item) > max_width:
-                    max_width = len(str(item)) + 2
+                    max_width = len(str(item))
+            max_width += 2
 
             self.column_widths[index] = max_width
             self.column_names[index] += " " * (
                 max_width - 1 - len(self.column_names[index])
             )
-
         for index, row in enumerate(self.rows):
             self.rows[index] = [
                 row[idx] + " " * (width - 1 - len(row[idx]))
@@ -302,7 +301,7 @@ class Eval(commands.Cog):
             f"```returned {row_count} row{s}\n{table}\n\nfinished in {exec_time}ms\n```"
         )
         if len(msg) > 2000:
-            fp = io.BytesIO(msg.encode("utf-8"))
+            fp = io.BytesIO(msg.strip("```").encode("utf-8"))
             file = discord.File(fp, "thiccc-results.txt")
             await ctx.send(
                 "the result was too thiccc, so i yeeted it into a file", file=file
