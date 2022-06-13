@@ -302,7 +302,7 @@ class Eval(commands.Cog):
         msg = f"{self.pretty_query(query)}\n\n{table}\n({row_count} row{s})\n\nfinished in {exec_time}ms"
         if len(msg) > 2000:
             fp = io.BytesIO(msg.encode("utf-8"))
-            file = discord.File(fp, "thiccc.boi")
+            file = discord.File(fp, "thiccc.txt")
             await ctx.send(
                 "the result was too thiccc, so i yeeted it into a file", file=file
             )
