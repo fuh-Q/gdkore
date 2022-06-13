@@ -212,6 +212,16 @@ class Eval(commands.Cog):
         return content.strip("` \n")
 
     @staticmethod
+    def pretty_query(query: str):
+        start = "postgres=# "
+        lines = query.split("\n")
+
+        lines[0] = start + lines[0]
+        lines = [lines[0]] + [len(start) * " " + line for line in lines[1:]]
+
+        return "\n".join(lines)
+
+    @staticmethod
     def paginate(text: str, max_text: int = 1990) -> list:
         """One that's less weird"""
         if type(text) != str:
@@ -277,7 +287,7 @@ class Eval(commands.Cog):
 
         if isinstance(results, str) or not results:
             return await ctx.send(
-                f"```\n{results}\n\nquery completed in {exec_time}ms\n```"
+                f"```sql\n{self.pretty_query(query)}\n\n{results}\n\nquery completed in {exec_time}ms\n```"
             )
 
         table = SQLTable()
@@ -289,17 +299,15 @@ class Eval(commands.Cog):
         table = table.build()
 
         s = "s" if row_count != 1 else ""
-        msg = (
-            f"```{table}\n({row_count} rows)\n\nfinished in {exec_time}ms\n```"
-        )
+        msg = f"{self.pretty_query(query)}\n\n{table}\n({row_count} row{s})\n\nfinished in {exec_time}ms"
         if len(msg) > 2000:
-            fp = io.BytesIO(msg.strip("```").encode("utf-8"))
-            file = discord.File(fp, "thiccc-results.txt")
+            fp = io.BytesIO(msg.encode("utf-8"))
+            file = discord.File(fp, "thiccc-results.sql")
             await ctx.send(
                 "the result was too thiccc, so i yeeted it into a file", file=file
             )
         else:
-            await ctx.send(msg)
+            await ctx.send(f"```sql\n{msg}\n```")
 
     @commands.command(
         name="debug",
