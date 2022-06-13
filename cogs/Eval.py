@@ -287,7 +287,7 @@ class Eval(commands.Cog):
 
         if isinstance(results, str) or not results:
             return await ctx.send(
-                f"```sql\n{self.pretty_query(query)}\n\n{results}\n\nquery completed in {exec_time}ms\n```"
+                f"```\n{self.pretty_query(query)}\n\n{results}\n\nquery completed in {exec_time}ms\n```"
             )
 
         table = SQLTable()
@@ -302,12 +302,12 @@ class Eval(commands.Cog):
         msg = f"{self.pretty_query(query)}\n\n{table}\n({row_count} row{s})\n\nfinished in {exec_time}ms"
         if len(msg) > 2000:
             fp = io.BytesIO(msg.encode("utf-8"))
-            file = discord.File(fp, "thiccc-results.sql")
+            file = discord.File(fp, "big.pp")
             await ctx.send(
                 "the result was too thiccc, so i yeeted it into a file", file=file
             )
         else:
-            await ctx.send(f"```sql\n{msg}\n```")
+            await ctx.send(f"```\n{msg}\n```")
 
     @commands.command(
         name="debug",
