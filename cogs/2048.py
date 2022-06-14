@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import math
 import traceback
 from enum import Enum
@@ -23,6 +25,72 @@ win_map = {
     3: 1024,
     4: 2048,
 }
+
+def button(direction: Directions):
+    class cls(ui.Button):
+        @property
+        def view(self) -> Game:
+            return self._view
+
+        def __init__(self, view: Game) -> None:
+            self._view = view
+
+            emoji = getattr(DirectionEmotes, direction.name)
+
+            super().__init__(
+                row=self.view.control_row,
+                emoji=emoji,
+            )
+
+        async def callback(self, interaction: Interaction) -> None:
+            already_won = self.view.logic._won
+            self.view.logic.move(direction)
+            loss = self.view.logic.check_loss(self.view.logic.blocks)
+            won = self.view.update()
+
+            self.view.embed.description = f"— **score** `{self.view.logic.score:,}`\n— **moves** `{self.view.logic.moves:,}`"
+
+            if loss:
+                return await self.view.loss(interaction)
+
+            if won and not already_won:
+                await interaction.response.edit_message(embed=self.view.embed, view=self.view)
+                await self.view.won(interaction)
+                return
+
+            await interaction.response.edit_message(embed=self.view.embed, view=self.view)
+
+    return cls
+
+def slot_button(slot: int):
+    class cls(ui.Button):
+        @property
+        def view(self) -> EditControlsView:
+            return self._view
+        
+        def __init__(self, view: EditControlsView) -> None:
+            self._view = view
+            
+            super().__init__()
+        
+        async def callback(self, interaction: Interaction) -> None:
+            for c in self.view.children:
+                if isinstance(c, ui.Button):
+                    c.style = discord.ButtonStyle.secondary
+                    c.disabled = False
+            
+            for o in self.view.select.options:
+                o.default = False
+
+            self.disabled = True
+            self.style = discord.ButtonStyle.success
+            self.view.editing = slot
+            self.view.select.disabled = False
+            self.view.select.options = self.view.generate_options()
+
+            return await interaction.response.edit_message(view=self.view)
+    
+    return cls
 
 
 class Directions(Enum):
@@ -345,15 +413,17 @@ class Game(BaseGameView):
 
         for i in range(5):
             attr = getattr(self, self.controls[i], None)
-            if attr is not None:
-                emoji: NewEmote = getattr(DirectionEmotes, self.controls[i].upper())
-                style = discord.ButtonStyle.primary
-                if self.controls[i] == "bye":
-                    style = discord.ButtonStyle.danger
-
-                item = ui.Button(emoji=emoji, style=style, row=self.control_row)
+            if attr == self.bye:
+                item = ui.Button(row=self.control_row, emoji=DirectionEmotes.BYE, style=discord.ButtonStyle.danger)
                 item.callback = attr
                 self.add_item(item)
+                continue
+            
+            item = button(getattr(Directions, self.controls[i].upper()))(self)
+            item.style = discord.ButtonStyle.primary
+            if self.controls[i] == "bye":
+                item.style = discord.ButtonStyle.danger
+            self.add_item(item)
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} game={self.logic}>"
@@ -468,109 +538,17 @@ class Game(BaseGameView):
 
         return await self.async_stop(save=False)
 
-    async def left(self, interaction: Interaction):
-        try:
-            already_won = self.logic._won
-            self.logic.move(Directions.LEFT)
-            loss = self.logic.check_loss(self.logic.blocks)
-            won = self.update()
-
-            self.embed.description = f"— **score** `{self.logic.score:,}`\n— **moves** `{self.logic.moves:,}`"
-
-            if loss:
-                return await self.loss(interaction)
-
-            if won and not already_won:
-                await interaction.response.edit_message(embed=self.embed, view=self)
-                await self.won(interaction)
-                return
-
-            await interaction.response.edit_message(embed=self.embed, view=self)
-
-        except Exception as e:
-            print("".join(traceback.format_exception(e, e, e.__traceback__)))
-
-    async def up(self, interaction: Interaction):
-        try:
-            already_won = self.logic._won
-            self.logic.move(Directions.UP)
-            loss = self.logic.check_loss(self.logic.blocks)
-            won = self.update()
-
-            self.embed.description = f"— **score** `{self.logic.score:,}`\n— **moves** `{self.logic.moves:,}`"
-
-            if loss:
-                return await self.loss(interaction)
-
-            if won and not already_won:
-                await interaction.response.edit_message(embed=self.embed, view=self)
-                await self.won(interaction)
-                return
-
-            await interaction.response.edit_message(embed=self.embed, view=self)
-
-        except Exception as e:
-            print("".join(traceback.format_exception(e, e, e.__traceback__)))
-
-    async def down(self, interaction: Interaction):
-        try:
-            already_won = self.logic._won
-            self.logic.move(Directions.DOWN)
-            loss = self.logic.check_loss(self.logic.blocks)
-            won = self.update()
-
-            self.embed.description = f"— **score** `{self.logic.score:,}`\n— **moves** `{self.logic.moves:,}`"
-
-            if loss:
-                return await self.loss(interaction)
-
-            if won and not already_won:
-                await interaction.response.edit_message(embed=self.embed, view=self)
-                await self.won(interaction)
-                return
-
-            await interaction.response.edit_message(embed=self.embed, view=self)
-
-        except Exception as e:
-            print("".join(traceback.format_exception(e, e, e.__traceback__)))
-
-    async def right(self, interaction: Interaction):
-        try:
-            already_won = self.logic._won
-            self.logic.move(Directions.RIGHT)
-            loss = self.logic.check_loss(self.logic.blocks)
-            won = self.update()
-
-            self.embed.description = f"— **score** `{self.logic.score:,}`\n— **moves** `{self.logic.moves:,}`"
-
-            if loss:
-                return await self.loss(interaction)
-
-            if won and not already_won:
-                await interaction.response.edit_message(embed=self.embed, view=self)
-                await self.won(interaction)
-                return
-
-            await interaction.response.edit_message(embed=self.embed, view=self)
-
-        except Exception as e:
-            print("".join(traceback.format_exception(e, e, e.__traceback__)))
-
     async def bye(self, interaction: Interaction):
-        try:
-            for btn in self.children:
-                btn.disabled = True
+        for btn in self.children:
+            btn.disabled = True
 
-                if btn.style == discord.ButtonStyle.success:
-                    btn.style = discord.ButtonStyle.secondary
+            if btn.style == discord.ButtonStyle.success:
+                btn.style = discord.ButtonStyle.secondary
 
-            await interaction.response.edit_message(view=self)
-            await interaction.followup.send(
-                "wanna save your game?", view=QuitConfirmationView(self), ephemeral=True
-            )
-
-        except Exception as e:
-            print("".join(traceback.format_exception(e, e, e.__traceback__)))
+        await interaction.response.edit_message(view=self)
+        await interaction.followup.send(
+            "wanna save your game?", view=QuitConfirmationView(self), ephemeral=True
+        )
 
 
 class QuitConfirmationView(ui.View):
@@ -615,7 +593,7 @@ class QuitConfirmationView(ui.View):
 
 class EditControlsView(ui.View):
     def __init__(
-        self, interaction: Interaction, client: NotGDKID, controls: List[str | None]
+        self, interaction: Interaction, client: NotGDKID, controls: List[str] | None
     ) -> None:
         self.interaction = interaction
         self.client = client
@@ -626,8 +604,9 @@ class EditControlsView(ui.View):
 
         super().__init__(timeout=120)
 
+        self.clear_items()
         for i in range(5):
-            btn: ui.Button = self.children[i]
+            btn: ui.Button = slot_button(i)(self)
             if hasattr(self.changes[i], "upper"):
                 search = self.changes[i].upper()
             else:
@@ -640,6 +619,10 @@ class EditControlsView(ui.View):
 
             else:
                 btn.label = "none"
+            
+            self.add_item(btn)
+        self.add_item(self.select)
+        self.add_item(self.exit_menu)
 
     async def interaction_check(self, interaction: Interaction) -> bool:
         if interaction.user.id != self.interaction.user.id:
@@ -713,96 +696,6 @@ class EditControlsView(ui.View):
             if o.label != self.changes[self.editing]
         ]
 
-    @ui.button(style=discord.ButtonStyle.secondary)
-    async def slot_1(self, interaction: Interaction, button: ui.Button):
-        for c in self.children:
-            if isinstance(c, ui.Button):
-                c.style = discord.ButtonStyle.secondary
-                c.disabled = False
-
-        for o in self.children[5].options:
-            o.default = False
-
-        button.disabled = True
-        button.style = discord.ButtonStyle.success
-        self.editing = 0
-        self.children[5].disabled = False
-        self.children[5].options = self.generate_options()
-
-        return await interaction.response.edit_message(view=self)
-
-    @ui.button(style=discord.ButtonStyle.secondary)
-    async def slot_2(self, interaction: Interaction, button: ui.Button):
-        for c in self.children:
-            if isinstance(c, ui.Button):
-                c.style = discord.ButtonStyle.secondary
-                c.disabled = False
-
-        for o in self.children[5].options:
-            o.default = False
-
-        button.disabled = True
-        button.style = discord.ButtonStyle.success
-        self.editing = 1
-        self.children[5].disabled = False
-        self.children[5].options = self.generate_options()
-
-        return await interaction.response.edit_message(view=self)
-
-    @ui.button(style=discord.ButtonStyle.secondary)
-    async def slot_3(self, interaction: Interaction, button: ui.Button):
-        for c in self.children:
-            if isinstance(c, ui.Button):
-                c.style = discord.ButtonStyle.secondary
-                c.disabled = False
-
-        for o in self.children[5].options:
-            o.default = False
-
-        button.disabled = True
-        button.style = discord.ButtonStyle.success
-        self.editing = 2
-        self.children[5].disabled = False
-        self.children[5].options = self.generate_options()
-
-        return await interaction.response.edit_message(view=self)
-
-    @ui.button(style=discord.ButtonStyle.secondary)
-    async def slot_4(self, interaction: Interaction, button: ui.Button):
-        for c in self.children:
-            if isinstance(c, ui.Button):
-                c.style = discord.ButtonStyle.secondary
-                c.disabled = False
-
-        for o in self.children[5].options:
-            o.default = False
-
-        button.disabled = True
-        button.style = discord.ButtonStyle.success
-        self.editing = 3
-        self.children[5].disabled = False
-        self.children[5].options = self.generate_options()
-
-        return await interaction.response.edit_message(view=self)
-
-    @ui.button(style=discord.ButtonStyle.secondary)
-    async def slot_5(self, interaction: Interaction, button: ui.Button):
-        for c in self.children:
-            if isinstance(c, ui.Button):
-                c.style = discord.ButtonStyle.secondary
-                c.disabled = False
-
-        for o in self.children[5].options:
-            o.default = False
-
-        button.disabled = True
-        button.style = discord.ButtonStyle.success
-        self.editing = 4
-        self.children[5].disabled = False
-        self.children[5].options = self.generate_options()
-
-        return await interaction.response.edit_message(view=self)
-
     @ui.select(
         placeholder="pick an option...",
         disabled=True,
@@ -818,7 +711,6 @@ class EditControlsView(ui.View):
 
         self.changes[self.editing] = changed_to
         select.options = self.generate_options()
-
         for i in range(5):
             btn: ui.Button = self.children[i]
             if hasattr(self.changes[i], "upper"):
@@ -834,7 +726,7 @@ class EditControlsView(ui.View):
             else:
                 btn.label = "none"
                 btn.emoji = None
-
+        
         return await interaction.response.edit_message(view=self)
 
     @ui.button(label="save changes", style=discord.ButtonStyle.success, row=2)

@@ -10,7 +10,7 @@ import time
 import traceback
 import types
 from contextlib import redirect_stdout
-from typing import Any, Coroutine, Dict, Generator, List, Literal, Optional
+from typing import Any, Coroutine, Dict, List, Literal, Optional
 
 import aiohttp
 import discord
@@ -79,7 +79,6 @@ class SuppressTraceback(discord.ui.View):
 
 class SQLTable:
     def __init__(self) -> None:
-        self._rows: List[List[str]] = []
         self._columns: Dict[str, List[str]] = {}
         self._widths: List[int] = []
 
@@ -88,33 +87,27 @@ class SQLTable:
             self._columns[name] = []
             self._widths.append(len(name) + 2)
 
-    def add_rows(self, items: Generator[List, None, None]) -> None:
-        for row in list(items):
-            self._rows.append([str(i) for i in row])
+    def add_rows(self, rows: List[List[Any]]) -> None:
+        for row in rows:
             for idx, column in enumerate(self._columns.values()):
                 column.append(str(row[idx]))
 
     def even_out(self) -> None:
         self._widths = [
-            len(max(i + [n], key=lambda k: len(k))) + 2
+            len(max(i + [n], key=lambda k: len(k)))
             for n, i in self._columns.items()
         ]
         self._columns = {
-            tu[0] + " " * (self._widths[idx] - 1 - len(tu[0])): tu[1]
+            f" {tu[0]:<{self._widths[idx]}} ": [f" {i:<{self._widths[idx]}} " for i in tu[1]]
             for idx, tu in enumerate(self._columns.items())
         }
-        for index, row in enumerate(self._rows):
-            self._rows[index] = [
-                row[idx] + " " * (width - 1 - len(row[idx]))
-                for idx, width in enumerate(self._widths)
-            ]
 
     def build(self) -> str:
-        LINE = f"+{'+'.join('-' * w for w in self._widths)}+"
-        COLUMN_NAMES = "| " + "| ".join(list(self._columns.keys())) + "|"
+        LINE = f"+{'+'.join('-' * (w + 2) for w in self._widths)}+"
+        COLUMN_NAMES = f"|{'|'.join(list(self._columns.keys()))}|"
         final = [LINE, COLUMN_NAMES, LINE]
-        for row in self._rows:
-            final.append("| " + "| ".join(row) + "|")
+        for i in range(len((li := list(self._columns.values()))[0])):
+            final.append(f"|{'|'.join([li[col][i] for col in range(len(li))])}|")
         final.append(LINE)
 
         return "\n".join(final)
@@ -291,7 +284,7 @@ class Eval(commands.Cog):
         table = SQLTable()
 
         table.add_columns(list(results[0].keys()))
-        table.add_rows(list(r.values()) for r in results)
+        table.add_rows([list(r.values()) for r in results])
         table.even_out()
 
         table = table.build()
