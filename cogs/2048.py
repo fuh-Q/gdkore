@@ -26,6 +26,7 @@ win_map = {
     4: 2048,
 }
 
+
 def button(direction: Directions):
     class cls(ui.Button):
         @property
@@ -54,31 +55,36 @@ def button(direction: Directions):
                 return await self.view.loss(interaction)
 
             if won and not already_won:
-                await interaction.response.edit_message(embed=self.view.embed, view=self.view)
+                await interaction.response.edit_message(
+                    embed=self.view.embed, view=self.view
+                )
                 await self.view.won(interaction)
                 return
 
-            await interaction.response.edit_message(embed=self.view.embed, view=self.view)
+            await interaction.response.edit_message(
+                embed=self.view.embed, view=self.view
+            )
 
     return cls
+
 
 def slot_button(slot: int):
     class cls(ui.Button):
         @property
         def view(self) -> EditControlsView:
             return self._view
-        
+
         def __init__(self, view: EditControlsView) -> None:
             self._view = view
-            
+
             super().__init__()
-        
+
         async def callback(self, interaction: Interaction) -> None:
             for c in self.view.children:
                 if isinstance(c, ui.Button):
                     c.style = discord.ButtonStyle.secondary
                     c.disabled = False
-            
+
             for o in self.view.select.options:
                 o.default = False
 
@@ -89,7 +95,7 @@ def slot_button(slot: int):
             self.view.select.options = self.view.generate_options()
 
             return await interaction.response.edit_message(view=self.view)
-    
+
     return cls
 
 
@@ -414,11 +420,15 @@ class Game(BaseGameView):
         for i in range(5):
             attr = getattr(self, self.controls[i], None)
             if attr == self.bye:
-                item = ui.Button(row=self.control_row, emoji=DirectionEmotes.BYE, style=discord.ButtonStyle.danger)
+                item = ui.Button(
+                    row=self.control_row,
+                    emoji=DirectionEmotes.BYE,
+                    style=discord.ButtonStyle.danger,
+                )
                 item.callback = attr
                 self.add_item(item)
                 continue
-            
+
             item = button(getattr(Directions, self.controls[i].upper()))(self)
             item.style = discord.ButtonStyle.primary
             if self.controls[i] == "bye":
@@ -619,7 +629,7 @@ class EditControlsView(ui.View):
 
             else:
                 btn.label = "none"
-            
+
             self.add_item(btn)
         self.add_item(self.select)
         self.add_item(self.exit_menu)
@@ -726,7 +736,7 @@ class EditControlsView(ui.View):
             else:
                 btn.label = "none"
                 btn.emoji = None
-        
+
         return await interaction.response.edit_message(view=self)
 
     @ui.button(label="save changes", style=discord.ButtonStyle.success, row=2)

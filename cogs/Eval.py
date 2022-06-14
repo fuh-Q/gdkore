@@ -94,11 +94,12 @@ class SQLTable:
 
     def even_out(self) -> None:
         self._widths = [
-            len(max(i + [n], key=lambda k: len(k)))
-            for n, i in self._columns.items()
+            len(max(i + [n], key=lambda k: len(k))) for n, i in self._columns.items()
         ]
         self._columns = {
-            f" {tu[0]:<{self._widths[idx]}} ": [f" {i:<{self._widths[idx]}} " for i in tu[1]]
+            f" {tu[0]:<{self._widths[idx]}} ": [
+                f" {i:<{self._widths[idx]}} " for i in tu[1]
+            ]
             for idx, tu in enumerate(self._columns.items())
         }
 
