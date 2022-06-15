@@ -418,14 +418,16 @@ class Game(BaseGameView):
                 counter += 1
 
         for i in range(5):
-            attr = getattr(self, self.controls[i], None)
-            if attr == self.bye:
+            attr = getattr(DirectionEmotes, self.controls[i].upper(), None)
+            if not attr:
+                continue
+            if self.controls[i] == "bye":
                 item = ui.Button(
                     row=self.control_row,
                     emoji=DirectionEmotes.BYE,
                     style=discord.ButtonStyle.danger,
                 )
-                item.callback = attr
+                item.callback = self.bye
                 self.add_item(item)
                 continue
 
@@ -810,7 +812,7 @@ class TwentyFortyEight(commands.Cog):
             controls = [str(data[0][i]).lower() for i in range(5)]
 
         if load is True:
-            query = """SELECT (blocks, score, moves) FROM twfe_games 
+            query = """SELECT blocks, score, moves FROM twfe_games 
                         WHERE user_id = $1
                     """
             data = await self.client.db.fetchrow(query, interaction.user.id)
@@ -818,7 +820,7 @@ class TwentyFortyEight(commands.Cog):
                 return await interaction.response.send_message(
                     "couldnt find a saved game", ephemeral=True
                 )
-            blocks, score, moves = data[0]
+            blocks, score, moves = data
 
             infoEmbed.description = f"— **score** `{score}`\n— **moves** `{moves}`"
 
