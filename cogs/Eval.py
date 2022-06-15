@@ -24,27 +24,24 @@ quote = r'"'
 wraps = r"\(\)\[\]\{\}"
 expression = rf"[\w\./\\:=<>!{wraps}{quote}', ]"
 
+# fmt: off
 REGEX_LIST: list[re.Pattern[str]] = [
-    re.compile(
-        rf"^(?:async )?def \w+\({expression}*\)(?::| *-> [\w\[\]\(\), ]*:) *$"
-    ),  # FUNCTION
-    re.compile(r"^class \w+(?:\(.*\))?:"),  # CLASS
-    re.compile(rf"^if {expression}+: *$"),  # IF
-    re.compile(rf"^elif {expression}+: *$"),  # ELIF
-    re.compile(r"^else: *$"),  # ELSE
-    re.compile(r"^try: *$"),  # TRY
-    re.compile(
-        r"^except(?: (?:\(?(?:[\w\.]*)(?:, ?)?\)?(?:| as \w+))| \w)?: *$"
-    ),  # EXCEPT
-    re.compile(r"^finally: *$"),  # FINALLY
-    re.compile(rf"^(?:async )?with [\w\.]+\({expression}*\)(?: as \w+)?: *$"),  # WITH
-    re.compile(rf"^(?:async )?for \w+ in {expression}+: *$"),  # FOR
-    re.compile(rf"^while {expression}+: *$"),  # WHILE
-    re.compile(r"{ *$"),  # DICT
-    re.compile(r"\[ *$"),  # LIST
-    re.compile(r"\( *$"),  # TUPLE
-    re.compile(r", *$"),  # BREAKLINE
-    re.compile(r"^\)(?::| *-> [\w\[\]\(\), ]*:) *$"),  # MULTILINE FUNCTION HEADER
+    re.compile(rf"^(?:async )?def \w+\({expression}*\)(?::| *-> [\w\[\]\(\), ]*:) *$"),  # FUNCTION
+    re.compile(r"^class \w+(?:\(.*\))?:"),                                               # CLASS
+    re.compile(rf"^if {expression}+: *$"),                                               # IF
+    re.compile(rf"^elif {expression}+: *$"),                                             # ELIF
+    re.compile(r"^else: *$"),                                                            # ELSE
+    re.compile(r"^try: *$"),                                                             # TRY
+    re.compile(r"^except(?: (?:\(?(?:[\w\.]*)(?:, ?)?\)?(?:| as \w+))| \w)?: *$"),       # EXCEPT
+    re.compile(r"^finally: *$"),                                                         # FINALLY
+    re.compile(rf"^(?:async )?with [\w\.]+\({expression}*\)(?: as \w+)?: *$"),           # WITH
+    re.compile(rf"^(?:async )?for \w+ in {expression}+: *$"),                            # FOR
+    re.compile(rf"^while {expression}+: *$"),                                            # WHILE
+    re.compile(r"{ *$"),                                                                 # DICT
+    re.compile(r"\[ *$"),                                                                # LIST
+    re.compile(r"\( *$"),                                                                # TUPLE
+    re.compile(r", *$"),                                                                 # BREAKLINE
+    re.compile(r"^\)(?::| *-> [\w\[\]\(\), ]*:) *$"),                                    # MULTILINE FUNCTION HEADER
 ]
 
 
@@ -92,7 +89,6 @@ class SQLTable:
             for idx, column in enumerate(self._columns.values()):
                 column.append(str(row[idx]))
 
-    # fmt: off
     def even_out(self) -> None:
         self._widths = [
             len(max(i + [n], key=lambda k: len(k))) for n, i in self._columns.items()
@@ -101,7 +97,6 @@ class SQLTable:
             f" {tu[0]:<{self._widths[idx]}} ": [f" {i:<{self._widths[idx]}} " for i in tu[1]]
             for idx, tu in enumerate(self._columns.items())
         }
-    # fmt: on
 
     def build(self) -> str:
         LINE = f"+{'+'.join('-' * (w + 2) for w in self._widths)}+"
@@ -113,7 +108,7 @@ class SQLTable:
 
         return "\n".join(final)
 
-
+# fmt: on
 class Eval(commands.Cog):
     def __init__(self, client: NotGDKID):
         self.client = client
