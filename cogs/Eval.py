@@ -92,16 +92,16 @@ class SQLTable:
             for idx, column in enumerate(self._columns.values()):
                 column.append(str(row[idx]))
 
+    # fmt: off
     def even_out(self) -> None:
         self._widths = [
             len(max(i + [n], key=lambda k: len(k))) for n, i in self._columns.items()
         ]
         self._columns = {
-            f" {tu[0]:<{self._widths[idx]}} ": [
-                f" {i:<{self._widths[idx]}} " for i in tu[1]
-            ]
+            f" {tu[0]:<{self._widths[idx]}} ": [f" {i:<{self._widths[idx]}} " for i in tu[1]]
             for idx, tu in enumerate(self._columns.items())
         }
+    # fmt: on
 
     def build(self) -> str:
         LINE = f"+{'+'.join('-' * (w + 2) for w in self._widths)}+"
