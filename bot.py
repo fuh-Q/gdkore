@@ -168,15 +168,7 @@ class NotGDKID(commands.Bot):
         fmt = now.strftime("%I:%M")
 
         self.guild_logs = await self.fetch_webhook(905343987555131403)
-
-        await self.change_presence(
-            status=discord.Status.online,
-            activity=discord.Activity(
-                name=f"the time, its {fmt[1:] if fmt[0] == '0' else fmt}",
-                type=discord.ActivityType.watching,
-            ),
-        )
-        status_task.start(self)
+        self.status_task = status_task
 
         if sys.platform == "linux":
             self.dweebhook = await self.fetch_webhook(954211358231130204)
