@@ -229,7 +229,7 @@ class NotGDKID(commands.Bot):
             e.set_thumbnail(url=guild.icon.url)
 
         await self.guild_logs.send(embed=e)
-    
+
     def run(self) -> None:
         async def runner():
             async with self:
