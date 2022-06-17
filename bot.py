@@ -229,6 +229,19 @@ class NotGDKID(commands.Bot):
             e.set_thumbnail(url=guild.icon.url)
 
         await self.guild_logs.send(embed=e)
+    
+    def run(self) -> None:
+        async def runner():
+            async with self:
+                await self.start()
+
+        try:
+            asyncio.run(runner())
+        except KeyboardInterrupt:
+            # nothing to do here
+            # `asyncio.run` handles the loop cleanup
+            # and `self.start` closes all sockets and the HTTPClient instance.
+            return
 
     async def start(self):
         if str(__file__).lower() == r"d:\gdkore\bot.py":
