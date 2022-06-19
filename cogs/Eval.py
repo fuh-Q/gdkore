@@ -141,19 +141,14 @@ class Eval(commands.Cog):
 
         src_lines: list[str] = src_text.split("\n")
         repl_lines: list[str] = []
-        index = -1
         in_indent = False
         prefix = ">>>"
 
-        for line in src_lines:
-            index += 1
-
+        for index, line in enumerate(src_lines):
             prefix = ">>>"
-
             if not in_indent:
                 for pattern in REGEX_LIST:
-                    match = pattern.search(line)
-                    if match is not None:
+                    if pattern.search(line) is not None:
                         in_indent = True
                         break
 

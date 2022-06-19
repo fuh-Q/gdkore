@@ -10,8 +10,6 @@ config/secrets.json
 # Irrelevant
 .mypy_cache
 .pytest_cache
-random-shit/
-heroku/
 
 # Not ready
 presence_bot.py
