@@ -14,4 +14,6 @@ config/secrets.json
 # Not ready
 presence_bot.py
 cogs/presencetracker.py
-assets/
+cogs/typerace.py
+assets/arial.ttf
+assets/template.png
