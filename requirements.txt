@@ -1,9 +1,9 @@
 git+https://github.com/Rapptz/discord.py
 PyNaCl
-gtts
 
 fuzzy-match
 numpy
+pillow
 
 dnspython
 asyncpg
