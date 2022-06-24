@@ -10,10 +10,3 @@ config/secrets.json
 # Irrelevant
 .mypy_cache
 .pytest_cache
-
-# Not ready
-presence_bot.py
-cogs/presencetracker.py
-cogs/typerace.py
-assets/arial.ttf
-assets/template.png

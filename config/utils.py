@@ -6,8 +6,7 @@ import random
 import re
 import sys
 import traceback
-from typing import (TYPE_CHECKING, Any, Dict, Generator, Optional, SupportsInt,
-                    Type)
+from typing import Any, Dict, Generator, Optional, SupportsInt, Type
 
 import discord
 from discord import Interaction, InteractionMessage, PartialEmoji, User, ui
@@ -15,9 +14,6 @@ from discord.app_commands import CheckFailure
 from discord.ext import commands
 from discord.gateway import DiscordWebSocket
 from discord.ui import Button, Item, View, button
-
-if TYPE_CHECKING:
-    from bot import NotGDKID
 
 CHOICES = [
     "no",
@@ -282,40 +278,6 @@ class Confirm(View):
         return self.stop()
 
 
-class BaseGameView(View):
-    """
-    A subclass of `View` that reworks the timeout logic
-    """
-
-    client: NotGDKID = None
-    original_message: discord.Message = None
-
-    async def _scheduled_task(self, item: Item, interaction: Interaction):
-        try:
-            allow = await self.interaction_check(interaction, item)
-            if allow is False:
-                return
-
-            if allow is not None:
-                self._refresh_timeout()
-
-            if item._provided_custom_id:
-                await interaction.response.defer()
-
-            await item.callback(interaction)
-            if not interaction.response._responded:
-                await interaction.response.defer()
-        except Exception as e:
-            return await self.on_error(e, item, interaction)
-
-    def disable_all(self) -> None:
-        for c in self.children:
-            c.disabled = True
-
-    async def interaction_check(self, interaction: Interaction, item: ui.Item) -> bool:
-        raise NotImplementedError
-
-
 def emojiclass(cls: Type[Any]):
     """
     A decorator that takes in a class and fills it with emojis from config
@@ -336,17 +298,3 @@ class BotEmojis:
     """
 
     pass
-
-
-class MaxConcurrencyReached(CheckFailure):
-    """
-    An error subclass typically for game commands
-
-    Attributes
-    ---------
-    jump_url: `str`
-        The jump url to the ongoing game's message
-    """
-
-    def __init__(self, jump_url: str) -> None:
-        self.jump_url = jump_url

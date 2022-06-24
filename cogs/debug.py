@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import inspect
 import io
@@ -29,8 +31,12 @@ from jishaku.shell import ShellReader as ShellReader
 from jishaku.shim.paginator_200 import \
     PaginatorInterface as OGPaginatorInterface
 
-from bot import NotGDKID
 from config.utils import *
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from weather_bot import NotGDKID
 
 try:
     import psutil

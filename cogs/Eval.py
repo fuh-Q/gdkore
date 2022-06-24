@@ -17,7 +17,7 @@ import discord
 from asyncpg import Record
 from discord.ext import commands
 
-from bot import NotGDKID
+from weather_bot import NotGDKID
 from config.utils import CHOICES, BotEmojis, NewEmote
 
 quote = r'"'
@@ -252,6 +252,9 @@ class Eval(commands.Cog):
     )
     @commands.is_owner()
     async def sql(self, ctx: commands.Context, *, query: str):
+        if not hasattr(self.client, "db"):
+            return await ctx.reply("you dont have a db connected lol")
+        
         gamer_strats: Coroutine[Any, Any, List[Record] | str]
         query = self.cleanup_code(query)
 

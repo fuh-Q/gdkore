@@ -1,26 +1,26 @@
 import asyncio
-import json
+from datetime import datetime, timedelta, timezone
 import logging
 import os
 import sys
 import time
 import traceback
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Set, Type
-
 import asyncpg
 import discord
+from discord import ui, app_commands, Interaction
 from discord.app_commands import Command
-from discord.ext import commands, tasks
-from discord.gateway import DiscordWebSocket
-from fuzzy_match import match
-from jishaku.shim.paginator_200 import PaginatorInterface
+from discord.ext import commands
 
-from config.utils import Botcolours, BotEmojis, mobile
+import json
+from fuzzy_match import match
+from PIL import Image, ImageDraw, ImageFont
+
+from typing import Any, Dict, List, Set, Type
+
+from cogs.debug import PaginatorInterFace
 
 with open("config/secrets.json", "r") as f:
     secrets: Dict[str, str] = json.load(f)
-
 
 def new_call_soon(self: asyncio.BaseEventLoop, callback, *args, context=None):
     if not self._closed:
@@ -37,23 +37,6 @@ start = time.monotonic()
 
 asyncio.BaseEventLoop.call_soon = new_call_soon
 
-DiscordWebSocket.identify = mobile
-
-
-@tasks.loop(seconds=1)
-async def status_task(client: "NotGDKID"):
-    now = datetime.now(timezone(timedelta(hours=-4)))
-    if now.second == 0:
-        fmt = now.strftime("%I:%M")
-
-        await client.change_presence(
-            status=discord.Status.online,
-            activity=discord.Activity(
-                name=f"the time, its {fmt[1:] if fmt[0] == '0' else fmt}",
-                type=discord.ActivityType.watching,
-            ),
-        )
-
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("Bot")
@@ -65,12 +48,24 @@ class NotGDKID(commands.Bot):
     """
 
     __file__ = __file__
+    
+    normal_text = ImageFont.truetype("assets/Kiona-Regular.ttf", size=69)
+    medium_text = ImageFont.truetype("assets/Kiona-Regular.ttf", size=150)
+    thiccc_text = ImageFont.truetype("assets/Kiona-Regular.ttf", size=300)
+    
+    token = secrets["token"]
+    testing_token = secrets["testing_token"]
+    postgres_dns = secrets["postgres_dns"]
+    weather_key = secrets["weather_key"]
+    weather_hook_msg_id = 989653104825876560
+    weather_msg_id = 989714440045858817
 
     def __init__(self):
         allowed_mentions = discord.AllowedMentions.all()
         intents = discord.Intents.all()
         intents.presences = False
-        intents.message_content = False if sys.platform != "win32" else True
+        if sys.platform != "win32":
+            intents.message_content = False
 
         super().__init__(
             command_prefix=[
@@ -81,11 +76,15 @@ class NotGDKID(commands.Bot):
                 "b!",
             ],
             allowed_mentions=allowed_mentions,
+            help_command=None,
             intents=intents,
             case_insensitive=True,
             chunk_guilds_at_startup=False,
             status=discord.Status.idle,
-            activity=discord.Game(name="Connecting..."),
+            activity=discord.Activity(
+                name="Connecting...",
+                type=discord.ActivityType.watching,
+            ),
             owner_ids=[596481615253733408, 650882112655720468],
         )
 
@@ -95,44 +94,17 @@ class NotGDKID(commands.Bot):
         os.environ["JISHAKU_USE_BRAILLE_J"] = "True"
 
         self.init_extensions = [
-            "cogs.2048",
-            "cogs.connect4",
-            "cogs.checkers",
             "cogs.debug",
             "cogs.dev",
             "cogs.Eval",
-            "cogs.howto",
-            "cogs.typerace",
-            "cogs.utility",
-            "cogs.words",
             "config.utils",
         ]
 
-        if sys.platform == "linux":
-            self.init_extensions.append("cogs.tts")
-
-        self.active_jishaku_paginators: List[PaginatorInterface] = []
-
-        self._2048_games = []
-        self._connect4_games = []
-        self._checkers_games = []
-        self._hangman_games = []
-
-        self.token = secrets["token"]
-        self.testing_token = secrets["testing_token"]
-        self.postgres_dns = secrets["postgres_dns"]
+        self.active_jishaku_paginators: List[PaginatorInterFace] = []
         self.description = self.__doc__
-
         self.uptime = datetime.utcnow().astimezone(timezone(timedelta(hours=-4)))
 
         self.add_commands()
-
-    @property
-    def emotes(self) -> Type[BotEmojis]:
-        """
-        Type[:class:`BotEmojis`]: The string format of emojis used on this bot
-        """
-        return BotEmojis
 
     @property
     def app_commands(self) -> Set[Command[Any, ..., Any]]:
@@ -147,10 +119,10 @@ class NotGDKID(commands.Bot):
 
     async def setup_hook(self) -> None:
         self.db = await asyncpg.create_pool(self.postgres_dns)
-
+        
         ready_task = self.loop.create_task(self.first_ready())
         ready_task.add_done_callback(
-            lambda exc: print(traceback.format_exception(e, e, e.__traceback__))
+            lambda exc: print("".join(traceback.format_exception(e, e, e.__traceback__)))
             if (e := exc.exception())
             else ...
         )
@@ -163,17 +135,17 @@ class NotGDKID(commands.Bot):
         log.info(
             f"Logged in as: {self.user.name} : {self.user.id}\n----- Cogs and Extensions -----\nMain bot online"
         )
-
-        now = datetime.now(timezone(timedelta(hours=-4)))
-        fmt = now.strftime("%I:%M")
-
-        self.guild_logs = await self.fetch_webhook(905343987555131403)
-        self.status_task = status_task
-
-        if sys.platform == "linux":
-            self.dweebhook = await self.fetch_webhook(954211358231130204)
+        
+        await self.change_presence(status=discord.Status.online, activity=None)
 
         owner = await self.fetch_user(596481615253733408)
+        self.owner = owner
+        
+        if sys.platform == "win32":
+            self.weather_hook = await self.fetch_webhook(989279315487240203)
+        else:
+            self.weather_message = await self.get_channel(989713822682058772).fetch_message(989714440045858817)
+        await self.load_extension("cogs.weather") # you little retarted pussyfuck
 
         end = time.monotonic()
         e = discord.Embed(description=f"❯❯  started up in ~`{round(end - start, 1)}s`")
@@ -198,38 +170,6 @@ class NotGDKID(commands.Bot):
             except discord.HTTPException:
                 pass
 
-    async def on_guild_join(self, guild: discord.Guild):
-        e = discord.Embed(colour=Botcolours.green)
-        e.set_author(
-            name=f"Guild Joined ({len(self.guilds)} servers)",
-            icon_url="https://cdn.discordapp.com/emojis/816263605686894612.png?size=160",
-        )
-        e.add_field(name="Guild Name", value=guild.name)
-        e.add_field(name="Guild ID", value=guild.id)
-        e.add_field(name="Guild Member Count", value=guild.member_count)
-        e.add_field(
-            name="Guild Owner",
-            value=f"<@!{guild.owner_id}>",
-        )
-        if guild.icon:
-            e.set_thumbnail(url=guild.icon.url)
-
-        await self.guild_logs.send(embed=e)
-
-    async def on_guild_remove(self, guild: discord.Guild):
-        e = discord.Embed(colour=Botcolours.red)
-        e.set_author(
-            name=f"Guild Left ({len(self.guilds)} servers)",
-            icon_url="https://cdn.discordapp.com/emojis/816263605837103164.png?size=160",
-        )
-        e.add_field(name="Guild Name", value=guild.name)
-        e.add_field(name="Guild ID", value=guild.id)
-        e.add_field(name="Guild Member Count", value=guild.member_count)
-        if guild.icon:
-            e.set_thumbnail(url=guild.icon.url)
-
-        await self.guild_logs.send(embed=e)
-
     def run(self) -> None:
         async def runner():
             async with self:
@@ -242,17 +182,14 @@ class NotGDKID(commands.Bot):
             # `asyncio.run` handles the loop cleanup
             # and `self.start` closes all sockets and the HTTPClient instance.
             return
-
+    
     async def start(self):
-        if str(__file__).lower() == r"d:\gdkore\bot.py":
+        if sys.platform == "win32":
             await super().start(self.testing_token)
-
         else:
             await super().start(self.token)
 
     async def close(self, restart: bool = False):
-        await self.db.close()
-
         for pag in self.active_jishaku_paginators:
             try:
                 await pag.message.edit(view=None)
@@ -265,9 +202,6 @@ class NotGDKID(commands.Bot):
 
             if self.active_jishaku_paginators:
                 await asyncio.sleep(0.25)
-
-        for game in self._2048_games:
-            await game.async_stop(save=True)
 
         if restart is True:
             for voice in self.voice_clients:
