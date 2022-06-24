@@ -1,26 +1,26 @@
 import asyncio
-from datetime import datetime, timedelta, timezone
+import json
 import logging
 import os
 import sys
 import time
 import traceback
+from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, List, Set, Type
+
 import asyncpg
 import discord
-from discord import ui, app_commands, Interaction
+from discord import Interaction, app_commands, ui
 from discord.app_commands import Command
 from discord.ext import commands
-
-import json
 from fuzzy_match import match
 from PIL import Image, ImageDraw, ImageFont
-
-from typing import Any, Dict, List, Set, Type
 
 from cogs.debug import PaginatorInterFace
 
 with open("config/secrets.json", "r") as f:
     secrets: Dict[str, str] = json.load(f)
+
 
 def new_call_soon(self: asyncio.BaseEventLoop, callback, *args, context=None):
     if not self._closed:
@@ -48,11 +48,11 @@ class NotGDKID(commands.Bot):
     """
 
     __file__ = __file__
-    
+
     normal_text = ImageFont.truetype("assets/Kiona-Regular.ttf", size=69)
     medium_text = ImageFont.truetype("assets/Kiona-Regular.ttf", size=150)
     thiccc_text = ImageFont.truetype("assets/Kiona-Regular.ttf", size=300)
-    
+
     token = secrets["token"]
     testing_token = secrets["testing_token"]
     postgres_dns = secrets["postgres_dns"]
@@ -119,10 +119,12 @@ class NotGDKID(commands.Bot):
 
     async def setup_hook(self) -> None:
         self.db = await asyncpg.create_pool(self.postgres_dns)
-        
+
         ready_task = self.loop.create_task(self.first_ready())
         ready_task.add_done_callback(
-            lambda exc: print("".join(traceback.format_exception(e, e, e.__traceback__)))
+            lambda exc: print(
+                "".join(traceback.format_exception(e, e, e.__traceback__))
+            )
             if (e := exc.exception())
             else ...
         )
@@ -135,17 +137,19 @@ class NotGDKID(commands.Bot):
         log.info(
             f"Logged in as: {self.user.name} : {self.user.id}\n----- Cogs and Extensions -----\nMain bot online"
         )
-        
+
         await self.change_presence(status=discord.Status.online, activity=None)
 
         owner = await self.fetch_user(596481615253733408)
         self.owner = owner
-        
+
         if sys.platform == "win32":
             self.weather_hook = await self.fetch_webhook(989279315487240203)
         else:
-            self.weather_message = await self.get_channel(989713822682058772).fetch_message(989714440045858817)
-        await self.load_extension("cogs.weather") # you little retarted pussyfuck
+            self.weather_message = await self.get_channel(
+                989713822682058772
+            ).fetch_message(989714440045858817)
+        await self.load_extension("cogs.weather")  # you little retarted pussyfuck
 
         end = time.monotonic()
         e = discord.Embed(description=f"❯❯  started up in ~`{round(end - start, 1)}s`")
@@ -182,7 +186,7 @@ class NotGDKID(commands.Bot):
             # `asyncio.run` handles the loop cleanup
             # and `self.start` closes all sockets and the HTTPClient instance.
             return
-    
+
     async def start(self):
         if sys.platform == "win32":
             await super().start(self.testing_token)

@@ -9,6 +9,7 @@ import pathlib
 import random
 import re
 import sys
+from typing import TYPE_CHECKING
 
 import aiohttp
 import discord
@@ -32,8 +33,6 @@ from jishaku.shim.paginator_200 import \
     PaginatorInterface as OGPaginatorInterface
 
 from config.utils import *
-
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from weather_bot import NotGDKID
