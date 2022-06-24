@@ -11,12 +11,14 @@ from typing import Any, Dict, List, Set, Type
 import asyncpg
 import discord
 from discord import Interaction, app_commands, ui
+from discord.gateway import DiscordWebSocket
 from discord.app_commands import Command
 from discord.ext import commands
 from fuzzy_match import match
 from PIL import Image, ImageDraw, ImageFont
 
 from cogs.debug import PaginatorInterFace
+from config.utils import mobile
 
 with open("config/secrets.json", "r") as f:
     secrets: Dict[str, str] = json.load(f)
@@ -36,6 +38,8 @@ def new_call_soon(self: asyncio.BaseEventLoop, callback, *args, context=None):
 start = time.monotonic()
 
 asyncio.BaseEventLoop.call_soon = new_call_soon
+
+DiscordWebSocket.identify = mobile
 
 
 logging.basicConfig(level=logging.INFO)
