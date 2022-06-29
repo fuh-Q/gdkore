@@ -6,8 +6,12 @@ import random
 import re
 import sys
 import traceback
+<<<<<<< HEAD
 from typing import (TYPE_CHECKING, Any, Dict, Generator, Optional, SupportsInt,
                     Type)
+=======
+from typing import Any, Dict, Generator, Optional, SupportsInt, Type
+>>>>>>> 80052bea5f5df6b6cf6bf3a74542db82772524b6
 
 import discord
 from discord import Interaction, InteractionMessage, PartialEmoji, User, ui
@@ -16,9 +20,12 @@ from discord.ext import commands
 from discord.gateway import DiscordWebSocket
 from discord.ui import Button, Item, View, button
 
+<<<<<<< HEAD
 if TYPE_CHECKING:
     from bot import NotGDKID
 
+=======
+>>>>>>> 80052bea5f5df6b6cf6bf3a74542db82772524b6
 CHOICES = [
     "no",
     "its not your menu",
@@ -282,6 +289,7 @@ class Confirm(View):
         return self.stop()
 
 
+<<<<<<< HEAD
 class BaseGameView(View):
     """
     A subclass of `View` that reworks the timeout logic
@@ -316,6 +324,8 @@ class BaseGameView(View):
         raise NotImplementedError
 
 
+=======
+>>>>>>> 80052bea5f5df6b6cf6bf3a74542db82772524b6
 def emojiclass(cls: Type[Any]):
     """
     A decorator that takes in a class and fills it with emojis from config
@@ -336,6 +346,7 @@ class BotEmojis:
     """
 
     pass
+<<<<<<< HEAD
 
 
 class MaxConcurrencyReached(CheckFailure):
@@ -350,3 +361,5 @@ class MaxConcurrencyReached(CheckFailure):
 
     def __init__(self, jump_url: str) -> None:
         self.jump_url = jump_url
+=======
+>>>>>>> 80052bea5f5df6b6cf6bf3a74542db82772524b6
