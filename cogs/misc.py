@@ -33,7 +33,9 @@ class Misc(commands.Cog):
 
     @commands.command(name="channellink", brief="No", aliases=["cl"])
     @commands.is_owner()
-    async def channellink(self, ctx: commands.Context, channel_id: Union[discord.TextChannel, int]):
+    async def channellink(
+        self, ctx: commands.Context, channel_id: Union[discord.TextChannel, int]
+    ):
         global connected_channel
 
         if connected_channel:

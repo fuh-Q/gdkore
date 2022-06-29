@@ -50,10 +50,10 @@ class PingThing(commands.Cog):
             return
 
         role: discord.Role = await self.RoleConverter.convert(ctx, str(doc["_id"]))
-        other_role: discord.Role = await self.RoleConverter.convert(ctx, str(other_doc["_id"]))
-        content = (
-            f"{other_role.mention} {role.mention} {ctx.author.name} has a __***5m+***__ heist for you!\n> {message}"
+        other_role: discord.Role = await self.RoleConverter.convert(
+            ctx, str(other_doc["_id"])
         )
+        content = f"{other_role.mention} {role.mention} {ctx.author.name} has a __***5m+***__ heist for you!\n> {message}"
 
         await ctx.message.delete()
         await ctx.send(content=content)
@@ -65,7 +65,9 @@ class PingThing(commands.Cog):
         case_insensitive=True,
         invoke_without_command=True,
     )
-    @commands.check_any(commands.is_owner(), commands.has_guild_permissions(administrator=True))
+    @commands.check_any(
+        commands.is_owner(), commands.has_guild_permissions(administrator=True)
+    )
     async def pingroles(self, ctx: commands.Context):
         a_list: list[dict] = []
 
@@ -79,8 +81,12 @@ class PingThing(commands.Cog):
         )
         await ctx.reply(embed=e)
 
-    @pingroles.command(name="set", brief="Set the Unfriendly Heist Ping for the default amount")
-    @commands.check_any(commands.is_owner(), commands.has_guild_permissions(administrator=True))
+    @pingroles.command(
+        name="set", brief="Set the Unfriendly Heist Ping for the default amount"
+    )
+    @commands.check_any(
+        commands.is_owner(), commands.has_guild_permissions(administrator=True)
+    )
     async def set_ping(self, ctx: commands.Context, *, role: str):
         async with ctx.typing():
             try:
@@ -88,7 +94,9 @@ class PingThing(commands.Cog):
             except:
                 mach = match.extractOne(role, ctx.guild.roles, score_cutoff=0.2)
                 if not mach:
-                    await ctx.reply(content="Couldn't find a role with the query given. Sorry")
+                    await ctx.reply(
+                        content="Couldn't find a role with the query given. Sorry"
+                    )
                     return
 
                 role: discord.Role = mach[0]
@@ -104,8 +112,12 @@ class PingThing(commands.Cog):
             allowed_mentions=discord.AllowedMentions(everyone=False, roles=False),
         )
 
-    @pingroles.command(name="seth5", brief="Set the Unfriendly Heist Ping for 5m+ heists")
-    @commands.check_any(commands.is_owner(), commands.has_guild_permissions(administrator=True))
+    @pingroles.command(
+        name="seth5", brief="Set the Unfriendly Heist Ping for 5m+ heists"
+    )
+    @commands.check_any(
+        commands.is_owner(), commands.has_guild_permissions(administrator=True)
+    )
     async def set_h5_ping(self, ctx: commands.Context, *, role: str):
         async with ctx.typing():
             try:
@@ -113,7 +125,9 @@ class PingThing(commands.Cog):
             except:
                 mach = match.extractOne(role, ctx.guild.roles, score_cutoff=0.2)
                 if not mach:
-                    await ctx.reply(content="Couldn't find a role with the query given. Sorry")
+                    await ctx.reply(
+                        content="Couldn't find a role with the query given. Sorry"
+                    )
                     return
 
                 role: discord.Role = mach[0]
@@ -129,8 +143,12 @@ class PingThing(commands.Cog):
             allowed_mentions=discord.AllowedMentions(everyone=False, roles=False),
         )
 
-    @pingroles.command(name="clear", aliases=["reset"], brief="Clear all Unfriendly Heist Ping roles")
-    @commands.check_any(commands.is_owner(), commands.has_guild_permissions(administrator=True))
+    @pingroles.command(
+        name="clear", aliases=["reset"], brief="Clear all Unfriendly Heist Ping roles"
+    )
+    @commands.check_any(
+        commands.is_owner(), commands.has_guild_permissions(administrator=True)
+    )
     async def clear_pingroles(self, ctx: commands.Context):
         async with ctx.typing():
             async for _ in self.client.ping_roles.find():
@@ -146,7 +164,9 @@ class PingThing(commands.Cog):
         case_insensitive=True,
         invoke_without_command=True,
     )
-    @commands.check_any(commands.is_owner(), commands.has_guild_permissions(administrator=True))
+    @commands.check_any(
+        commands.is_owner(), commands.has_guild_permissions(administrator=True)
+    )
     async def pingchannels(self, ctx: commands.Context):
         a_list: list[dict] = []
 
@@ -160,11 +180,17 @@ class PingThing(commands.Cog):
         )
         await ctx.reply(embed=e)
 
-    @pingchannels.command(name="add", aliases=["addchan"], brief="Add an Unfriendly Heist Ping channel")
-    @commands.check_any(commands.is_owner(), commands.has_guild_permissions(administrator=True))
+    @pingchannels.command(
+        name="add", aliases=["addchan"], brief="Add an Unfriendly Heist Ping channel"
+    )
+    @commands.check_any(
+        commands.is_owner(), commands.has_guild_permissions(administrator=True)
+    )
     async def add_channel(self, ctx: commands.Context, channel: discord.TextChannel):
         async with ctx.typing():
-            await self.client.ping_channels.update_one({"_id": channel.id}, {"$set": {"_id": channel.id}}, upsert=True)
+            await self.client.ping_channels.update_one(
+                {"_id": channel.id}, {"$set": {"_id": channel.id}}, upsert=True
+            )
 
         await ctx.reply(content=f"Successfully set {channel.mention} as a ping channel")
 
@@ -173,19 +199,25 @@ class PingThing(commands.Cog):
         aliases=["rm", "rmchan"],
         brief="Remove an Unfriendly Heist Ping channel",
     )
-    @commands.check_any(commands.is_owner(), commands.has_guild_permissions(administrator=True))
+    @commands.check_any(
+        commands.is_owner(), commands.has_guild_permissions(administrator=True)
+    )
     async def remove_channel(self, ctx: commands.Context, channel: discord.TextChannel):
         async with ctx.typing():
             await self.client.ping_channels.delete_one({"_id": channel.id})
 
-        await ctx.reply(content=f"Successfully removed {channel.mention} as a ping channel")
+        await ctx.reply(
+            content=f"Successfully removed {channel.mention} as a ping channel"
+        )
 
     @pingchannels.command(
         name="clear",
         aliases=["reset"],
         brief="Clear all Unfriendly Heist Ping channels",
     )
-    @commands.check_any(commands.is_owner(), commands.has_guild_permissions(administrator=True))
+    @commands.check_any(
+        commands.is_owner(), commands.has_guild_permissions(administrator=True)
+    )
     async def clear_pingroles(self, ctx: commands.Context):
         async with ctx.typing():
             async for _ in self.client.ping_channels.find():

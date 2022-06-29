@@ -57,7 +57,9 @@ class AreUSureLoL(discord.ui.View):
     async def interaction_check(self, interaction: discord.Interaction):
         """Check that determines whether this interaction should be honored"""
         if interaction.user.id != self.owner.id:
-            await interaction.response.send_message(content=random.choice(CHOICES), ephemeral=True)
+            await interaction.response.send_message(
+                content=random.choice(CHOICES), ephemeral=True
+            )
             return False
         return True
 
@@ -66,7 +68,9 @@ class AreUSureLoL(discord.ui.View):
         self.stop()
 
     @discord.ui.button(label="Yessirrrrr", emoji="💀", style=discord.ButtonStyle.success)
-    async def clear_user(self, button: discord.Button, interaction: discord.Interaction):
+    async def clear_user(
+        self, button: discord.Button, interaction: discord.Interaction
+    ):
         self.clear = True
         self.clear_items()
         self.stop()
@@ -145,15 +149,19 @@ class DonoTracker(commands.Cog):
             number: int = int(  # The amount donated
                 re.search(r"\*\*⏣ \d+\*\*", message.content.replace(",", ""))[0][4:-2]
             )
-            donor: discord.Member = await self.MemberConverter.convert(  # The person who donated
-                ctx, re.search(r"<@!?[^&]\d+>", message.content)[0]
+            donor: discord.Member = (
+                await self.MemberConverter.convert(  # The person who donated
+                    ctx, re.search(r"<@!?[^&]\d+>", message.content)[0]
+                )
             )
 
             exists: Optional[dict] = await self.client.donos.find_one(
                 {"_id": donor.id}
             )  # Fetch the donor's previously logged donations
             if not exists:  # If none found
-                await self.client.donos.insert_one({"_id": donor.id, "donated": number, "donations": 1})
+                await self.client.donos.insert_one(
+                    {"_id": donor.id, "donated": number, "donations": 1}
+                )
                 e = discord.Embed(
                     title=f"Thank you for donating!",
                     description=f"Donations: `1`\nTotal Donated: `⏣ {number:,}`",
@@ -174,7 +182,9 @@ class DonoTracker(commands.Cog):
 
                 for i in range(len(sorted_list_of_docs)):
                     if number > sorted_list_of_docs[i]["milestone"]:
-                        await donor.add_roles(message.guild.get_role(sorted_list_of_docs[i]["_id"]))
+                        await donor.add_roles(
+                            message.guild.get_role(sorted_list_of_docs[i]["_id"])
+                        )
                         await asyncio.sleep(0.5)
                 return
 
@@ -207,7 +217,9 @@ class DonoTracker(commands.Cog):
 
             for i in range(len(sorted_list_of_docs)):
                 if donated > sorted_list_of_docs[i]["milestone"]:
-                    await donor.add_roles(message.guild.get_role(sorted_list_of_docs[i]["_id"]))
+                    await donor.add_roles(
+                        message.guild.get_role(sorted_list_of_docs[i]["_id"])
+                    )
                     await asyncio.sleep(0.5)
 
     @commands.group(
@@ -219,7 +231,9 @@ class DonoTracker(commands.Cog):
         invoke_without_command=True,
     )
     @commands.cooldown(1, 5, commands.BucketType.user)
-    async def donations(self, ctx: commands.Context, member: commands.MemberConverter = None):
+    async def donations(
+        self, ctx: commands.Context, member: commands.MemberConverter = None
+    ):
         if not member:
             member = ctx.author
 
@@ -237,7 +251,9 @@ class DonoTracker(commands.Cog):
         await ctx.reply(embed=e)
 
     @donations.command(name="add", brief="Add to a user's donated amount")
-    @commands.check_any(commands.is_owner(), commands.has_guild_permissions(administrator=True))
+    @commands.check_any(
+        commands.is_owner(), commands.has_guild_permissions(administrator=True)
+    )
     async def add_dono(
         self,
         ctx: commands.Context,
@@ -270,7 +286,9 @@ class DonoTracker(commands.Cog):
             upsert=True,
         )
 
-        await ctx.reply(content=f"Successfully added `⏣ {amountInt:,}` to {member.name}'s donations")
+        await ctx.reply(
+            content=f"Successfully added `⏣ {amountInt:,}` to {member.name}'s donations"
+        )
 
         list_of_docs: list[dict] = []
 
@@ -283,13 +301,18 @@ class DonoTracker(commands.Cog):
         for i in range(len(sorted_list_of_docs)):
             if (
                 new_amt > sorted_list_of_docs[i]["milestone"]
-                and not ctx.guild.get_role(sorted_list_of_docs[i]["_id"]) in member.roles
+                and not ctx.guild.get_role(sorted_list_of_docs[i]["_id"])
+                in member.roles
             ):
-                await member.add_roles(ctx.guild.get_role(sorted_list_of_docs[i]["_id"]))
+                await member.add_roles(
+                    ctx.guild.get_role(sorted_list_of_docs[i]["_id"])
+                )
                 await asyncio.sleep(0.5)
 
     @donations.command(name="remove", brief="Remove from a user's donated amount")
-    @commands.check_any(commands.is_owner(), commands.has_guild_permissions(administrator=True))
+    @commands.check_any(
+        commands.is_owner(), commands.has_guild_permissions(administrator=True)
+    )
     async def remove_dono(
         self,
         ctx: commands.Context,
@@ -315,14 +338,18 @@ class DonoTracker(commands.Cog):
             {
                 "$set": {
                     "_id": member.id,
-                    "donated": doc["donated"] - amountInt if doc["donated"] - amountInt > 0 else 0,
+                    "donated": doc["donated"] - amountInt
+                    if doc["donated"] - amountInt > 0
+                    else 0,
                     "donations": doc["donations"],
                 }
             },
             upsert=True,
         )
 
-        await ctx.reply(content=f"Successfully removed `⏣ {amountInt:,}` from {member.name}'s donations")
+        await ctx.reply(
+            content=f"Successfully removed `⏣ {amountInt:,}` from {member.name}'s donations"
+        )
 
         list_of_docs: list[dict] = []
 
@@ -337,11 +364,15 @@ class DonoTracker(commands.Cog):
                 new_amt < sorted_list_of_docs[i]["milestone"]
                 and ctx.guild.get_role(sorted_list_of_docs[i]["_id"]) in member.roles
             ):
-                await member.remove_roles(ctx.guild.get_role(sorted_list_of_docs[i]["_id"]))
+                await member.remove_roles(
+                    ctx.guild.get_role(sorted_list_of_docs[i]["_id"])
+                )
                 await asyncio.sleep(0.5)
 
     @donations.command(name="set", brief="Set a user's donations to a specific amount")
-    @commands.check_any(commands.is_owner(), commands.has_guild_permissions(administrator=True))
+    @commands.check_any(
+        commands.is_owner(), commands.has_guild_permissions(administrator=True)
+    )
     async def set_dono(
         self,
         ctx: commands.Context,
@@ -374,7 +405,9 @@ class DonoTracker(commands.Cog):
             upsert=True,
         )
 
-        await ctx.reply(content=f"Successfully set {member.name}'s donation amount to `⏣ {amountInt:,}`")
+        await ctx.reply(
+            content=f"Successfully set {member.name}'s donation amount to `⏣ {amountInt:,}`"
+        )
 
         list_of_docs: list[dict] = []
 
@@ -389,7 +422,9 @@ class DonoTracker(commands.Cog):
                 new_amt < sorted_list_of_docs[i]["milestone"]
                 and ctx.guild.get_role(sorted_list_of_docs[i]["_id"]) in member.roles
             ):
-                await member.remove_roles(ctx.guild.get_role(sorted_list_of_docs[i]["_id"]))
+                await member.remove_roles(
+                    ctx.guild.get_role(sorted_list_of_docs[i]["_id"])
+                )
                 await asyncio.sleep(0.5)
 
         new_amt = doc["donated"] + amountInt
@@ -397,13 +432,20 @@ class DonoTracker(commands.Cog):
         for i in range(len(sorted_list_of_docs)):
             if (
                 new_amt > sorted_list_of_docs[i]["milestone"]
-                and not ctx.guild.get_role(sorted_list_of_docs[i]["_id"]) in member.roles
+                and not ctx.guild.get_role(sorted_list_of_docs[i]["_id"])
+                in member.roles
             ):
-                await member.add_roles(ctx.guild.get_role(sorted_list_of_docs[i]["_id"]))
+                await member.add_roles(
+                    ctx.guild.get_role(sorted_list_of_docs[i]["_id"])
+                )
                 await asyncio.sleep(0.5)
 
-    @donations.command(name="reset", aliases=["clear"], brief="Clear a user's donations")
-    @commands.check_any(commands.is_owner(), commands.has_guild_permissions(administrator=True))
+    @donations.command(
+        name="reset", aliases=["clear"], brief="Clear a user's donations"
+    )
+    @commands.check_any(
+        commands.is_owner(), commands.has_guild_permissions(administrator=True)
+    )
     async def reset_dono(self, ctx: commands.Context, member: commands.MemberConverter):
         member: discord.Member = member
 
@@ -430,7 +472,9 @@ class DonoTracker(commands.Cog):
             sorted_list_of_docs = sorted(list_of_docs, key=itemgetter("milestone"))
             for i in range(len(sorted_list_of_docs)):
                 if ctx.guild.get_role(sorted_list_of_docs[i]["_id"]) in member.roles:
-                    await member.remove_roles(ctx.guild.get_role(sorted_list_of_docs[i]["_id"]))
+                    await member.remove_roles(
+                        ctx.guild.get_role(sorted_list_of_docs[i]["_id"])
+                    )
                     await asyncio.sleep(0.5)
             return
 
@@ -439,7 +483,9 @@ class DonoTracker(commands.Cog):
         await m.edit(embed=e, view=None)
         await ctx.reply(content="Alright I guess no fireworks tonight")
 
-    @donations.command(name="leaderboard", aliases=["lb"], brief="Display the top donated 10 users")
+    @donations.command(
+        name="leaderboard", aliases=["lb"], brief="Display the top donated 10 users"
+    )
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def dono_leaderboards(self, ctx: commands.Context):
         a_list: list[dict] = []
@@ -491,7 +537,9 @@ class DonoTracker(commands.Cog):
         case_insensitive=True,
         invoke_without_command=True,
     )
-    @commands.check_any(commands.is_owner(), commands.has_guild_permissions(administrator=True))
+    @commands.check_any(
+        commands.is_owner(), commands.has_guild_permissions(administrator=True)
+    )
     async def donationchannels(self, ctx: commands.Context):
         async with ctx.typing():
             a_list: list[Optional[discord.TextChannel]] = []
@@ -502,7 +550,9 @@ class DonoTracker(commands.Cog):
             e = discord.Embed(
                 title=f"Donation channels in {ctx.guild.name}",
                 description="{0}".format(
-                    "\n".join([channel.mention for channel in a_list]) if len(a_list) > 0 else "None lol ¯\_(ツ)_/¯"
+                    "\n".join([channel.mention for channel in a_list])
+                    if len(a_list) > 0
+                    else "None lol ¯\_(ツ)_/¯"
                 ),
                 colour=0x09DFFF,
             )
@@ -514,23 +564,31 @@ class DonoTracker(commands.Cog):
         aliases=["addchan"],
         brief="Add a channel where donations will be tracked",
     )
-    @commands.check_any(commands.is_owner(), commands.has_guild_permissions(administrator=True))
+    @commands.check_any(
+        commands.is_owner(), commands.has_guild_permissions(administrator=True)
+    )
     async def add_channel(self, ctx: commands.Context, channel: discord.TextChannel):
         async with ctx.typing():
-            await self.client.dono_channels.update_one({"_id": channel.id}, {"$set": {"_id": channel.id}}, upsert=True)
+            await self.client.dono_channels.update_one(
+                {"_id": channel.id}, {"$set": {"_id": channel.id}}, upsert=True
+            )
             self.dono_channels.clear()
 
             async for doc in self.client.dono_channels.find():
                 self.dono_channels.append(doc["_id"])
 
-        await ctx.reply(content=f"Successfully set {channel.mention} as a donation channel")
+        await ctx.reply(
+            content=f"Successfully set {channel.mention} as a donation channel"
+        )
 
     @donationchannels.command(
         name="remove",
         aliases=["rm", "rmchan"],
         brief="Remove a channel where donations are be tracked",
     )
-    @commands.check_any(commands.is_owner(), commands.has_guild_permissions(administrator=True))
+    @commands.check_any(
+        commands.is_owner(), commands.has_guild_permissions(administrator=True)
+    )
     async def remove_channel(self, ctx: commands.Context, channel: discord.TextChannel):
         async with ctx.typing():
             await self.client.dono_channels.delete_one({"_id": channel.id})
@@ -539,14 +597,18 @@ class DonoTracker(commands.Cog):
             async for doc in self.client.dono_channels.find():
                 self.dono_channels.append(doc["_id"])
 
-        await ctx.reply(content=f"Successfully removed {channel.mention} as a donation channel")
+        await ctx.reply(
+            content=f"Successfully removed {channel.mention} as a donation channel"
+        )
 
     @donationchannels.command(
         name="removeall",
         aliases=["rmall", "clear"],
         brief="Remove every channel where donations are be tracked",
     )
-    @commands.check_any(commands.is_owner(), commands.has_guild_permissions(administrator=True))
+    @commands.check_any(
+        commands.is_owner(), commands.has_guild_permissions(administrator=True)
+    )
     async def removeall_channels(self, ctx: commands.Context):
         async with ctx.typing():
             async for _ in self.client.dono_channels.find():
@@ -562,24 +624,36 @@ class DonoTracker(commands.Cog):
         case_insensitive=True,
         invoke_without_command=True,
     )
-    @commands.check_any(commands.is_owner(), commands.has_guild_permissions(administrator=True))
+    @commands.check_any(
+        commands.is_owner(), commands.has_guild_permissions(administrator=True)
+    )
     async def donationroles(self, ctx: commands.Context):
         async with ctx.typing():
             a_list: list[str] = []
 
             async for doc in self.client.dono_roles.find():
-                a_list.append(f"{ctx.guild.get_role(doc['_id']).mention} - `⏣ {doc['milestone']:,}`")
+                a_list.append(
+                    f"{ctx.guild.get_role(doc['_id']).mention} - `⏣ {doc['milestone']:,}`"
+                )
 
             e = discord.Embed(
                 title=f"Donation roles in {ctx.guild.name}",
-                description="{0}".format("\n".join([r for r in a_list]) if len(a_list) > 0 else "None lmfao ¯\_(ツ)_/¯"),
+                description="{0}".format(
+                    "\n".join([r for r in a_list])
+                    if len(a_list) > 0
+                    else "None lmfao ¯\_(ツ)_/¯"
+                ),
                 colour=0x09DFFF,
             )
         await ctx.reply(embed=e)
 
     @donationroles.command(name="add", brief="Add a donation milestone role")
-    @commands.check_any(commands.is_owner(), commands.has_guild_permissions(administrator=True))
-    async def add_role(self, ctx: commands.Context, milestone: convert_to_int, *, role: str):
+    @commands.check_any(
+        commands.is_owner(), commands.has_guild_permissions(administrator=True)
+    )
+    async def add_role(
+        self, ctx: commands.Context, milestone: convert_to_int, *, role: str
+    ):
         if not milestone:
             await ctx.reply(content="Couldn't convert your input into an integer")
             return
@@ -589,7 +663,9 @@ class DonoTracker(commands.Cog):
         except:
             mach = match.extractOne(role, ctx.guild.roles, score_cutoff=0.2)
             if not mach:
-                await ctx.reply(content="Couldn't find a role with the query given. Sorry")
+                await ctx.reply(
+                    content="Couldn't find a role with the query given. Sorry"
+                )
                 return
 
             role: discord.Role = mach[0]
@@ -611,14 +687,18 @@ class DonoTracker(commands.Cog):
         )
 
     @donationroles.command(name="remove", brief="Remove a donation milestone role")
-    @commands.check_any(commands.is_owner(), commands.has_guild_permissions(administrator=True))
+    @commands.check_any(
+        commands.is_owner(), commands.has_guild_permissions(administrator=True)
+    )
     async def remove_role(self, ctx: commands.Context, *, role: str):
         try:
             role: discord.Role = await self.RoleConverter.convert(ctx, role)
         except:
             mach = match.extractOne(role, ctx.guild.roles, score_cutoff=0.2)
             if not mach:
-                await ctx.reply(content="Couldn't find a role with the query given. Sorry")
+                await ctx.reply(
+                    content="Couldn't find a role with the query given. Sorry"
+                )
                 return
 
             role: discord.Role = mach[0]
@@ -630,8 +710,12 @@ class DonoTracker(commands.Cog):
             allowed_mentions=discord.AllowedMentions(everyone=False, roles=False),
         )
 
-    @donationroles.command(name="reset", aliases=["clear"], brief="Remove all donation milestone roles")
-    @commands.check_any(commands.is_owner(), commands.has_guild_permissions(administrator=True))
+    @donationroles.command(
+        name="reset", aliases=["clear"], brief="Remove all donation milestone roles"
+    )
+    @commands.check_any(
+        commands.is_owner(), commands.has_guild_permissions(administrator=True)
+    )
     async def remove_all_roles(self, ctx: commands.Context):
         async with ctx.typing():
             async for _ in self.client.dono_roles.find():
@@ -647,7 +731,9 @@ class DonoTracker(commands.Cog):
         case_insensitive=True,
         invoke_without_command=True,
     )
-    @commands.check_any(commands.is_owner(), commands.has_guild_permissions(administrator=True))
+    @commands.check_any(
+        commands.is_owner(), commands.has_guild_permissions(administrator=True)
+    )
     async def loggingchannel(self, ctx: commands.Context):
         async for doc in self.client.dono_logging.find():
             e = discord.Embed(
@@ -663,8 +749,12 @@ class DonoTracker(commands.Cog):
         aliases=["setlogchan", "setlog"],
         brief="Set a donation logging channel",
     )
-    @commands.check_any(commands.is_owner(), commands.has_guild_permissions(administrator=True))
-    async def setloggingchannel(self, ctx: commands.Context, channel: discord.TextChannel):
+    @commands.check_any(
+        commands.is_owner(), commands.has_guild_permissions(administrator=True)
+    )
+    async def setloggingchannel(
+        self, ctx: commands.Context, channel: discord.TextChannel
+    ):
         async for _ in self.client.dono_logging.find():
             await self.client.dono_logging.delete_one({})
 

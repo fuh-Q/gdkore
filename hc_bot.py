@@ -26,7 +26,9 @@ db: Database = cluster["HCDB"]
 
 class HeistingCultBot(commands.Bot):
     def __init__(self):
-        allowed_mentions = discord.AllowedMentions(roles=True, everyone=False, users=True, replied_user=True)
+        allowed_mentions = discord.AllowedMentions(
+            roles=True, everyone=False, users=True, replied_user=True
+        )
         intents = discord.Intents.all()
 
         super().__init__(
@@ -78,10 +80,14 @@ class HeistingCultBot(commands.Bot):
                     continue
 
     async def on_connect(self):
-        await self.change_presence(status=discord.Status.idle, activity=discord.Game(name="Starting up..."))
+        await self.change_presence(
+            status=discord.Status.idle, activity=discord.Game(name="Starting up...")
+        )
 
     async def on_ready(self):
-        print(f"Logged in as: {self.user.name} : {self.user.id}\n----- Cogs and Extensions -----\nMain bot online")
+        print(
+            f"Logged in as: {self.user.name} : {self.user.id}\n----- Cogs and Extensions -----\nMain bot online"
+        )
         await self.change_presence(activity=discord.Game(name="with balls"))  # mmm yes
 
         try:
@@ -120,17 +126,25 @@ class HeistingCultBot(commands.Bot):
 
         await self.process_commands(message)
 
-    async def on_member_ban(self, guild: discord.Guild, member: Union[discord.Member, discord.User]):
-        if not isinstance(member, discord.Member):  # They were banned while not in the server
+    async def on_member_ban(
+        self, guild: discord.Guild, member: Union[discord.Member, discord.User]
+    ):
+        if not isinstance(
+            member, discord.Member
+        ):  # They were banned while not in the server
             return
 
         await self.heist_points.delete_one({"_id": member.id})
         await self.donos.delete_one({"_id": member.id})
 
-    async def on_command_error(self, ctx: commands.Context, error: commands.CommandError):
+    async def on_command_error(
+        self, ctx: commands.Context, error: commands.CommandError
+    ):
         if isinstance(error, commands.CommandOnCooldown):
             await ctx.reply(
-                content="This command is on cooldown, try again in `{:.2f}` seconds".format(error.retry_after),
+                content="This command is on cooldown, try again in `{:.2f}` seconds".format(
+                    error.retry_after
+                ),
                 mention_author=True,
             )
             return

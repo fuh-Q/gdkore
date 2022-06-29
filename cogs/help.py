@@ -22,12 +22,16 @@ class HelpCommand(commands.HelpCommand):
                 "name": "help",
                 "brief": "Gives help on the bot",
                 "aliases": ["commands", "cmd", "h"],
-                "cooldown": commands.CooldownMapping.from_cooldown(1, 3, commands.BucketType.user),
+                "cooldown": commands.CooldownMapping.from_cooldown(
+                    1, 3, commands.BucketType.user
+                ),
             },
         )
         self.context: commands.Context = self.context
 
-    def get_command_signature(self, command: Union[Command, Group], with_prefix: bool = False):
+    def get_command_signature(
+        self, command: Union[Command, Group], with_prefix: bool = False
+    ):
         """Gets the signature of a command. You can specify wether you want the prefix to be included in the result or not"""
         return f'{self.context.clean_prefix if with_prefix else ""}{command.qualified_name} {command.signature}** ***'
 
@@ -107,12 +111,16 @@ class HelpCommand(commands.HelpCommand):
         return random.choice(list_thing)
 
     async def send_bot_help(self, mapping: Mapping[BattlerCog, Iterable[Command]]):
-        embed = discord.Embed(description="__Command categories:__", color=Botcolours.cyan)
+        embed = discord.Embed(
+            description="__Command categories:__", color=Botcolours.cyan
+        )
         embed.set_author(
             name="Help Menu",
             icon_url=self.context.bot.user.avatar,
         )
-        embed.set_footer(text="{0}help <category> for more info".format(self.context.clean_prefix))
+        embed.set_footer(
+            text="{0}help <category> for more info".format(self.context.clean_prefix)
+        )
         for cog, commands in mapping.items():
             filtered = await self.filter_commands(commands, sort=True)
             if filtered:
@@ -125,7 +133,9 @@ class HelpCommand(commands.HelpCommand):
                         cog_emoji = cog.emoji
                     except AttributeError:
                         cog_emoji = ""
-                    all_commands: list[Union[Group, Command]] = list(cog.walk_commands())
+                    all_commands: list[Union[Group, Command]] = list(
+                        cog.walk_commands()
+                    )
                     counter: int = 0
                     for command in all_commands:
                         try:
@@ -155,7 +165,9 @@ class HelpCommand(commands.HelpCommand):
             name="Help Menu",
             icon_url=self.context.bot.user.avatar,
         )
-        embed.set_footer(text="{0}help <command> for more info".format(self.context.clean_prefix))
+        embed.set_footer(
+            text="{0}help <command> for more info".format(self.context.clean_prefix)
+        )
         commands: list[Union[Group, Command]] = cog.get_commands()
         await self.filter_commands(commands, sort=True)
         for command in commands:
@@ -165,7 +177,9 @@ class HelpCommand(commands.HelpCommand):
             except Exception:
                 continue
             else:
-                command_signature = self.get_command_signature(command, with_prefix=True)
+                command_signature = self.get_command_signature(
+                    command, with_prefix=True
+                )
                 if not command.hidden:
                     a_list = []
                     if isinstance(command, Group):
@@ -181,7 +195,9 @@ class HelpCommand(commands.HelpCommand):
                         embed.description
                         + "\n\n`{0.qualified_name}: ` {1}\n*Command usage: {2}{3}{4}".format(
                             command,
-                            command.short_doc if isinstance(command, Group) else self.brief_or_help(command),
+                            command.short_doc
+                            if isinstance(command, Group)
+                            else self.brief_or_help(command),
                             command_signature,
                             self.alias(command),
                             "\n*`" + str(len(a_list)) + " subcommands`*"
@@ -218,7 +234,11 @@ class HelpCommand(commands.HelpCommand):
             name="Help Menu",
             icon_url=self.context.bot.user.avatar,
         )
-        embed.set_footer(text="{0}help {1} <subcommand> for more info".format(self.context.clean_prefix, group))
+        embed.set_footer(
+            text="{0}help {1} <subcommand> for more info".format(
+                self.context.clean_prefix, group
+            )
+        )
 
         await self.context.reply(embed=embed)
 
@@ -238,7 +258,9 @@ class HelpCommand(commands.HelpCommand):
         thing = self.max_concurrency(command)
         thing2 = self.cooldown(command)
         if type(thing) == list:
-            embed.add_field(name=thing[0], value=f"{thing[1]} use(s) per {thing[2]}", inline=False)
+            embed.add_field(
+                name=thing[0], value=f"{thing[1]} use(s) per {thing[2]}", inline=False
+            )
         if type(thing2) == list:
             embed.add_field(
                 name=thing2[0],
@@ -249,7 +271,9 @@ class HelpCommand(commands.HelpCommand):
             name="Help Menu",
             icon_url=self.context.bot.user.avatar,
         )
-        embed.set_footer(text="Arguments in <> are required | [] are optional\n[p] represents your prefix")
+        embed.set_footer(
+            text="Arguments in <> are required | [] are optional\n[p] represents your prefix"
+        )
 
         await self.context.reply(embed=embed)
 
@@ -281,18 +305,24 @@ class HelpCommand(commands.HelpCommand):
         cmd = bot.all_commands.get(keys[0])
 
         if cmd is None:
-            string = await maybe_coro(self.command_not_found, self.remove_mentions(keys[0]))
+            string = await maybe_coro(
+                self.command_not_found, self.remove_mentions(keys[0])
+            )
             return await self.send_error_message(string)
 
         for key in keys[1:]:
             try:
                 found = cmd.all_commands.get(key)
             except AttributeError:
-                string = await maybe_coro(self.subcommand_not_found, cmd, self.remove_mentions(key))
+                string = await maybe_coro(
+                    self.subcommand_not_found, cmd, self.remove_mentions(key)
+                )
                 return await self.send_error_message(string)
             else:
                 if found is None:
-                    string = await maybe_coro(self.subcommand_not_found, cmd, self.remove_mentions(key))
+                    string = await maybe_coro(
+                        self.subcommand_not_found, cmd, self.remove_mentions(key)
+                    )
                     return await self.send_error_message(string)
                 cmd = found
 

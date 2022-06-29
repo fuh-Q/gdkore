@@ -42,7 +42,9 @@ def check_bot_perms(ctx: ApplicationContext, channel: bool = True, **perms):
     else:
         my_perms: discord.Permissions = ctx.me.guild_permissions
 
-    missing = [perm for perm, value in perms.items() if getattr(my_perms, perm) != value]
+    missing = [
+        perm for perm, value in perms.items() if getattr(my_perms, perm) != value
+    ]
 
     if not missing:
         return
@@ -72,7 +74,9 @@ async def check_perms(ctx: ApplicationContext):
         manage_messages=True,
     )
 
-    second_check_failed = check_bot_perms(ctx, channel=False, manage_roles=True, manage_channels=True)
+    second_check_failed = check_bot_perms(
+        ctx, channel=False, manage_roles=True, manage_channels=True
+    )
 
     if first_check_failed:
         return first_check_failed
@@ -105,7 +109,9 @@ async def argument_argument(ctx: AutocompleteContext):
 
     if setting == "gamestarter" or setting == "playerrole":
         roles_list = ctx.interaction.guild.roles
-        roles_list.pop(ctx.interaction.guild.roles.index(ctx.interaction.guild.default_role))
+        roles_list.pop(
+            ctx.interaction.guild.roles.index(ctx.interaction.guild.default_role)
+        )
         return [
             "{}".format(r.name if r.name.startswith("@") else f"@{r.name}")
             for r in roles_list
@@ -113,11 +119,23 @@ async def argument_argument(ctx: AutocompleteContext):
         ]
 
     if setting == "timetojoin":
-        return [f"Enter a value between {timetojoin_min_} and {timetojoin_max_}"] if len(ctx.value) < 1 else []
+        return (
+            [f"Enter a value between {timetojoin_min_} and {timetojoin_max_}"]
+            if len(ctx.value) < 1
+            else []
+        )
     if setting == "gametimeout":
-        return [f"Enter a value between {gametimeout_min_} and {gametimeout_max_}"] if len(ctx.value) < 1 else []
+        return (
+            [f"Enter a value between {gametimeout_min_} and {gametimeout_max_}"]
+            if len(ctx.value) < 1
+            else []
+        )
     if setting == "selfbanchance":
-        return [f"Enter a value between {selfbanchance_min_} and {selfbanchance_max_}"] if len(ctx.value) < 1 else []
+        return (
+            [f"Enter a value between {selfbanchance_min_} and {selfbanchance_max_}"]
+            if len(ctx.value) < 1
+            else []
+        )
 
     if setting == "bandm":
         return (
@@ -170,7 +188,9 @@ class ReadyOrNot(discord.ui.View):
     async def interaction_check(self, interaction: discord.Interaction):
         """Check that determines whether this interaction should be honored"""
         if interaction.user.id != self.owner.id:
-            await interaction.response.send_message(content=random.choice(CHOICES), ephemeral=True)
+            await interaction.response.send_message(
+                content=random.choice(CHOICES), ephemeral=True
+            )
             return False
         return True
 
@@ -203,7 +223,9 @@ class GuidePaginator(discord.ui.View):
     async def interaction_check(self, interaction: discord.Interaction):
         """Check that determines whether this interaction should be honored"""
         if interaction.user.id != self.owner.id:
-            await interaction.response.send_message(content=random.choice(CHOICES), ephemeral=True)
+            await interaction.response.send_message(
+                content=random.choice(CHOICES), ephemeral=True
+            )
             return False
         return True
 
@@ -228,14 +250,18 @@ class GuidePaginator(discord.ui.View):
         if not self.start_page == 0:
             self.page_one.disabled = False
 
-        inter: discord.Interaction = await self.ctx.respond(embed=page_list[self.start_page], view=self)
+        inter: discord.Interaction = await self.ctx.respond(
+            embed=page_list[self.start_page], view=self
+        )
         self.message: discord.InteractionMessage = await inter.original_message()
         self.client.active_paginators.append(self.message)
 
         return self
 
     def stop(self):
-        self.client.active_paginators.pop(self.client.active_paginators.index(self.message))
+        self.client.active_paginators.pop(
+            self.client.active_paginators.index(self.message)
+        )
         super().stop()
 
     @discord.ui.button(
@@ -254,7 +280,9 @@ class GuidePaginator(discord.ui.View):
 
         await interaction.response.edit_message(embed=self.pages.page_one, view=self)
 
-    @discord.ui.button(label="1. What This is", style=discord.ButtonStyle.secondary, row=2)
+    @discord.ui.button(
+        label="1. What This is", style=discord.ButtonStyle.secondary, row=2
+    )
     async def page_two(self, button: discord.Button, interaction: discord.Interaction):
         if self.previous_button:
             self.previous_button.disabled = False
@@ -267,7 +295,9 @@ class GuidePaginator(discord.ui.View):
         await interaction.response.edit_message(embed=self.pages.page_two, view=self)
 
     @discord.ui.button(label="2. Gamemodes", style=discord.ButtonStyle.secondary, row=2)
-    async def page_three(self, button: discord.Button, interaction: discord.Interaction):
+    async def page_three(
+        self, button: discord.Button, interaction: discord.Interaction
+    ):
         if self.previous_button:
             self.previous_button.disabled = False
 
@@ -290,7 +320,9 @@ class GuidePaginator(discord.ui.View):
 
         await interaction.response.edit_message(embed=self.pages.page_four, view=self)
 
-    @discord.ui.button(label="4. Customization", style=discord.ButtonStyle.secondary, row=3)
+    @discord.ui.button(
+        label="4. Customization", style=discord.ButtonStyle.secondary, row=3
+    )
     async def page_five(self, button: discord.Button, interaction: discord.Interaction):
         if self.previous_button:
             self.previous_button.disabled = False
@@ -314,8 +346,12 @@ class GuidePaginator(discord.ui.View):
 
         await interaction.response.edit_message(embed=self.pages.page_six, view=self)
 
-    @discord.ui.button(label="6. Miscellaneous", style=discord.ButtonStyle.secondary, row=3)
-    async def page_seven(self, button: discord.Button, interaction: discord.Interaction):
+    @discord.ui.button(
+        label="6. Miscellaneous", style=discord.ButtonStyle.secondary, row=3
+    )
+    async def page_seven(
+        self, button: discord.Button, interaction: discord.Interaction
+    ):
         if self.previous_button:
             self.previous_button.disabled = False
 
@@ -343,7 +379,9 @@ class GuidePaginator(discord.ui.View):
         row=1,
         emoji=NewEmote.from_name("<:x_:822656892538191872>"),
     )
-    async def close_menu(self, button: discord.Button, interaction: discord.Interaction):
+    async def close_menu(
+        self, button: discord.Button, interaction: discord.Interaction
+    ):
         self.delete_me = True
         self.stop()
 
@@ -427,7 +465,9 @@ class BanBattle(BattlerCog):
         else:
             return [self.client.no, " Not set "]
 
-    async def get_all_bansettings(self, ctx: ApplicationContext, key: int = None) -> discord.Embed:
+    async def get_all_bansettings(
+        self, ctx: ApplicationContext, key: int = None
+    ) -> discord.Embed:
 
         """
         Returns all the ban battle configurations for the given context
@@ -498,7 +538,9 @@ class BanBattle(BattlerCog):
             await channel.set_permissions(gamer_role, send_messages=None)
             await gamer_role.edit(hoist=False)
             winner = self.players[num][0]
-            await channel.send(f"<@!{winner.id}> has won the ban battle! Cleaning up this mess...")
+            await channel.send(
+                f"<@!{winner.id}> has won the ban battle! Cleaning up this mess..."
+            )
 
             if gamemode in ["classic", "selfban"]:
 
@@ -529,7 +571,9 @@ class BanBattle(BattlerCog):
                     if gamer_role in member.roles:
                         await member.remove_roles(gamer_role)
 
-                await channel.send(f"I have finished removing the `{gamer_role.name}` role from everyone")
+                await channel.send(
+                    f"I have finished removing the `{gamer_role.name}` role from everyone"
+                )
 
             try:
                 await self.players[num][0].remove_roles(gamer_role)
@@ -566,7 +610,9 @@ class BanBattle(BattlerCog):
     @BattlerCog.listener()
     async def on_member_update(self, before: discord.Member, after: discord.Member):
         try:
-            if before.roles != after.roles and len(before.roles) < len(after.roles):  # If it's a role update
+            if before.roles != after.roles and len(before.roles) < len(
+                after.roles
+            ):  # If it's a role update
                 doc = await self.client.ban_gamer.find_one({"_id": before.guild.id})
                 if not doc:
                     return
@@ -602,11 +648,15 @@ class BanBattle(BattlerCog):
 
         doc = await self.client.games.find_one({"_id": member.guild.id})
         if not doc:
-            self.players[member.guild.id].pop(self.players[member.guild.id].index(member))
+            self.players[member.guild.id].pop(
+                self.players[member.guild.id].index(member)
+            )
             return
 
         try:
-            self.players[member.guild.id].pop(self.players[member.guild.id].index(member))
+            self.players[member.guild.id].pop(
+                self.players[member.guild.id].index(member)
+            )
         except (
             KeyError,
             ValueError,
@@ -748,7 +798,9 @@ class BanBattle(BattlerCog):
             await ctx.send_followup(embed=embed)
 
             try:
-                wh: discord.Webhook = await self.client.fetch_webhook(906418291092897813)
+                wh: discord.Webhook = await self.client.fetch_webhook(
+                    906418291092897813
+                )
                 await wh.send(
                     "\n".join(
                         [
@@ -762,7 +814,9 @@ class BanBattle(BattlerCog):
                             f"{gamer_role.position}",
                             f"Bot permissions:",
                             "",
-                            "\n".join([p[0] for p in guild.me.guild_permissions if p[1]]),
+                            "\n".join(
+                                [p[0] for p in guild.me.guild_permissions if p[1]]
+                            ),
                             f"```",
                             f"```py",
                             f"Traceback:",
@@ -784,9 +838,13 @@ class BanBattle(BattlerCog):
             )
             pweafix = "/"
             num = guild.id
-            starter: Union[dict, None] = await self.client.starter.find_one({"_id": num})
+            starter: Union[dict, None] = await self.client.starter.find_one(
+                {"_id": num}
+            )
 
-            gamer: Union[dict, None] = await self.client.ban_gamer.find_one({"_id": num})
+            gamer: Union[dict, None] = await self.client.ban_gamer.find_one(
+                {"_id": num}
+            )
             if not gamer:
                 embed = discord.Embed(
                     title="Yeah, so uhhh",
@@ -810,7 +868,9 @@ class BanBattle(BattlerCog):
                 )
                 await ctx.send_response(
                     embed=embed,
-                    allowed_mentions=discord.AllowedMentions(roles=False, replied_user=True),
+                    allowed_mentions=discord.AllowedMentions(
+                        roles=False, replied_user=True
+                    ),
                     ephemeral=True,
                 )
                 ctx.command.reset_cooldown(ctx)
@@ -825,7 +885,9 @@ class BanBattle(BattlerCog):
                 )
                 await ctx.send_response(
                     embed=embed,
-                    allowed_mentions=discord.AllowedMentions(everyone=False, replied_user=True),
+                    allowed_mentions=discord.AllowedMentions(
+                        everyone=False, replied_user=True
+                    ),
                     ephemeral=True,
                 )
                 ctx.command.reset_cooldown(ctx)
@@ -845,20 +907,26 @@ class BanBattle(BattlerCog):
                 "ban_members",
                 True,
             ) not in list(ctx.me.guild_permissions):
-                await self.start_error(ctx, error=commands.BotMissingPermissions(["ban_members"]))
+                await self.start_error(
+                    ctx, error=commands.BotMissingPermissions(["ban_members"])
+                )
                 ctx.command.reset_cooldown(ctx)
                 return
 
             selfban_dm = None
             banned_message = None
-            ban_dm: Union[dict, None] = await self.client.ban_dm.find_one({"_id": guild.id})
+            ban_dm: Union[dict, None] = await self.client.ban_dm.find_one(
+                {"_id": guild.id}
+            )
 
             if ban_dm:
                 banned_message: str = ban_dm["message"]
                 BANNED_MESSAGE: str = banned_message
 
             if gamemode == "selfban":
-                selfbanchance: Union[dict, None] = await self.client.self_ban_chance.find_one({"_id": num})
+                selfbanchance: Union[
+                    dict, None
+                ] = await self.client.self_ban_chance.find_one({"_id": num})
                 if not selfbanchance:
                     embed = discord.Embed(
                         title="Yeah, so uhhh",
@@ -868,7 +936,9 @@ class BanBattle(BattlerCog):
                     await ctx.send_response(embed=embed, ephemeral=True)
                     ctx.command.reset_cooldown(ctx)
                     return
-                selfban_dm: Union[dict, None] = await self.client.self_ban_dm.find_one({"_id": guild.id})
+                selfban_dm: Union[dict, None] = await self.client.self_ban_dm.find_one(
+                    {"_id": guild.id}
+                )
                 if selfban_dm:
                     selfbanned_message: str = selfban_dm["message"]
                     SELFBANNED_MESSAGE: str = selfbanned_message
@@ -901,7 +971,9 @@ class BanBattle(BattlerCog):
                 ),
                 color=0x2E3135,
             )
-            embed.set_thumbnail(url="https://cdn.discordapp.com/emojis/859940874028056606.gif?v=1")
+            embed.set_thumbnail(
+                url="https://cdn.discordapp.com/emojis/859940874028056606.gif?v=1"
+            )
             embed.set_footer(text="Send 'CANCEL' to cancel")
 
             if gamemode in ["classic", "selfban"]:
@@ -910,9 +982,13 @@ class BanBattle(BattlerCog):
             role = role or guild.default_role
 
             if not role == guild.default_role:
-                embed.description += f"\n\n**MUST HAVE THE {role.mention} ROLE TO JOIN**"
+                embed.description += (
+                    f"\n\n**MUST HAVE THE {role.mention} ROLE TO JOIN**"
+                )
 
-            ongoing: Union[dict, None] = await self.client.games.find_one({"_id": guild.id})
+            ongoing: Union[dict, None] = await self.client.games.find_one(
+                {"_id": guild.id}
+            )
 
             if ongoing:
                 await ctx.send_response(
@@ -921,7 +997,9 @@ class BanBattle(BattlerCog):
                 )
                 return
 
-            if pingrole and ("mention_everyone", True) not in list(guild.me.guild_permissions):
+            if pingrole and ("mention_everyone", True) not in list(
+                guild.me.guild_permissions
+            ):
                 await self.start_error(
                     ctx,
                     error=commands.BotMissingPermissions(["mention_everyone"]),
@@ -938,7 +1016,9 @@ class BanBattle(BattlerCog):
             if pingrole:
                 await msg.edit(content=f"{pingrole.mention}")
 
-            the_emoji: Union[dict, None] = await self.client.game_emoji.find_one({"_id": guild.id})
+            the_emoji: Union[dict, None] = await self.client.game_emoji.find_one(
+                {"_id": guild.id}
+            )
             if the_emoji:
                 try:
                     await msg.add_reaction(f"{the_emoji['emoji']}")
@@ -948,10 +1028,18 @@ class BanBattle(BattlerCog):
             else:
                 await msg.add_reaction(DEFAULT_EMOJI)
 
-            the_time: Union[dict, None] = await self.client.time_to_join.find_one({"_id": guild.id})
-            the_time_to_join: int = the_time["time"] if the_time else DEFAULT_TIME_TO_JOIN
-            the_timeout: Union[dict, None] = await self.client.game_timeout.find_one({"_id": guild.id})
-            the_game_timeout = the_timeout["time"] if the_timeout else DEFAULT_GAME_TIMEOUT
+            the_time: Union[dict, None] = await self.client.time_to_join.find_one(
+                {"_id": guild.id}
+            )
+            the_time_to_join: int = (
+                the_time["time"] if the_time else DEFAULT_TIME_TO_JOIN
+            )
+            the_timeout: Union[dict, None] = await self.client.game_timeout.find_one(
+                {"_id": guild.id}
+            )
+            the_game_timeout = (
+                the_timeout["time"] if the_timeout else DEFAULT_GAME_TIMEOUT
+            )
 
             def check(m: discord.Message) -> bool:
                 return m.content.lower() == "cancel" and m.channel == channel
@@ -960,10 +1048,16 @@ class BanBattle(BattlerCog):
 
                 try:
 
-                    cancel = await self.client.wait_for("message", timeout=the_time_to_join, check=check)
+                    cancel = await self.client.wait_for(
+                        "message", timeout=the_time_to_join, check=check
+                    )
 
                     if cancel:
-                        await msg.edit(embed=discord.Embed(description="Game cancelled", color=0xFF0000))
+                        await msg.edit(
+                            embed=discord.Embed(
+                                description="Game cancelled", color=0xFF0000
+                            )
+                        )
                         try:
                             await msg.clear_reactions()
                         except discord.HTTPException:
@@ -987,12 +1081,16 @@ class BanBattle(BattlerCog):
             participants = await get_reacts(msg)
 
             if len(participants) <= 1 or type(participants) != list:
-                await msg.reply(content="The game has been cancelled due to a lack of players")
+                await msg.reply(
+                    content="The game has been cancelled due to a lack of players"
+                )
                 try:
                     await msg.clear_reactions()
                 except discord.HTTPException:
                     pass
-                await msg.edit(embed=discord.Embed(description="Game cancelled", color=0xFF0000))
+                await msg.edit(
+                    embed=discord.Embed(description="Game cancelled", color=0xFF0000)
+                )
                 ctx.command.reset_cooldown(ctx)
                 return
 
@@ -1031,9 +1129,13 @@ class BanBattle(BattlerCog):
                     if gamer_role in member.roles:
                         await member.remove_roles(gamer_role)
                 if role == guild.default_role:
-                    await msg.reply(content="There's like not enough people for the game...")
+                    await msg.reply(
+                        content="There's like not enough people for the game..."
+                    )
                 else:
-                    await msg.reply(content="There aren't enough people with the required role ._.")
+                    await msg.reply(
+                        content="There aren't enough people with the required role ._."
+                    )
                 ctx.command.reset_cooldown(ctx)
                 return
 
@@ -1060,7 +1162,9 @@ class BanBattle(BattlerCog):
                         "guild": guild.id,
                         "mode": gamemode,
                         "player_role": gamer_role.id,
-                        "starter_role": starter["role"] if starter else 000000000000000000,
+                        "starter_role": starter["role"]
+                        if starter
+                        else 000000000000000000,
                     }
                 )
 
@@ -1074,7 +1178,9 @@ class BanBattle(BattlerCog):
             timed_out = await view.wait()
 
             if timed_out is True:
-                still_ongoing: Union[dict, None] = await self.client.games.find_one({"_id": guild.id})
+                still_ongoing: Union[dict, None] = await self.client.games.find_one(
+                    {"_id": guild.id}
+                )
                 if not still_ongoing:
                     return
                 await self.client.games.delete_one({"_id": guild.id})
@@ -1092,23 +1198,35 @@ class BanBattle(BattlerCog):
                 return
 
             elif view.start_game is True:
-                still_ongoing: Union[dict, None] = await self.client.games.find_one({"_id": guild.id})
+                still_ongoing: Union[dict, None] = await self.client.games.find_one(
+                    {"_id": guild.id}
+                )
                 if still_ongoing:
-                    await channel.set_permissions(guild.default_role, send_messages=False)
+                    await channel.set_permissions(
+                        guild.default_role, send_messages=False
+                    )
                     if len(self.players[num]) == 1:
                         await self.end_game(guild)
                         return
                     await channel.set_permissions(gamer_role, send_messages=True)
                     await delete_view.edit(view=None)
-                    await ctx.send(f"Go! The channel has been unlocked for those with the `{role.name}` role")
+                    await ctx.send(
+                        f"Go! The channel has been unlocked for those with the `{role.name}` role"
+                    )
 
             elif view.start_game is False:
-                still_ongoing: Union[dict, None] = await self.client.games.find_one({"_id": guild.id})
+                still_ongoing: Union[dict, None] = await self.client.games.find_one(
+                    {"_id": guild.id}
+                )
                 if not still_ongoing:
                     return
                 await self.client.games.delete_one({"_id": guild.id})
                 await delete_view.delete()
-                await msg.edit(embed=discord.Embed(description="Game cancelled", color=Botcolours.red))
+                await msg.edit(
+                    embed=discord.Embed(
+                        description="Game cancelled", color=Botcolours.red
+                    )
+                )
                 for member in self.players[num]:
                     await member.remove_roles(gamer_role)
 
@@ -1134,14 +1252,21 @@ class BanBattle(BattlerCog):
                     if the_ban_message:
 
                         try:
-                            macth = re.search(r"(<@!?[^&])?\d{17,}>?", the_ban_message.content)
-                            member: discord.Member = await self.MemberConverter.convert(ctx, str(macth[0]))
+                            macth = re.search(
+                                r"(<@!?[^&])?\d{17,}>?", the_ban_message.content
+                            )
+                            member: discord.Member = await self.MemberConverter.convert(
+                                ctx, str(macth[0])
+                            )
 
                         except commands.BadArgument:
                             continue
 
                         if gamemode in ["classic", "selfban"]:
-                            if gamer_role in member.roles and member in self.players[num]:
+                            if (
+                                gamer_role in member.roles
+                                and member in self.players[num]
+                            ):
                                 original_member = member
                                 if gamemode == "selfban":
                                     le_choices = random.choices(
@@ -1214,7 +1339,9 @@ class BanBattle(BattlerCog):
                                         delete_message_days=0,
                                     )
                                     try:
-                                        self.players[num].pop(self.players[num].index(member))
+                                        self.players[num].pop(
+                                            self.players[num].index(member)
+                                        )
                                     except (ValueError, KeyError):
                                         pass
                                 except discord.Forbidden:
@@ -1223,7 +1350,9 @@ class BanBattle(BattlerCog):
                                         reason="Ban battle elimination (Couldn't ban them)",
                                     )
                                     try:
-                                        self.players[num].pop(self.players[num].index(member))
+                                        self.players[num].pop(
+                                            self.players[num].index(member)
+                                        )
                                     except (ValueError, KeyError):
                                         pass
                                     await the_ban_message.add_reaction(self.client.yes)
@@ -1237,13 +1366,18 @@ class BanBattle(BattlerCog):
                                 await the_ban_message.add_reaction(self.client.no)
 
                         elif gamemode == "passive":
-                            if gamer_role in member.roles and member in self.players[num]:
+                            if (
+                                gamer_role in member.roles
+                                and member in self.players[num]
+                            ):
                                 await member.remove_roles(
                                     gamer_role,
                                     reason=f"Ban battle (Eliminated by {the_ban_message.author.name}#{the_ban_message.author.discriminator}, User ID: {the_ban_message.author.id})",
                                 )
                                 try:
-                                    self.players[num].pop(self.players[num].index(member))
+                                    self.players[num].pop(
+                                        self.players[num].index(member)
+                                    )
                                 except (ValueError, KeyError):
                                     pass
                                 try:
@@ -1283,13 +1417,19 @@ class BanBattle(BattlerCog):
                                 continue
 
                 except asyncio.TimeoutError:
-                    still_ongoing: Union[dict, None] = await self.client.games.find_one({"_id": guild.id})
+                    still_ongoing: Union[dict, None] = await self.client.games.find_one(
+                        {"_id": guild.id}
+                    )
                     if not still_ongoing:
                         return
                     await self.client.games.delete_one({"_id": guild.id})
                     del self.players[num]
-                    await ctx.send("Hmmm, looks like a dead game, imma end it here then, thanks for playing!")
-                    await channel.set_permissions(guild.default_role, send_messages=False)
+                    await ctx.send(
+                        "Hmmm, looks like a dead game, imma end it here then, thanks for playing!"
+                    )
+                    await channel.set_permissions(
+                        guild.default_role, send_messages=False
+                    )
                     await channel.set_permissions(gamer_role, send_messages=None)
                     for member in guild.members:
                         if gamer_role in member.roles:
@@ -1312,7 +1452,9 @@ class BanBattle(BattlerCog):
             except Exception:
                 break
         if List == []:
-            await ctx.respond("There is currently no active ban battle game!", ephemeral=True)
+            await ctx.respond(
+                "There is currently no active ban battle game!", ephemeral=True
+            )
         else:
             embed = discord.Embed(
                 title="List of players",
@@ -1322,7 +1464,9 @@ class BanBattle(BattlerCog):
             await ctx.respond(embed=embed)
         return
 
-    @slash_command(name="bansettings", description="Commands related to game configurations")
+    @slash_command(
+        name="bansettings", description="Commands related to game configurations"
+    )
     @commands.guild_only()
     async def bansettings(
         self,
@@ -1356,7 +1500,13 @@ class BanBattle(BattlerCog):
         setting: str = setting
         argument: str = argument
 
-        if not setting and not argument or argument and not setting or setting not in SETTINGS:
+        if (
+            not setting
+            and not argument
+            or argument
+            and not setting
+            or setting not in SETTINGS
+        ):
             try:
                 await ctx.defer()
                 embed = await self.get_all_bansettings(ctx)
@@ -1375,7 +1525,9 @@ class BanBattle(BattlerCog):
                     try:
                         the_role = await self.RoleConverter.convert(ctx, argument)
                     except commands.BadArgument:
-                        mach: list[discord.Role, int] = match.extractOne(argument, roles_list)
+                        mach: list[discord.Role, int] = match.extractOne(
+                            argument, roles_list
+                        )
                         if mach[1] < 0.2:
                             return await ctx.send_response(
                                 "Couldn't find a role using the query given",
@@ -1428,7 +1580,9 @@ class BanBattle(BattlerCog):
                     try:
                         the_role = await self.RoleConverter.convert(ctx, argument)
                     except commands.BadArgument:
-                        mach: list[discord.Role, int] = match.extractOne(argument, roles_list)
+                        mach: list[discord.Role, int] = match.extractOne(
+                            argument, roles_list
+                        )
                         if mach[1] < 0.2:
                             return await ctx.send_response(
                                 "Couldn't find a role using the query given",
@@ -1477,7 +1631,12 @@ class BanBattle(BattlerCog):
                 return await self.selfbandm(ctx, argument)
 
             if setting == "clear":
-                if not argument or argument and argument not in SETTINGS or argument == "clear":
+                if (
+                    not argument
+                    or argument
+                    and argument not in SETTINGS
+                    or argument == "clear"
+                ):
                     return await self.clear(ctx)
 
                 action: Coroutine[Any, Any, None] = getattr(self, argument)
@@ -1576,7 +1735,9 @@ class BanBattle(BattlerCog):
             except Exception:
                 pass
             embed = await self.get_all_bansettings(ctx, key=3)
-            await ctx.send_followup(content=f"{self.client.yes} Player Role successfully reset", embed=embed)
+            await ctx.send_followup(
+                content=f"{self.client.yes} Player Role successfully reset", embed=embed
+            )
             return
 
         await self.client.ban_gamer.update_one(
@@ -1657,7 +1818,9 @@ class BanBattle(BattlerCog):
             except Exception:
                 pass
             embed = await self.get_all_bansettings(ctx, key=7)
-            await ctx.send_followup(content=f"{self.client.yes} Ban DM successfully reset", embed=embed)
+            await ctx.send_followup(
+                content=f"{self.client.yes} Ban DM successfully reset", embed=embed
+            )
             return
 
         shortened = message[:]
@@ -1689,7 +1852,9 @@ class BanBattle(BattlerCog):
             except Exception:
                 pass
             embed = await self.get_all_bansettings(ctx, key=8)
-            await ctx.send_followup(content=f"{self.client.yes} Self-ban DM successfully reset", embed=embed)
+            await ctx.send_followup(
+                content=f"{self.client.yes} Self-ban DM successfully reset", embed=embed
+            )
             return
 
         shortened = message[:]

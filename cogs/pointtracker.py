@@ -26,10 +26,14 @@ class PointTracker(commands.Cog):
         invoke_without_command=True,
     )
     @commands.cooldown(1, 5, commands.BucketType.user)
-    async def points(self, ctx: commands.Context, member: Optional[commands.MemberConverter] = None):
+    async def points(
+        self, ctx: commands.Context, member: Optional[commands.MemberConverter] = None
+    ):
         member: discord.Member = member if member else ctx.author
 
-        doc: Optional[dict] = await self.client.heist_points.find_one({"_id": member.id})
+        doc: Optional[dict] = await self.client.heist_points.find_one(
+            {"_id": member.id}
+        )
         if not doc:
             doc = {"points": 0}
 
@@ -46,16 +50,22 @@ class PointTracker(commands.Cog):
         commands.has_role(892832082278096906),
         commands.has_guild_permissions(administrator=True),
     )
-    async def add_points(self, ctx: commands.Context, member: commands.MemberConverter, points: int):
+    async def add_points(
+        self, ctx: commands.Context, member: commands.MemberConverter, points: int
+    ):
         if points == 0:
             await ctx.message.add_reaction("<a:Tick:856832577179222066>")
             return
 
         member: discord.Member = member
 
-        exists: Optional[dict] = await self.client.heist_points.find_one({"_id": member.id})
+        exists: Optional[dict] = await self.client.heist_points.find_one(
+            {"_id": member.id}
+        )
         if not exists:
-            await self.client.heist_points.insert_one({"_id": member.id, "points": points})
+            await self.client.heist_points.insert_one(
+                {"_id": member.id, "points": points}
+            )
             await ctx.message.add_reaction("<a:Tick:856832577179222066>")
             return
 
@@ -72,14 +82,18 @@ class PointTracker(commands.Cog):
         commands.has_role(892832082278096906),
         commands.has_guild_permissions(administrator=True),
     )
-    async def remove_points(self, ctx: commands.Context, member: commands.MemberConverter, points: int):
+    async def remove_points(
+        self, ctx: commands.Context, member: commands.MemberConverter, points: int
+    ):
         if points == 0:
             await ctx.message.add_reaction("<a:Tick:856832577179222066>")
             return
 
         member: discord.Member = member
 
-        exists: Optional[dict] = await self.client.heist_points.find_one({"_id": member.id})
+        exists: Optional[dict] = await self.client.heist_points.find_one(
+            {"_id": member.id}
+        )
         if not exists:
             await ctx.reply(content=f"The user {member} doesn't exist in the database")
             return
@@ -95,13 +109,17 @@ class PointTracker(commands.Cog):
             await self.client.heist_points.delete_one({"_id": member.id})
         await ctx.message.add_reaction("<a:Tick:856832577179222066>")
 
-    @points.command(name="set", brief="Set a user's heisting points to a specific amount")
+    @points.command(
+        name="set", brief="Set a user's heisting points to a specific amount"
+    )
     @commands.check_any(
         commands.is_owner(),
         commands.has_role(892832082278096906),
         commands.has_guild_permissions(administrator=True),
     )
-    async def set_points(self, ctx: commands.Context, member: commands.MemberConverter, points: int):
+    async def set_points(
+        self, ctx: commands.Context, member: commands.MemberConverter, points: int
+    ):
         member: discord.Member = member
 
         if points > 0:
