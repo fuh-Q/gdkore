@@ -15,21 +15,15 @@ LINE = f"{G}==========================={W}"
 bot_to_launch = 0
 process_map = {
     "bot.py": False,
-<<<<<<< HEAD
-=======
     "weather_bot.py": False,
->>>>>>> 80052bea5f5df6b6cf6bf3a74542db82772524b6
     "rickroll_bot.py": False,
 }
 
 bot_map = {
     1: "bot.py",
-<<<<<<< HEAD
     2: "rickroll_bot.py",
-=======
     2: "weather_bot.py",
     3: "rickroll_bot.py",
->>>>>>> 80052bea5f5df6b6cf6bf3a74542db82772524b6
 }
 
 major = sys.version_info[:2][0]
@@ -85,22 +79,16 @@ def print_intro() -> None:
             f"{G}0.{W} Exit Launcher",
             "",
             f"{G}1.{W} Not GDKID {R + '-- RUNNING' + W if process_map['bot.py'] else ''}",
-<<<<<<< HEAD
             f"{G}2.{W} Rickroll Bot {R + '-- RUNNING' + W if process_map['rickroll_bot.py'] else ''}",
-=======
             f"{G}2.{W} Weather Bot {R + '-- RUNNING' + W if process_map['weather_bot.py'] else ''}",
             f"{G}3.{W} Rickroll Bot {R + '-- RUNNING' + W if process_map['rickroll_bot.py'] else ''}",
->>>>>>> 80052bea5f5df6b6cf6bf3a74542db82772524b6
         ]
     )
 
     print("Bots you can launch:", end="\n\n")
     print(bots, end="\n\n")
-<<<<<<< HEAD
     print("Which bot would you like to launch? [0|1|2]")
-=======
     print("Which bot would you like to launch? [0|1|2|3]")
->>>>>>> 80052bea5f5df6b6cf6bf3a74542db82772524b6
     print(LINE)
 
 
@@ -116,19 +104,16 @@ def prompt():
             if user_input == 0:
                 exit()
 
-<<<<<<< HEAD
             if not user_input in [1, 2]:
                 raise TypeError
 
         except (ValueError, TypeError):
             print("Please enter either 0, 1, or 2!")
-=======
             if not user_input in [1, 2, 3]:
                 raise TypeError
 
         except (ValueError, TypeError):
             print("Please enter either 0, 1, 2, or 3!")
->>>>>>> 80052bea5f5df6b6cf6bf3a74542db82772524b6
             continue
 
         else:
@@ -145,11 +130,8 @@ def prompt():
 
                 else:
                     print("")
-<<<<<<< HEAD
                     print("Which bot would you like to launch? [0|1|2]")
-=======
                     print("Which bot would you like to launch? [0|1|2|3]")
->>>>>>> 80052bea5f5df6b6cf6bf3a74542db82772524b6
                     print(LINE)
                     continue
 
