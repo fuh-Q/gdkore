@@ -283,7 +283,6 @@ class Confirm(View):
         return self.stop()
 
 
-<<<<<<< HEAD
 class BaseGameView(View):
     """
     A subclass of `View` that reworks the timeout logic
@@ -318,8 +317,6 @@ class BaseGameView(View):
         raise NotImplementedError
 
 
-=======
->>>>>>> 80052bea5f5df6b6cf6bf3a74542db82772524b6
 def emojiclass(cls: Type[Any]):
     """
     A decorator that takes in a class and fills it with emojis from config
@@ -340,7 +337,6 @@ class BotEmojis:
     """
 
     pass
-<<<<<<< HEAD
 
 
 class MaxConcurrencyReached(CheckFailure):
@@ -355,5 +351,3 @@ class MaxConcurrencyReached(CheckFailure):
 
     def __init__(self, jump_url: str) -> None:
         self.jump_url = jump_url
-=======
->>>>>>> 80052bea5f5df6b6cf6bf3a74542db82772524b6
