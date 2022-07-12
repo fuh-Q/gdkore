@@ -57,17 +57,17 @@ class MoveButton(ui.Button):
         if not self.use_modal:
             if vertical:
                 block = self.view.maze._get_block(self.view.x, self.view.y + (1 if positive else -1))
-                self.view.y += 2 if positive else -2
+                added = self.view.y + 2 if positive else -2
             else:
                 block = self.view.maze._get_block(self.view.x + (1 if positive else -1), self.view.y)
-                self.view.x += 2 if positive else -2
+                added = self.view.x + 2 if positive else -2
             
             if not block or block and block._block_type is BlockTypes.WALL:
                 return
         else:
             return await interaction.response.send_modal(MoveModal(self.direction, self.view))
         
-        await self.view.update_player(interaction, axis)
+        await self.view.update_player(interaction, axis, added)
 
 
 class MoveModal(ui.Modal):
@@ -261,10 +261,9 @@ class Game(GameView):
 
         return discord.File(buffer, "maze.png")
 
-    async def update_player(self, interaction: Interaction, axis: str, pos: int = None):
+    async def update_player(self, interaction: Interaction, axis: str, pos: int):
         self.move_count += 1
-        if pos is not None:
-            setattr(self, axis, pos)
+        setattr(self, axis, pos)
         
         content = ""
         done = self.maze_completed()
