@@ -184,11 +184,11 @@ class Game(GameView):
         self.title = title
         self.started_at = start
         self.move_count = moves
-        
         if not maze_blocks:
             self.maze = Maze(width, height)
         else:
             self.maze = Maze.from_db_columns(maze_blocks, width, height)
+        
         self.maze_pic = self.maze.to_image(
             path_rgb or (190, 151, 111),
             wall_rgb or (0, 0, 0),
@@ -324,8 +324,7 @@ class Game(GameView):
     def ram_cleanup(self):
         self.main_pic.close()
         self.player_icon.close()
-        for o in self.__dict__.items():
-            del o
+        self.maze._ram_cleanup()
     
     async def interaction_check(self, interaction: Interaction, item: ui.Item) -> bool:
         if interaction.user.id != self.owner_id:

@@ -278,17 +278,22 @@ class Amaze(commands.Bot):
         
         length = len(self._mazes)
         self.logger.info(f" saving games...")
+        failed = 0
         for index, game in enumerate(self._mazes.values()):
             await game.stop(shutdown_mode=True)
             game.disable_all()
             game.ram_cleanup()
             
             message = "my developer initiated a bot shutdown, your game has been saved\n\u200b"
-            await game.original_message.edit(content=message, view=game)
+            try:
+                await game.original_message.edit(content=message, view=game)
+            except discord.HTTPException:
+                failed += 1
             
             if index != length:
                 await asyncio.sleep(0.2)
         self.logger.info(f" {PrintColours.GREEN}{length}{PrintColours.WHITE} games were saved")
+        self.logger.info(f" {PrintColours.RED}{failed}{PrintColours.WHITE} games failed to save")
         
         del self._mazes
 

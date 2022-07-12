@@ -60,6 +60,13 @@ class Maze:
 
             self._make_maze()
     
+    def _ram_cleanup(self):
+        del (self._width,
+             self._height,
+             self._blocks,
+             self._setted,
+             self._sets)
+    
     @classmethod
     def from_db_columns(cls, blocks: List[Dict[str, int]], width: int, height: int) -> Maze:
         blocks = [_MazeBlock(bl["x"], bl["y"], BlockTypes.PATH
