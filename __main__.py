@@ -5,7 +5,7 @@ import sys
 
 import psutil
 
-from config.utils import PrintColours
+from utils import PrintColours
 
 G = PrintColours.GREEN
 R = PrintColours.RED
@@ -63,7 +63,7 @@ def print_intro() -> None:
     )
 
     processes = list(psutil.process_iter())
-    proc_cmd_regex = re.compile(rf"py(?:thon{major}\.{minor})? ((?:rickroll_)?bot\.py)")
+    proc_cmd_regex = re.compile(rf"py(?:thon{major}\.{minor})? ((?:rickroll_|weather_)?bot\.py)")
     for process in processes:
         try:
             proc_cmd = " ".join(process.cmdline())
@@ -77,7 +77,7 @@ def print_intro() -> None:
         [
             f"{G}0.{W} Exit Launcher",
             "",
-            f"{G}1.{W} Not GDKID {R + '-- RUNNING' + W if process_map['bot.py'] else ''}",
+            f"{G}1.{W} Amaze {R + '-- RUNNING' + W if process_map['bot.py'] else ''}",
             f"{G}2.{W} Weather Bot {R + '-- RUNNING' + W if process_map['weather_bot.py'] else ''}",
             f"{G}3.{W} Rickroll Bot {R + '-- RUNNING' + W if process_map['rickroll_bot.py'] else ''}",
         ]
@@ -134,14 +134,14 @@ def main():
     prompt()
 
     while True:
+        os.system(
+            "cls" if sys.platform == "win32" else "clear"
+        )  # Makes things look nicer
+
         proc = subprocess.Popen(**generate_kwargs())
 
         code = proc.wait()
         proc.kill()  # Just in case
-
-        os.system(
-            "cls" if sys.platform == "win32" else "clear"
-        )  # Makes things look nicer
 
         if code != 69:
             break

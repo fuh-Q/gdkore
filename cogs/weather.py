@@ -1,6 +1,4 @@
-import asyncio
 import io
-import textwrap
 import time
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Mapping, Tuple
@@ -8,7 +6,7 @@ from typing import Any, Dict, List, Mapping, Tuple
 import aiohttp
 import discord
 from discord.ext import tasks
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 
 from weather_bot import NotGDKID
 

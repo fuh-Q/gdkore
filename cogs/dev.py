@@ -1,15 +1,13 @@
 import discord
 from discord.ext import commands
 
+from utils import PrintColours
+
 
 class Dev(commands.Cog):
     def __init__(self, client: commands.Bot):
         self.client = client
         self.emoji = "<a:gdkid:868976838112841760>"
-
-    @commands.Cog.listener()
-    async def on_ready(self):
-        print("Dev cog loaded")
 
     @commands.command(
         aliases=["servers"], hidden=True, brief="Get the bot's server count"

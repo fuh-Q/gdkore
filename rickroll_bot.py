@@ -20,7 +20,7 @@ from jishaku.paginators import WrappedPaginator
 from jishaku.shim.paginator_200 import \
     PaginatorInterface as OGPaginatorInterface
 
-from config.utils import Botcolours
+from utils import Botcolours
 
 logging.basicConfig(level=logging.INFO)
 
@@ -44,6 +44,9 @@ class PaginatorInterface(OGPaginatorInterface):
         self.button_next.label = "❯"
         self.button_last.emoji = None
         self.button_last.label = "❯❯❯"
+        
+        if not self.page_count > 1:
+            self.button_goto.disabled = True
 
         if self.display_page == self.page_count - 1:
             self.button_last.disabled = True
@@ -66,7 +69,7 @@ class PaginatorInterface(OGPaginatorInterface):
         return {"content": self.pages[self.display_page], "view": self}
 
     async def send_to(self, interaction: discord.Interaction):
-        self.remove_item(self.children[5])
+        self.remove_item(self.button_close)
         self.update_view()
         stop_after_send = False
 
@@ -96,7 +99,6 @@ class PaginatorInterface(OGPaginatorInterface):
         Waits on a loop for updates to the interface. This should not be called manually - it is handled by `send_to`.
         """
 
-        discord.Interaction.delete_original_message
         try:
             while not self.bot.is_closed():
                 await asyncio.wait_for(self.send_lock_delayed(), timeout=self.timeout)
@@ -167,8 +169,8 @@ class RickrollBot(commands.Bot):
     async def on_ready(self):
         self.g: discord.Guild = self.get_guild(831692952027791431)
         self.r: discord.Role = self.g.get_role(879548917514117131)
-        self.m: discord.Member = await self.g.fetch_member(596481615253733408)
-        self.c: discord.DMChannel = await self.m.create_dm()
+        self.u: discord.Member = await self.fetch_user(596481615253733408)
+        self.c: discord.DMChannel = await self.u.create_dm()
         self.control_msg = await self.c.fetch_message(946524456451473418)
 
         view = AdminControls()

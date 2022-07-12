@@ -17,7 +17,7 @@ import discord
 from asyncpg import Record
 from discord.ext import commands
 
-from config.utils import CHOICES, BotEmojis, NewEmote
+from utils import CHOICES, BotEmojis, NewEmote, PrintColours
 from weather_bot import NotGDKID
 
 quote = r'"'
@@ -113,10 +113,6 @@ class Eval(commands.Cog):
     def __init__(self, client: NotGDKID):
         self.client = client
         self.emoji = ""
-
-    @commands.Cog.listener()
-    async def on_ready(self):
-        print("Eval cog loaded")
 
     @staticmethod
     def async_compile(source: str, filename: str, mode: Literal["eval", "exec"]):

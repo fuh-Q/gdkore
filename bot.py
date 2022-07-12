@@ -6,19 +6,19 @@ import sys
 import time
 import traceback
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Set, Type
+from PIL import ImageFont
+from typing import Any, Dict, Mapping, Set
 
 import asyncpg
 import discord
-from discord import Interaction, app_commands, ui
+from discord import Interaction
 from discord.gateway import DiscordWebSocket
-from discord.app_commands import Command
+from discord.app_commands import Command, AppCommandError
 from discord.ext import commands
 from fuzzy_match import match
-from PIL import Image, ImageDraw, ImageFont
+from cogs.mazes import Game
 
-from cogs.debug import PaginatorInterFace
-from utils import mobile, new_call_soon
+from utils import mobile, new_call_soon, BotColours, db_init, BotEmojis, PrintColours
 
 with open("config/secrets.json", "r") as f:
     secrets: Dict[str, str] = json.load(f)
@@ -32,26 +32,22 @@ DiscordWebSocket.identify = mobile
 
 
 logging.basicConfig(level=logging.INFO)
-log = logging.getLogger("Bot")
 
 
-class NotGDKID(commands.Bot):
+class Amaze(commands.Bot):
     """
     The sexiest bot of all time.
     """
 
     __file__ = __file__
+    
+    logger = logging.getLogger(os.path.basename(__file__)[:-3].title())
 
-    normal_text = ImageFont.truetype("assets/Kiona-Regular.ttf", size=69)
-    medium_text = ImageFont.truetype("assets/Kiona-Regular.ttf", size=150)
-    thiccc_text = ImageFont.truetype("assets/Kiona-Regular.ttf", size=300)
-
-    token = secrets["weather_token"]
+    token = secrets["token"]
     testing_token = secrets["testing_token"]
     postgres_dns = secrets["postgres_dns"]
-    weather_key = secrets["weather_key"]
-    weather_hook_msg_id = 989653104825876560
-    weather_msg_id = 989714440045858817
+    
+    maze_font = ImageFont.truetype("assets/Kiona-Regular.ttf", size=30)
 
     def __init__(self):
         allowed_mentions = discord.AllowedMentions.all()
@@ -61,22 +57,17 @@ class NotGDKID(commands.Bot):
             intents.message_content = False
 
         super().__init__(
-            command_prefix=[
-                "<@!859104775429947432> ",
-                "<@859104775429947432> ",
-                "<@!865596669999054910> ",
-                "<@865596669999054910> " "B!",
-                "b!",
-            ],
+            command_prefix=lambda *args: commands.when_mentioned(*args),
             allowed_mentions=allowed_mentions,
             help_command=None,
             intents=intents,
             case_insensitive=True,
             chunk_guilds_at_startup=False,
+            max_messages=None,
             status=discord.Status.idle,
             activity=discord.Activity(
                 name="Connecting...",
-                type=discord.ActivityType.watching,
+                type=discord.ActivityType.playing,
             ),
             owner_ids=[596481615253733408, 650882112655720468],
         )
@@ -90,13 +81,19 @@ class NotGDKID(commands.Bot):
             "cogs.debug",
             "cogs.dev",
             "cogs.Eval",
+            "cogs.mazes",
+            "cogs.mazeconfig",
             "utils",
         ]
 
-        self.active_jishaku_paginators: List[PaginatorInterFace] = []
         self.description = self.__doc__
         self.uptime = datetime.utcnow().astimezone(timezone(timedelta(hours=-4)))
+        self.guild_limit = []
+        self._restart = False
+        
+        self._mazes: Mapping[int, Game] = {}
 
+        self.tree.on_error = self.on_app_command_error
         self.add_commands()
 
     @property
@@ -109,17 +106,38 @@ class NotGDKID(commands.Bot):
         cmds = {c for c in self.tree.walk_commands()}
 
         return cmds
+    
+    async def load_extension(self, name: str) -> None:
+        await super().load_extension(name)
+        
+        self.logger.info(
+            f"{PrintColours.GREEN} loaded {PrintColours.WHITE}{name}"
+        )
+    
+    async def unload_extension(self, name: str) -> None:
+        await super().unload_extension(name)
+        
+        self.logger.info(
+            f"{PrintColours.RED} unloaded {PrintColours.WHITE}{name}"
+        )
+    
+    async def reload_extension(self, name: str) -> None:
+        await super().reload_extension(name)
+        
+        self.logger.info(
+            f"{PrintColours.YELLOW} reloaded {PrintColours.WHITE}{name}"
+        )
 
     async def setup_hook(self) -> None:
-        self.db = await asyncpg.create_pool(self.postgres_dns)
+        self.db = await asyncpg.create_pool(self.postgres_dns, init=db_init)
 
         ready_task = self.loop.create_task(self.first_ready())
         ready_task.add_done_callback(
-            lambda exc: print(
-                "".join(traceback.format_exception(e, e, e.__traceback__))
+            lambda exc: self.logger.error(
+                f"\n{PrintColours.RED}" + "".join(traceback.format_exc()) + PrintColours.WHITE
             )
-            if (e := exc.exception())
-            else ...
+            if exc.exception()
+            else None
         )
 
         for extension in self.init_extensions:
@@ -127,30 +145,94 @@ class NotGDKID(commands.Bot):
 
     async def first_ready(self):
         await self.wait_until_ready()
-        log.info(
-            f"Logged in as: {self.user.name} : {self.user.id}\n----- Cogs and Extensions -----\nMain bot online"
+        self.logger.info(
+            PrintColours.PURPLE + \
+            f"Logged in as: {self.user.name}#{self.user.discriminator} : {self.user.id}" + \
+            PrintColours.WHITE
         )
 
         await self.change_presence(status=discord.Status.online, activity=None)
 
         owner = await self.fetch_user(596481615253733408)
         self.owner = owner
-
-        if sys.platform == "win32":
-            self.weather_hook = await self.fetch_webhook(989279315487240203)
-        else:
-            self.weather_message = await self.get_channel(
-                989713822682058772
-            ).fetch_message(989714440045858817)
-        await self.load_extension("cogs.weather")  # you little retarted pussyfuck
+        self.guild_logs = await self.fetch_webhook(992179358280196176)
+        self.error_logs = await self.fetch_webhook(996132218936238172)
 
         end = time.monotonic()
         e = discord.Embed(description=f"❯❯  started up in ~`{round(end - start, 1)}s`")
         await owner.send(embed=e)
+    
+    async def on_guild_join(self, guild: discord.Guild):
+        counter = 0
+        for server in self.guilds:
+            if server.owner_id == guild.owner_id:
+                counter += 1
+        if counter > 2:
+            owner = await guild.fetch_member(guild.owner_id)
+            await owner.send(
+                f"I have automatically left your server [`{guild.name}`] because you've reached the limit of 2 servers owned by you with the bot. This is to encourage the \"organic growth\" needed for the bot's verification process in the future. (It's Discord's way of doing things, once the bot is verified, this limit will be removed)"
+            )
+            self.guild_limit.append(guild.id)
+            return await guild.leave()
+
+        e = discord.Embed(colour=BotColours.green)
+        e.set_author(
+            name=f"Guild Joined ({len(self.guilds)} servers)",
+            icon_url="https://cdn.discordapp.com/emojis/816263605686894612.png?size=160",
+        )
+        e.add_field(name="Guild Name", value=guild.name)
+        e.add_field(name="Guild ID", value=guild.id)
+        e.add_field(name="Guild Member Count", value=guild.member_count)
+        e.add_field(
+            name="Guild Owner",
+            value=f"[ <@!{guild.owner_id}> ]",
+        )
+        if guild.icon:
+            e.set_thumbnail(url=guild.icon.url)
+
+        await self.guild_logs.send(embed=e)
+
+    async def on_guild_remove(self, guild: discord.Guild):
+        try:
+            self.guild_limit.remove(guild.id)
+        except ValueError:
+            pass
+        else:
+            return
+
+        e = discord.Embed(colour=BotColours.red)
+        e.set_author(
+            name=f"Guild Left ({len(self.guilds)} servers)",
+            icon_url="https://cdn.discordapp.com/emojis/816263605837103164.png?size=160",
+        )
+        e.add_field(name="Guild Name", value=guild.name)
+        e.add_field(name="Guild ID", value=guild.id)
+        e.add_field(name="Guild Member Count", value=guild.member_count)
+        if guild.icon:
+            e.set_thumbnail(url=guild.icon.url)
+
+        await self.guild_logs.send(embed=e)
+    
+    async def on_app_command_error(self, interaction: Interaction, error: AppCommandError):
+        tr = traceback.format_exc()
+        self.logger.error(f"\n{tr}")
+        if not interaction.response.is_done(): # already handled
+            await interaction.response.send_message(
+                "oopsie poopsie, an error occured\n"
+                "if its an error on my end, my dev'll probably fix it soon\n"
+                f"really depends on how lazy he is atm {BotEmojis.LUL}"
+                f"```py\n{error}\n```",
+                ephemeral=True
+            )
+            
+            await self.error_logs.send(
+                f"error in guild {interaction.guild_id}"
+                f"```py\n{tr}\n```"
+            )
 
     async def on_message(self, message: discord.Message):
         if message.content in [f"<@!{self.user.id}>", f"<@{self.user.id}>"]:
-            await message.reply(content=message.author.mention)
+            return await message.reply(message.author.mention)
 
         await self.process_commands(message)
 
@@ -179,6 +261,11 @@ class NotGDKID(commands.Bot):
             # `asyncio.run` handles the loop cleanup
             # and `self.start` closes all sockets and the HTTPClient instance.
             return
+        finally:
+            self.logger.info(f"{PrintColours.PURPLE} successfully logged out :D {PrintColours.WHITE}")
+            
+            if self._restart:
+                sys.exit(69)
 
     async def start(self):
         if sys.platform == "win32":
@@ -187,37 +274,27 @@ class NotGDKID(commands.Bot):
             await super().start(self.token)
 
     async def close(self, restart: bool = False):
+        self._restart = restart
+        
+        length = len(self._mazes)
+        self.logger.info(f" saving games...")
+        for index, game in enumerate(self._mazes.values()):
+            await game.stop(shutdown_mode=True)
+            game.disable_all()
+            game.ram_cleanup()
+            
+            message = "my developer initiated a bot shutdown, your game has been saved\n\u200b"
+            await game.original_message.edit(content=message, view=game)
+            
+            if index != length:
+                await asyncio.sleep(0.2)
+        self.logger.info(f" {PrintColours.GREEN}{length}{PrintColours.WHITE} games were saved")
+        
+        del self._mazes
+
         await self.db.close()
-
-        for pag in self.active_jishaku_paginators:
-            try:
-                await pag.message.edit(view=None)
-                self.active_jishaku_paginators.pop(
-                    self.active_jishaku_paginators.index(pag)
-                )
-
-            except:
-                continue
-
-            if self.active_jishaku_paginators:
-                await asyncio.sleep(0.25)
-
-        if restart is True:
-            for voice in self.voice_clients:
-                try:
-                    await voice.disconnect()
-
-                except Exception:
-                    continue
-
-            if self.ws is not None and self.ws.open:
-                await self.ws.close(code=1000)
-
-            sys.exit(69)
-
-        else:
-            await super().close()
-
+        await super().close()
+    
     def add_commands(self):
         @self.command(name="load", brief="Load cogs", hidden=True)
         @commands.is_owner()
@@ -302,4 +379,4 @@ class NotGDKID(commands.Bot):
 
 
 if __name__ == "__main__":
-    NotGDKID().run()
+    Amaze().run()

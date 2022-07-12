@@ -32,7 +32,7 @@ from jishaku.shell import ShellReader as ShellReader
 from jishaku.shim.paginator_200 import \
     PaginatorInterface as OGPaginatorInterface
 
-from config.utils import *
+from utils import *
 
 if TYPE_CHECKING:
     from weather_bot import NotGDKID
@@ -72,20 +72,6 @@ class PaginatorInterFace(OGPaginatorInterface):
     button_next: discord.ui.Button
     button_last: discord.ui.Button
     button_close: discord.ui.Button
-
-    def __init__(
-        self,
-        bot: commands.Bot,
-        paginator: commands.Paginator,
-        **kwargs,
-    ):
-        try:
-            bot.active_jishaku_paginators.append(self)
-
-        except AttributeError:
-            pass
-
-        super().__init__(bot, paginator, **kwargs)
 
     def update_view(self):
         self.button_start.label = "❮❮❮"
@@ -141,23 +127,6 @@ class PaginatorInterFace(OGPaginatorInterface):
         self.message: discord.Message
         await self.message.edit(view=None)
         return
-
-    def stop(self):
-        self.bot.active_jishaku_paginators.pop(
-            self.bot.active_jishaku_paginators.index(self)
-        )
-        super().stop()
-
-    def __setattr__(self, __name: str, __value) -> None:
-        if __name == "close_exception" and __value is not None:
-            try:
-                self.bot.active_jishaku_paginators.pop(
-                    self.bot.active_jishaku_paginators.index(self)
-                )
-            except ValueError:
-                pass
-
-        return super().__setattr__(__name, __value)
 
 
 class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
