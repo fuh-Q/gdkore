@@ -26,7 +26,7 @@ class _MazeBlock:
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} xy={(self._x, self._y)} type={self._block_type}>"
 
-
+import psutil
 class Maze:
     """
     Generates random mazes using Kruskal's algorithm
@@ -48,6 +48,7 @@ class Maze:
         self._blocks = blocks or []
 
         if not self._blocks:
+            print("ONE")
             for y in range(height):
                 for x in range(width):
                     path = y % 2 == 0 and x % 2 == 0
@@ -55,24 +56,26 @@ class Maze:
                     self._blocks.append(
                         _MazeBlock(x, y, BlockTypes.PATH if path else BlockTypes.WALL)
                     )
-
             self._sets = {block: set() for block in self._blocks}
+            print(psutil.Process().memory_full_info())
 
             self._make_maze()
+            print(psutil.Process().memory_full_info())
     
     def _ram_cleanup(self):
         del (self._width,
              self._height,
              self._blocks,
-             self._setted,
-             self._sets,
              self)
     
     @classmethod
     def from_db_columns(cls, blocks: List[Dict[str, int]], width: int, height: int) -> Maze:
+        print("TWO")
+        print(psutil.Process().memory_full_info())
         blocks = [_MazeBlock(bl["x"], bl["y"], BlockTypes.PATH
                   if bl["type"] else BlockTypes.WALL)
                   for bl in blocks]
+        print(psutil.Process().memory_full_info())
         
         return cls(width, height, blocks)
 
@@ -158,6 +161,8 @@ class Maze:
             wall._frozen = True
 
             self._setted.extend([i for i in chunk if i not in self._setted])
+    
+        del self._sets, self._setted
 
     def _same_set(self, before, after):
         return not self._sets[after].isdisjoint(self._sets[before])
