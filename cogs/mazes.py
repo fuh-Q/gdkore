@@ -57,10 +57,10 @@ class MoveButton(ui.Button):
         if not self.use_modal:
             if vertical:
                 block = self.view.maze._get_block(self.view.x, self.view.y + (1 if positive else -1))
-                added = self.view.y + 2 if positive else -2
+                added = self.view.y + (2 if positive else -2)
             else:
                 block = self.view.maze._get_block(self.view.x + (1 if positive else -1), self.view.y)
-                added = self.view.x + 2 if positive else -2
+                added = self.view.x + (2 if positive else -2)
             
             if not block or block and block._block_type is BlockTypes.WALL:
                 return
