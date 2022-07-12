@@ -161,6 +161,8 @@ class Amaze(commands.Bot):
         end = time.monotonic()
         e = discord.Embed(description=f"❯❯  started up in ~`{round(end - start, 1)}s`")
         await owner.send(embed=e)
+        
+        await self.db.execute("SELECT 1") # wake it up ig
     
     async def on_guild_join(self, guild: discord.Guild):
         counter = 0
