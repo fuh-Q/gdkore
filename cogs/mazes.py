@@ -189,22 +189,22 @@ class Game(GameView):
         else:
             self.maze = Maze.from_db_columns(maze_blocks, width, height)
         
-        self.maze_pic = self.maze.to_image(
+        maze_pic = self.maze.to_image(
             path_rgb or (190, 151, 111),
             wall_rgb or (0, 0, 0),
             finish_icon
         )
         del finish_icon
         
-        size = (int(self.maze_pic.width * 1.1),
-                int(self.maze_pic.height * 1.1))
+        size = (int(maze_pic.width * 1.1),
+                int(maze_pic.height * 1.1))
         if title:
             fontsize = client.maze_font.getsize(title)
             img_width = fontsize[0] + 30
             img_height = fontsize[1] + 20
             
-            size = (max((int(self.maze_pic.width * 1.1), img_width)),
-                    int(self.maze_pic.height * 1.1) + img_height)
+            size = (max((int(maze_pic.width * 1.1), img_width)),
+                    int(maze_pic.height * 1.1) + img_height)
         else:
             fontsize = (0, 0)
         
@@ -222,12 +222,12 @@ class Game(GameView):
                     font=client.maze_font,
                 )
             self.main_pic.paste(
-                self.maze_pic,
-                ((x := int((self.main_pic.width - self.maze_pic.width) / 2)),
-                y := int((self.main_pic.height - self.maze_pic.height) / 2 + (10 if title else 0)))
+                maze_pic,
+                ((x := int((self.main_pic.width - maze_pic.width) / 2)),
+                y := int((self.main_pic.height - maze_pic.height) / 2 + (10 if title else 0)))
             )
-            self.maze_pic.close()
-            del self.maze_pic
+            maze_pic.close()
+            del maze_pic
         
         if player_icon:
             self.player_icon = Image.open(io.BytesIO(player_icon))
@@ -326,6 +326,8 @@ class Game(GameView):
         self.player_icon.close()
         self.maze._ram_cleanup()
         del self.maze
+        del self.main_pic
+        del self.player_icon
         del self
     
     async def interaction_check(self, interaction: Interaction, item: ui.Item) -> bool:
