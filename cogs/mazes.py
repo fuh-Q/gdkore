@@ -269,12 +269,12 @@ class Game(GameView):
         content = ""
         done = self.maze_completed()
         if done:
-            taken = humanize_timedelta(seconds=time.time() - self.started_at.timestamp())
+            #taken = humanize_timedelta(seconds=time.time() - self.started_at.timestamp())
             await self.stop(save=False)
             self.disable_all()
             content = "**you finished!**\n\n" \
-                     f"— **time taken** `{taken}`\n" \
                      f"— **moves** `{self.move_count}`\n\u200b"
+                     #f"— **time taken** `{taken}`\n" \
         
         await interaction.response.edit_message(
             content=content,
