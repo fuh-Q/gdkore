@@ -138,7 +138,7 @@ class MoveModal(ui.Modal):
         
         await self.game.update_player(interaction, axis, added)
 
-
+import psutil
 class Game(GameView):
     original_message: InteractionMessage
     
@@ -178,7 +178,7 @@ class Game(GameView):
         pos_y: int,
     ):
         wall_rgb, path_rgb = map(lambda i: tuple(i) if i is not None else i, (wall_rgb, path_rgb))
-        
+        print(psutil.Process().memory_full_info())
         self.client = client
         self.owner_id = mazes_uid or settings_uid
         self.title = title
@@ -188,7 +188,7 @@ class Game(GameView):
             self.maze = Maze(width, height)
         else:
             self.maze = Maze.from_db_columns(maze_blocks, width, height)
-        
+        print(psutil.Process().memory_full_info())
         maze_pic = self.maze.to_image(
             path_rgb or (190, 151, 111),
             wall_rgb or (0, 0, 0),
