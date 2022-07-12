@@ -503,6 +503,7 @@ class Mazes(commands.Cog):
                 return
         
         await new_game(args)
+        del args
     
     @maze.error
     async def maze_error(self, interaction: Interaction, error: AppCommandError):
