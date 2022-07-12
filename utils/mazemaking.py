@@ -110,17 +110,18 @@ class Maze:
                         
                         img = img.crop((0, 0, x2, y2))
         
-        base = Image.new(
+        with Image.new(
             "RGB",
             (int(img.width + 10), int(img.height + 10)),
             wall_rgb
-        )
-        base.paste(
-            img,
-            (int((base.width - img.width) / 2), int((base.height - img.height) / 2)),
-            img
-        )
+        ) as base:
+            base.paste(
+                img,
+                (int((base.width - img.width) / 2), int((base.height - img.height) / 2)),
+                img
+            )
 
+        img.close()
         del img, draw, rows
         return base
 

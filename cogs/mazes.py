@@ -208,24 +208,26 @@ class Game(GameView):
         else:
             fontsize = (0, 0)
         
-        self.main_pic = Image.new(
+        with Image.new(
             "RGBA",
             size,
             path_rgb or (190, 151, 111)
-        )
-        if title:
-            width = (self.main_pic.width - fontsize[0]) / 2
-            ImageDraw.Draw(self.main_pic).text(
-                (width, 15),
-                title,
-                fill=wall_rgb or (0, 0, 0),
-                font=client.maze_font,
+        ) as self.main_pic:
+            if title:
+                width = (self.main_pic.width - fontsize[0]) / 2
+                ImageDraw.Draw(self.main_pic).text(
+                    (width, 15),
+                    title,
+                    fill=wall_rgb or (0, 0, 0),
+                    font=client.maze_font,
+                )
+            self.main_pic.paste(
+                self.maze_pic,
+                ((x := int((self.main_pic.width - self.maze_pic.width) / 2)),
+                y := int((self.main_pic.height - self.maze_pic.height) / 2 + (10 if title else 0)))
             )
-        self.main_pic.paste(
-            self.maze_pic,
-            ((x := int((self.main_pic.width - self.maze_pic.width) / 2)),
-              y := int((self.main_pic.height - self.maze_pic.height) / 2 + (10 if title else 0)))
-        )
+            self.maze_pic.close()
+            del self.maze_pic
         
         if player_icon:
             self.player_icon = Image.open(io.BytesIO(player_icon))
@@ -254,6 +256,7 @@ class Game(GameView):
         )
         copy.save(buffer, "png")
         buffer.seek(0)
+        copy.close()
         del copy
 
         return discord.File(buffer, "maze.png")
@@ -320,7 +323,6 @@ class Game(GameView):
     
     def ram_cleanup(self):
         self.main_pic.close()
-        self.maze_pic.close()
         self.player_icon.close()
         for o in self.__dict__.items():
             del o
