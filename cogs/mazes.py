@@ -431,7 +431,6 @@ class Mazes(commands.Cog):
             else:
                 settings = (None for _ in range(5))
             zeroes = (0 for _ in range(3))
-            await self.client.loop.run_in_executor
             game = Game()
             await self.client.loop.run_in_executor(
                 None,
