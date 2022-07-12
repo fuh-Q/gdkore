@@ -322,6 +322,7 @@ class Game(GameView):
             del self.client._mazes[self.owner_id]
     
     def ram_cleanup(self):
+        print(psutil.Process().memory_full_info())
         self.main_pic.close()
         self.player_icon.close()
         self.maze._ram_cleanup()
@@ -329,6 +330,7 @@ class Game(GameView):
              self.player_icon,
              self.maze,
              self)
+        print(psutil.Process().memory_full_info())
     
     async def interaction_check(self, interaction: Interaction, item: ui.Item) -> bool:
         if interaction.user.id != self.owner_id:
