@@ -65,7 +65,8 @@ class Maze:
              self._height,
              self._blocks,
              self._setted,
-             self._sets)
+             self._sets,
+             self)
     
     @classmethod
     def from_db_columns(cls, blocks: List[Dict[str, int]], width: int, height: int) -> Maze:

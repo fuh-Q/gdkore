@@ -325,10 +325,10 @@ class Game(GameView):
         self.main_pic.close()
         self.player_icon.close()
         self.maze._ram_cleanup()
-        del self.maze
-        del self.main_pic
-        del self.player_icon
-        del self
+        del (self.main_pic,
+             self.player_icon,
+             self.maze,
+             self)
     
     async def interaction_check(self, interaction: Interaction, item: ui.Item) -> bool:
         if interaction.user.id != self.owner_id:
