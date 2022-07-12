@@ -20,7 +20,7 @@ from jishaku.paginators import WrappedPaginator
 from jishaku.shim.paginator_200 import \
     PaginatorInterface as OGPaginatorInterface
 
-from utils import Botcolours
+from utils import BotColours
 
 logging.basicConfig(level=logging.INFO)
 
@@ -146,7 +146,7 @@ class RickrollBot(commands.Bot):
             child.style = discord.ButtonStyle.secondary
 
         e = self.control_msg.embeds[0].copy()
-        e.colour = Botcolours.red
+        e.colour = BotColours.red
 
         await self.control_msg.edit(embed=e, view=self.persistent_views[0])
 
@@ -175,7 +175,7 @@ class RickrollBot(commands.Bot):
 
         view = AdminControls()
         e = self.control_msg.embeds[0].copy()
-        e.colour = Botcolours.green
+        e.colour = BotColours.green
         await self.control_msg.edit(embed=e, view=view)
         self.add_view(view=view, message_id=946524456451473418)
         await client.get_channel(831692952489033758).connect()
