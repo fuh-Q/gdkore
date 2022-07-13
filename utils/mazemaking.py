@@ -96,22 +96,23 @@ class Maze:
                     
                     if bl is self._blocks[-1]:
                         if not finish_icon:
-                            bigger = max(path_rgb, wall_rgb)
-                            contrast_value = max(bigger) + min(bigger)
-                            op = int.__sub__ if contrast_value > 122 else int.__add__
-                            draw.ellipse((
-                                (x1 + 1, y1 + 1),
-                                (x2 - 1, y2 - 1)
-                            ), fill=tuple(map(lambda i: op(contrast_value, i), bigger)))
+                            #bigger = max(path_rgb, wall_rgb)
+                            #contrast_value = max(bigger) + min(bigger)
+                            #op = int.__sub__ if contrast_value > 122 else int.__add__
+                            #draw.ellipse((
+                            #    (x1 + 1, y1 + 1),
+                            #    (x2 - 1, y2 - 1)
+                            #), fill=tuple(map(lambda i: op(contrast_value, i), bigger)))
+                            finish_icon = Image.open("assets/trash.png")
                         else:
                             finish_icon = Image.open(io.BytesIO(finish_icon)).convert("RGBA")
-                            img.paste(
-                                finish_icon,
-                                (x1, y1),
-                                finish_icon
-                            )
-                            finish_icon.close()
-                            del finish_icon
+                        img.paste(
+                            finish_icon,
+                            (x1, y1),
+                            finish_icon
+                        )
+                        finish_icon.close()
+                        del finish_icon
                         
                         img = img.crop((0, 0, x2, y2))
         

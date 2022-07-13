@@ -233,8 +233,9 @@ class Game(GameView):
             self.player_icon = Image.open(io.BytesIO(player_icon))
             del player_icon
         else:
-            bw = "black" if not path_rgb or path_rgb and sum(path_rgb) > 382 else "white"
-            self.player_icon = Image.open(f"assets/default-player-{bw}.png")
+            #bw = "black" if not path_rgb or path_rgb and sum(path_rgb) > 382 else "white"
+            #self.player_icon = Image.open(f"assets/default-player-{bw}.png")
+            self.player_icon = Image.open(f"assets/mee6.png")
             
         if self.player_icon.mode != "RGBA":
             self.player_icon = self.player_icon.convert("RGBA")
