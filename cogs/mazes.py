@@ -224,7 +224,7 @@ class Game(GameView):
             self.main_pic.paste(
                 maze_pic,
                 ((x := int((self.main_pic.width - maze_pic.width) / 2)),
-                y := int((self.main_pic.height - maze_pic.height) / 2 + (img_height / 5 if title else 0)))
+                 y := int(self.main_pic.height - maze_pic.height / 2) if not title else 61)
             )
             maze_pic.close()
             del maze_pic
