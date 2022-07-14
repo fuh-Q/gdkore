@@ -114,20 +114,10 @@ class MazeConfig(commands.Cog):
     
     @settings.command(name="title")
     @describe(text="the text to set as the title")
-    async def settings_title(self, interaction: Interaction, text: Optional[str]):
+    async def settings_title(self, interaction: Interaction, text: Optional[str] = ""):
         """
         customise the text displayed over mazes when you play
         """
-        
-        if not text:
-            query = """UPDATE settings SET
-                            title = NULL
-                        WHERE user_id = $1
-                    """
-            await self.client.db.execute(query, interaction.user.id)
-            return await interaction.response.send_message(
-                f"reset your maze title {BotEmojis.HEHEBOI}", ephemeral=True
-            )
         
         if len(text) > 32:
             return await interaction.response.send_message(

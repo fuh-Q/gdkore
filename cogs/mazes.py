@@ -178,6 +178,8 @@ class Game(GameView):
         pos_y: int,
     ):
         wall_rgb, path_rgb = map(lambda i: tuple(i) if i is not None else i, (wall_rgb, path_rgb))
+        if title is None:
+            title = "please help mee6 to the trash"
         
         self.client = client
         self.owner_id = mazes_uid or settings_uid
@@ -205,6 +207,7 @@ class Game(GameView):
             
             size = (max((int(maze_pic.width * 1.1), img_width)),
                     int(maze_pic.height * 1.1) + img_height)
+            print("balls")
         else:
             fontsize = (0, 0)
         
@@ -224,7 +227,7 @@ class Game(GameView):
             self.main_pic.paste(
                 maze_pic,
                 ((x := int((self.main_pic.width - maze_pic.width) / 2)),
-                 y := int(self.main_pic.height - maze_pic.height / 2) if not title else 61)
+                 y := int((self.main_pic.height - maze_pic.height) / 2) if not title else 61)
             )
             maze_pic.close()
             del maze_pic
