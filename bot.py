@@ -83,6 +83,7 @@ class Amaze(commands.Bot):
             "cogs.Eval",
             "cogs.mazes",
             "cogs.mazeconfig",
+            "cogs.misc",
             "utils",
         ]
 
