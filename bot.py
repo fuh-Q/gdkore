@@ -131,9 +131,9 @@ class Amaze(commands.Bot):
 
     async def setup_hook(self) -> None:
         self.db = await asyncpg.create_pool(self.postgres_dns, init=db_init)
+        self.logger.info(f"{PrintColours.GREEN} Database connected {PrintColours.WHITE}")
 
-        ready_task = self.loop.create_task(self.first_ready())
-        ready_task.add_done_callback(
+        self.loop.create_task(self.first_ready()).add_done_callback(
             lambda exc: self.logger.error(
                 f"\n{PrintColours.RED}" + "".join(traceback.format_exc()) + PrintColours.WHITE
             )
