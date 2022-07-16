@@ -207,7 +207,6 @@ class Game(GameView):
             
             size = (max((int(maze_pic.width * 1.1), img_width)),
                     int(maze_pic.height * 1.1) + img_height)
-            print("balls")
         else:
             fontsize = (0, 0)
         
