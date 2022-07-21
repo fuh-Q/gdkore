@@ -148,7 +148,7 @@ class Maze:
             for item in wall_neighbours:
                 for i in chunk:
                     self._sets[item].add(i)
-                for i in list(self._sets[item]):
+                for i in self._sets[item]:
                     self._sets[i].update(self._sets[item])
                 item._frozen = True
 
