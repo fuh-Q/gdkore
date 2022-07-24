@@ -300,7 +300,7 @@ class NotGDKID(commands.Bot):
                 content=content, mention_author=True
             )
         
-        @self.tree.command(name="command", description="\u200b")
+        @self.tree.command(name="command", description="-")
         async def slash_command(interaction: Interaction):
             return await interaction.response.send_message("\u200b", ephemeral=True)
 
