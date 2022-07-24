@@ -131,7 +131,7 @@ class NotGDKID(commands.Bot):
             f"Logged in as: {self.user.name} : {self.user.id}\n----- Cogs and Extensions -----\nMain bot online"
         )
 
-        await self.change_presence(status=discord.Status.online, activity=None)
+        await self.change_presence(status=discord.Status.idle, activity=None)
 
         owner = await self.fetch_user(596481615253733408)
         self.owner = owner

@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from enum import Enum
 import io
+import math
 import time
 from PIL import Image, ImageDraw
 from typing import TYPE_CHECKING, Dict, List, Tuple, Optional
@@ -19,8 +20,6 @@ if TYPE_CHECKING:
 
 class Directions(Enum):
     """
-    Format
-    ------
     MEMBER_NAME = (axis: str, positive_diff: bool, vertical: bool)
     """
     
@@ -28,6 +27,17 @@ class Directions(Enum):
     UP = ("y", False, True)
     DOWN = ("y", True, True)
     RIGHT = ("x", True, False)
+
+
+class StopModes(Enum):
+    """
+    MEMBER_NAME = int
+    """
+    
+    DELETE = 0
+    SAVE = 1
+    SHUTDOWN = 2
+    COMPLETED = 3
 
 
 class MaxConcurrencyReached(CheckFailure):
@@ -198,15 +208,15 @@ class Game(GameView):
         )
         del finish_icon
         
-        size = (int(maze_pic.width * 1.1),
-                int(maze_pic.height * 1.1))
+        size = (maze_pic.width + 50,
+                maze_pic.height + 30)
         if title:
             fontsize = client.maze_font.getsize(title)
             img_width = fontsize[0] + 30
             img_height = fontsize[1] + 20
             
-            size = (max((int(maze_pic.width * 1.1), img_width)),
-                    int(maze_pic.height * 1.1) + img_height)
+            size = (max(size[0], img_width),
+                    size[1] + img_height)
         else:
             fontsize = (0, 0)
         
@@ -271,12 +281,16 @@ class Game(GameView):
         content = ""
         done = self.maze_completed()
         if done:
-            #taken = humanize_timedelta(seconds=time.time() - self.started_at.timestamp())
-            await self.stop(save=False)
+            taken = humanize_timedelta(seconds=(seconds := time.time() - self.started_at.timestamp()))
+            score = round(
+                math.sqrt((self.maze._width * self.maze._height) ** 3 / (seconds - self.move_count)) / 1000
+            )
+            await self.stop(mode=StopModes.COMPLETED)
             self.disable_all()
             content = "**you finished!**\n\n" \
-                     f"— **moves** `{self.move_count}`\n\u200b"
-                     #f"— **time taken** `{taken}`\n" \
+                     f"— moves `{self.move_count}`\n" \
+                     f"— total time `{taken}`\n\n" \
+                     f"— **score** `{score}`\n\u200b"
         
         await interaction.response.edit_message(
             content=content,
@@ -287,10 +301,10 @@ class Game(GameView):
         if done:
             await self.client.loop.run_in_executor(None, self.ram_cleanup)
     
-    async def stop(self, save: bool = False, shutdown_mode: bool = False) -> None:
+    async def stop(self, mode: StopModes) -> None:
         super().stop()
         
-        if save or shutdown_mode:
+        if mode not in (StopModes.DELETE, StopModes.COMPLETED):
             query = """INSERT INTO mazes VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
                         ON CONFLICT ON CONSTRAINT mazes_pkey
                         DO UPDATE SET
@@ -320,7 +334,7 @@ class Game(GameView):
             query = """DELETE FROM mazes WHERE user_id = $1"""
             await self.client.db.execute(query, self.owner_id)
         
-        if not shutdown_mode:
+        if mode is not StopModes.SHUTDOWN:
             del self.client._mazes[self.owner_id]
     
     def ram_cleanup(self):
@@ -350,7 +364,7 @@ class Game(GameView):
                   f"(i saved your game btw, you can keep playing the next time you run `/maze`)"
         await self.original_message.edit(content=content, view=self)
         
-        await self.stop(save=True)
+        await self.stop(mode=StopModes.SAVE)
         await self.client.loop.run_in_executor(None, self.ram_cleanup)
     
     @ui.button(emoji=BotEmojis.QUIT_GAME, style=discord.ButtonStyle.danger)
@@ -383,7 +397,7 @@ class Game(GameView):
 
         if not self.is_finished():
             self.disable_all()
-            await self.stop(save=view.choice)
+            await self.stop(mode=list(StopModes.__members__.values())[int(view.choice)])
             
             if view.choice is False:
                 content = f"<@!{self.owner_id}> gave up lol\n\u200b"
@@ -462,9 +476,11 @@ class Mazes(commands.Cog):
                 """
         args = await self.client.db.fetchrow(query, interaction.user.id)
         if args is not None and args["started_at"]:
+            x, y = args["width"] / 2 + 1, args["height"] / 2 + 1
             embed = discord.Embed(
                 title="save found",
-                description="a previously saved game has been found, load save or overwrite?"
+                description=f"a previously saved **{x}x{y}** "
+                             "maze has been found, load save or overwrite?"
             )
             view = Confirm(interaction.user, yes_label="load", no_label="overwrite")
             await interaction.edit_original_message(content=None, embed=embed, view=view)

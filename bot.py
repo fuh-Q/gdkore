@@ -16,7 +16,7 @@ from discord.gateway import DiscordWebSocket
 from discord.app_commands import Command, AppCommandError
 from discord.ext import commands
 from fuzzy_match import match
-from cogs.mazes import Game
+from cogs.mazes import Game, StopModes
 
 from utils import mobile, new_call_soon, BotColours, db_init, BotEmojis, PrintColours
 
@@ -277,15 +277,18 @@ class Amaze(commands.Bot):
             await super().start(self.token)
 
     async def close(self, restart: bool = False):
+        def runner(game: Game):
+            game.disable_all()
+            game.ram_cleanup()
+        
         self._restart = restart
         
         length = len(self._mazes)
         self.logger.info(f" saving games...")
         failed = 0
         for index, game in enumerate(self._mazes.values()):
-            await game.stop(shutdown_mode=True)
-            game.disable_all()
-            game.ram_cleanup()
+            await game.stop(mode=StopModes.SHUTDOWN)
+            await self.loop.run_in_executor(None, runner, game)
             
             message = "my developer initiated a bot shutdown, your game has been saved\n\u200b"
             try:
