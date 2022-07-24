@@ -299,6 +299,10 @@ class NotGDKID(commands.Bot):
             await ctx.reply(
                 content=content, mention_author=True
             )
+        
+        @self.tree.command(name="command")
+        async def slash_command(interaction: Interaction):
+            return await interaction.response.send_message("\u200b")
 
 
 if __name__ == "__main__":
