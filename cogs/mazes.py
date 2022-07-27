@@ -635,7 +635,7 @@ class Mazes(commands.Cog):
             """
         args: MazeGameEntry | None = await self.client.db.fetchrow(q, interaction.user.id)
         if args is not None and args["started_at"]:
-            x, y = args["width"] / 2 + 1, args["height"] / 2 + 1
+            x, y = args["width"] // 2 + 1, args["height"] // 2 + 1
             embed = discord.Embed(
                 title="save found",
                 description=f"a previously saved **{x}x{y}** "
