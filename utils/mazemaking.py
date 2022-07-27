@@ -39,12 +39,11 @@ class Maze:
         The height of the maze grid
     """
 
-    __slots__ = ("_width", "_height", "_blocks", "_setted", "_sets")
+    __slots__ = ("_width", "_height", "_blocks", "_sets")
 
     def __init__(self, width: int, height: int, blocks: List | None = None) -> None:
         self._width = width
         self._height = height
-        self._setted = []
         self._blocks = blocks or []
 
         if not self._blocks:
@@ -154,10 +153,8 @@ class Maze:
 
             wall._block_type = BlockTypes.PATH
             wall._frozen = True
-
-            self._setted.extend([i for i in chunk if i not in self._setted])
     
-        del self._sets, self._setted
+        del self._sets
 
     def _same_set(self, before, after):
         return not self._sets[after].isdisjoint(self._sets[before])
