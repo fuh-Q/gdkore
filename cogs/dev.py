@@ -1,8 +1,6 @@
 import discord
 from discord.ext import commands
 
-from utils import PrintColours
-
 
 class Dev(commands.Cog):
     def __init__(self, client: commands.Bot):
@@ -25,6 +23,7 @@ class Dev(commands.Cog):
     async def shutdown(self, ctx: commands.Context):
         e = discord.Embed(description="👋 cya")
         await ctx.reply(embed=e)
+        
         await self.client.close()
 
     @commands.command(hidden=True, brief="Restart the bot")
