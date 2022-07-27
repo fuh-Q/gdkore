@@ -516,7 +516,10 @@ class Leaderboards(View):
         return rankings
     
     async def interaction_check(self, interaction: Interaction, item: ui.Item) -> bool:
-        if interaction.user.id != self.owner_id and item is not self.formula:
+        if item is self.formula:
+            return None
+        
+        if interaction.user.id != self.owner_id:
             await interaction.response.send_message("its not your menu", ephemeral=True)
             return False
 
