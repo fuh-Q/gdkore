@@ -7,14 +7,18 @@ from . import CHOICES
 
 import discord
 from discord import ui, User, Interaction, InteractionMessage
-from discord.ui import Item, View, Button, button
-from discord.ui.view import _ViewWeights
+from discord.ui import (
+    View as DPYView,
+    Item,
+    Button,
+    button
+)
 
 if TYPE_CHECKING:
     from bot import Amaze
 
 
-class Confirm(View):
+class Confirm(DPYView):
     """
     Pre-defined `View` class used to prompt the user for a yes/no confirmation
 
@@ -112,14 +116,13 @@ class Confirm(View):
         return self._callback(interaction, btn)
 
 
-class GameView(View):
+class View(DPYView):
     """
     A subclass of `View` that reworks the timeout logic
     """
 
     client: Amaze = None
     original_message: discord.Message = None
-    _View__weights: _ViewWeights
 
     async def _scheduled_task(self, item: Item, interaction: Interaction):
         try:
@@ -144,10 +147,29 @@ class GameView(View):
             c.disabled = True
     
     def fill_gaps(self) -> None:
-        for index, weight in enumerate(self._View__weights.weights):
+        for index, weight in enumerate(self.__weights.weights):
             if weight and weight < 5:
                 for _ in range(5 - weight):
                     self.add_item(Button(label="\u200b", disabled=True, row=index))
 
     async def interaction_check(self, interaction: Interaction, item: ui.Item) -> bool:
+        """
+        Check function run whenever a component on this view is dispatched.
+        To run the component's callback normally, return `True`.
+        To run the callback but not refresh the timeout timer, return `None`.
+        To negate the interaction sent, return `False`.
+        
+        Parameters
+        ----------
+        interaction: `Interaction`
+            The (unresponded) `Interaction` object from the dispatched item.
+        item: `Item`
+            The item dispatched.
+        
+        Raises
+        ------
+        `NotImplementedError`
+            This method was not configured
+        """
+        
         raise NotImplementedError

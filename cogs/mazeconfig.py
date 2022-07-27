@@ -31,23 +31,23 @@ class MazeConfig(commands.Cog):
                 content=f"that doesnt look a valid hex {BotEmojis.HAHALOL}", ephemeral=True
             )
         
-        query = """INSERT INTO settings (user_id, {0}_rgb) VALUES ($1, $2)
-                    ON CONFLICT ON CONSTRAINT settings_pkey
-                    DO UPDATE SET
-                        {0}_rgb = $2
-                    WHERE excluded.user_id = $1
-                """.format(space_type)
-        await self.client.db.execute(query, interaction.user.id, rgb)
+        q = """INSERT INTO settings (user_id, {0}_rgb) VALUES ($1, $2)
+                ON CONFLICT ON CONSTRAINT settings_pkey
+                DO UPDATE SET
+                    {0}_rgb = $2
+                WHERE excluded.user_id = $1
+            """.format(space_type)
+        await self.client.db.execute(q, interaction.user.id, rgb)
         await interaction.response.send_message(
             content=f"{space_type} colour set to `#{colour.lstrip('#')}` {BotEmojis.HEHEBOI}", ephemeral=True
         )
     
     async def reset_colour(self, interaction: Interaction, space_type: str):
-        query = """UPDATE settings SET
-                        {0}_rgb = NULL
-                    WHERE user_id = $1
-                """.format(space_type)
-        await self.client.db.execute(query, interaction.user.id)
+        q = """UPDATE settings SET
+                    {0}_rgb = NULL
+                WHERE user_id = $1
+            """.format(space_type)
+        await self.client.db.execute(q, interaction.user.id)
         await interaction.response.send_message(
             f"reset your {space_type} colour {BotEmojis.HEHEBOI}", ephemeral=True
         )
@@ -66,24 +66,24 @@ class MazeConfig(commands.Cog):
         del img
         buffer.seek(0)
         
-        query = """INSERT INTO settings (user_id, {0}_icon) VALUES ($1, $2)
-                    ON CONFLICT ON CONSTRAINT settings_pkey
-                    DO UPDATE SET
-                        {0}_icon = $2
-                    WHERE excluded.user_id = $1
-                """.format(icon_type)
+        q = """INSERT INTO settings (user_id, {0}_icon) VALUES ($1, $2)
+                ON CONFLICT ON CONSTRAINT settings_pkey
+                DO UPDATE SET
+                    {0}_icon = $2
+                WHERE excluded.user_id = $1
+            """.format(icon_type)
         
-        await self.client.db.execute(query, interaction.user.id, buffer.read())
+        await self.client.db.execute(q, interaction.user.id, buffer.read())
         await interaction.response.send_message(
             f"{icon_type} icon set to [`{icon.filename}`] {BotEmojis.HEHEBOI}", ephemeral=True
         )
     
     async def reset_icon(self, interaction: Interaction, icon_type: str):
-        query = """UPDATE settings SET
-                            {0}_icon = NULL
-                        WHERE user_id = $1
-                    """.format(icon_type)
-        await self.client.db.execute(query, interaction.user.id)
+        q = """UPDATE settings SET
+                    {0}_icon = NULL
+                WHERE user_id = $1
+            """.format(icon_type)
+        await self.client.db.execute(q, interaction.user.id)
         return await interaction.response.send_message(
             f"reset your {icon_type} icon {BotEmojis.HEHEBOI}", ephemeral=True
         )
@@ -124,13 +124,13 @@ class MazeConfig(commands.Cog):
                 "please keep the text under 32 characters, thanks :)", ephemeral=True
             )
         
-        query = """INSERT INTO settings (user_id, title) VALUES ($1, $2)
-                    ON CONFLICT ON CONSTRAINT settings_pkey
-                    DO UPDATE SET
-                        title = $2
-                    WHERE excluded.user_id = $1
-                """
-        await self.client.db.execute(query, interaction.user.id, text)
+        q = """INSERT INTO settings (user_id, title) VALUES ($1, $2)
+                ON CONFLICT ON CONSTRAINT settings_pkey
+                DO UPDATE SET
+                    title = $2
+                WHERE excluded.user_id = $1
+            """
+        await self.client.db.execute(q, interaction.user.id, text)
         await interaction.response.send_message(
             f"title set {BotEmojis.HEHEBOI}", ephemeral=True
         )
@@ -165,10 +165,10 @@ class MazeConfig(commands.Cog):
         delete your saved game
         """
         
-        query = """DELETE FROM mazes
-                    WHERE user_id = $1 RETURNING user_id
-                """
-        found = await self.client.db.fetchval(query, interaction.user.id)
+        q = """DELETE FROM mazes
+                WHERE user_id = $1 RETURNING user_id
+            """
+        found = await self.client.db.fetchval(q, interaction.user.id)
         if found:
             msg = f"found your save {BotEmojis.HEHEBOI} its gone now :)"
         else:
@@ -199,14 +199,14 @@ class MazeConfig(commands.Cog):
         if view.choice:
             await interaction.followup.send("data cleared", ephemeral=True)
             
-            query = """SELECT tablename FROM pg_tables
-                        WHERE tableowner = 'GDKID'
-                    """
-            data = await self.client.db.fetch(query)
+            q = """SELECT tablename FROM pg_tables
+                    WHERE tableowner = 'GDKID'
+                """
+            data = await self.client.db.fetch(q)
 
             for record in data:
-                query = "DELETE FROM %s WHERE user_id = $1" % record[0]
-                await self.client.db.execute(query, interaction.user.id)
+                q = "DELETE FROM %s WHERE user_id = $1" % record[0]
+                await self.client.db.execute(q, interaction.user.id)
         else:
             await interaction.followup.send("k nvm then", ephemeral=True)
 

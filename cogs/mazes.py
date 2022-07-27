@@ -3,17 +3,27 @@ from __future__ import annotations
 from datetime import datetime
 from enum import Enum
 import io
-import math
 import time
 from PIL import Image, ImageDraw
-from typing import TYPE_CHECKING, Dict, List, Tuple, Optional
+from typing import TYPE_CHECKING, Dict, List, Tuple, Optional, TypedDict
+import asyncpg
 
 import discord
 from discord import Interaction, InteractionMessage, ui
-from discord.app_commands import command, describe, Range, CheckFailure, AppCommandError
 from discord.ext import commands
+from discord.app_commands import (
+    errors,
+    checks,
+    command,
+    choices,
+    describe,
+    Range,
+    Choice,
+    CheckFailure,
+    AppCommandError
+)
 
-from utils import Maze, GameView, Confirm, BlockTypes, BotEmojis, BotColours, humanize_timedelta, PrintColours
+from utils import Maze, View, Confirm, BlockTypes, BotEmojis, BotColours, humanize_timedelta
 
 if TYPE_CHECKING:
     from bot import Amaze
@@ -38,6 +48,31 @@ class StopModes(Enum):
     SAVE = 1
     SHUTDOWN = 2
     COMPLETED = 3
+
+
+class LeaderboardEntry(TypedDict):
+    user_id: int
+    best: float
+    total: float
+    average: float
+    num_completed: int
+    rank: int | None
+
+
+class MazeGameEntry(TypedDict):
+    user_id: int
+    blocks: Dict[str, int]
+    width: int
+    height: int
+    started_at: datetime
+    moves: int
+    pos_x: int
+    pos_y: int
+    path_rgb: List[int]
+    wall_rgb: List[int]
+    title: str
+    player_icon: bytes
+    finish_icon: bytes
 
 
 class MaxConcurrencyReached(CheckFailure):
@@ -149,7 +184,7 @@ class MoveModal(ui.Modal):
         await self.game.update_player(interaction, axis, added)
 
 
-class Game(GameView):
+class Game(View):
     original_message: InteractionMessage
     
     def __init__(self):
@@ -283,14 +318,14 @@ class Game(GameView):
         if done:
             taken = humanize_timedelta(seconds=(seconds := time.time() - self.started_at.timestamp()))
             score = round(
-                math.sqrt((self.maze._width * self.maze._height) ** 3 / (seconds - self.move_count)) / 1000
+                (self.maze._width * self.maze._height) ** 1.1 / (seconds + self.move_count) / 2.5, 2
             )
-            await self.stop(mode=StopModes.COMPLETED)
             self.disable_all()
             content = "**you finished!**\n\n" \
                      f"— moves `{self.move_count}`\n" \
                      f"— total time `{taken}`\n\n" \
-                     f"— **score** `{score}`\n\u200b"
+                     f"— **score** `{score}`\n" \
+                     f"ㅤ*use `/leaderboard` to view your rank!*\n\u200b"
         
         await interaction.response.edit_message(
             content=content,
@@ -299,25 +334,41 @@ class Game(GameView):
         )
         
         if done:
+            await self.stop(mode=StopModes.COMPLETED)
+            await self.update_leaderboards(score)
+            
             await self.client.loop.run_in_executor(None, self.ram_cleanup)
+    
+    async def update_leaderboards(self, points: float) -> None:
+        q = """INSERT INTO leaderboards VALUES ($1, $2, $2, $2, 1)
+                ON CONFLICT ON CONSTRAINT leaderboards_pkey
+                DO UPDATE SET
+                    best = CASE WHEN leaderboards.best > $2 THEN leaderboards.best ELSE $2 END,
+                    total = leaderboards.total + $2,
+                    average = (leaderboards.average + $2) / (leaderboards.num_completed + 1),
+                    num_completed = leaderboards.num_completed + 1
+                WHERE leaderboards.user_id = $1
+            """
+        
+        await self.client.db.execute(q, self.owner_id, points)
     
     async def stop(self, mode: StopModes) -> None:
         super().stop()
         
         if mode not in (StopModes.DELETE, StopModes.COMPLETED):
-            query = """INSERT INTO mazes VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-                        ON CONFLICT ON CONSTRAINT mazes_pkey
-                        DO UPDATE SET
-                            blocks = $2,
-                            width = $3,
-                            height = $4,
-                            moves = $6,
-                            pos_x = $7,
-                            pos_y = $8
-                        WHERE excluded.user_id = $1
-                    """
+            q = """INSERT INTO mazes VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                    ON CONFLICT ON CONSTRAINT mazes_pkey
+                    DO UPDATE SET
+                        blocks = $2,
+                        width = $3,
+                        height = $4,
+                        moves = $6,
+                        pos_x = $7,
+                        pos_y = $8
+                    WHERE excluded.user_id = $1
+                """
             await self.client.db.execute(
-                query,
+                q,
                 self.owner_id,
                 [{"x": bl._x,
                 "y": bl._y,
@@ -331,8 +382,8 @@ class Game(GameView):
             )
         
         else:
-            query = """DELETE FROM mazes WHERE user_id = $1"""
-            await self.client.db.execute(query, self.owner_id)
+            q = """DELETE FROM mazes WHERE user_id = $1"""
+            await self.client.db.execute(q, self.owner_id)
         
         if mode is not StopModes.SHUTDOWN:
             del self.client._mazes[self.owner_id]
@@ -348,7 +399,9 @@ class Game(GameView):
     
     async def interaction_check(self, interaction: Interaction, item: ui.Item) -> bool:
         if interaction.user.id != self.owner_id:
-            await interaction.response.send_message("its not your game", ephemeral=True)
+            await interaction.response.send_message(
+                "its not your game, you can start one by running `/maze`", ephemeral=True
+            )
             return False
         
         if item.__class__.__name__ != "cls":
@@ -413,6 +466,109 @@ class Game(GameView):
             await self.client.loop.run_in_executor(None, self.ram_cleanup)
 
 
+class Leaderboards(View):
+    original_message: InteractionMessage
+    options = [
+        discord.SelectOption(label="best score", value="best"),
+        discord.SelectOption(label="average score", value="average"),
+        discord.SelectOption(label="total score", value="total"),
+    ]
+    
+    def __init__(self, client: Amaze, owner_id: int, cache: Dict[str, str]):
+        self.client = client
+        self.owner_id = owner_id
+        self.cache = cache
+        
+        super().__init__(timeout=10)
+        
+        self.selected = list(cache)[0]
+        self.select_menu.options = self.generate_options()
+    
+    @staticmethod
+    async def fetch_rankings(db: asyncpg.Pool | asyncpg.Connection, leaderboard: str, user_id: int) -> str:
+        q = """SELECT * FROM leaderboards
+                ORDER BY {0} DESC
+                LIMIT 10
+            """.format(leaderboard)
+        top_10: List[LeaderboardEntry] = await db.fetch(q)
+        
+        rankings = "\n".join(map(lambda tu: f"`{tu[0] + 1:,}.` <@!{tu[1]['user_id']}> - `{tu[1][leaderboard]:,.2f}` points", enumerate(top_10)))
+        
+        if user_id not in map(lambda i: i["user_id"], top_10):
+            q = """SELECT *, (
+                        SELECT COUNT(*)
+                        FROM leaderboards lb2
+                        WHERE lb2.{0} >= lb.{0}
+                    ) AS rank
+                    FROM leaderboards lb
+                    WHERE user_id = $1
+                """.format(leaderboard)
+            user: LeaderboardEntry = await db.fetchrow(q, user_id)
+            if user:
+                user_rank = f"\n`{user['rank']:,}.` <@!{user['user_id']}> - `{user[leaderboard]:,.2f}` points"
+                if user["rank"] != 11:
+                    user_rank = "\n..." + user_rank
+            else:
+                user_rank = f"\n...\n`NA.` <@!{user_id}> - `0` points"
+            
+            rankings += user_rank
+        
+        return rankings
+    
+    async def interaction_check(self, interaction: Interaction, item: ui.Item) -> bool:
+        if interaction.user.id != self.owner_id and item is not self.formula:
+            await interaction.response.send_message("its not your menu", ephemeral=True)
+            return False
+
+        return True
+    
+    async def on_timeout(self) -> None:
+        self.disable_all()
+        
+        await self.original_message.edit(view=self)
+    
+    def generate_options(self):
+        return [
+            opt for opt in self.options if opt.value != self.selected
+        ]
+    
+    @ui.select(placeholder="rank by...")
+    async def select_menu(self, interaction: Interaction, select: ui.Select):
+        await interaction.response.defer()
+        self.selected = select.values[0]
+        select.options = self.generate_options()
+        rankings = self.cache.get(self.selected, None)
+        
+        if not rankings:
+            rankings = await self.fetch_rankings(self.client.db, self.selected, interaction.user.id)
+            
+            self.cache[self.selected] = rankings
+        
+        embed = discord.Embed(
+            title=f"global rankings for {self.selected} score",
+            description=rankings,
+            colour=BotColours.cyan
+        ).set_footer(
+            icon_url=interaction.user.avatar.url,
+            text="use the dropdown to view other rankings"
+        )
+        
+        await interaction.edit_original_message(embed=embed, view=self)
+    
+    @ui.button(label="(true width × true height)^1.1 ÷ (seconds + moves) ÷ 2.5")
+    async def formula(self, interaction: Interaction, button: ui.Button):
+        content = "\n".join([
+            "**this the formula used to calculate ranking score.**",
+            "",
+            "when use terms like `true width` for example, we are referring to the how the width",
+            "of the maze is stored internally. the width you enter when generating the maze",
+            "is only the number of *path spaces* across, whilst *true width* refers to both the number of",
+            "paths **and** walls across. therefore, __the true width and height of a `15x10` maze is `29x19`__.",
+        ])
+        
+        await interaction.response.send_message(content, ephemeral=True)
+
+
 class Mazes(commands.Cog):
     def __init__(self, client: Amaze):
         self.client = client
@@ -442,8 +598,8 @@ class Mazes(commands.Cog):
         
         async def new_game(args = None):
             if args is not None and args["started_at"]:
-                query = """DELETE FROM mazes WHERE user_id = $1"""
-                await self.client.db.execute(query, interaction.user.id)
+                q = """DELETE FROM mazes WHERE user_id = $1"""
+                await self.client.db.execute(q, interaction.user.id)
                 await view.interaction.response.edit_message(content="building maze...", embed=None, view=None)
             
             now = datetime.now()
@@ -468,13 +624,13 @@ class Mazes(commands.Cog):
             )
             del args, game
         
-        query = """SELECT *
-                    FROM settings
-                    FULL JOIN mazes
-                    ON mazes.user_id = settings.user_id
-                    WHERE mazes.user_id = $1 OR settings.user_id = $1
-                """
-        args = await self.client.db.fetchrow(query, interaction.user.id)
+        q = """SELECT *
+                FROM settings
+                FULL JOIN mazes
+                ON mazes.user_id = settings.user_id
+                WHERE mazes.user_id = $1 OR settings.user_id = $1
+            """
+        args: MazeGameEntry | None = await self.client.db.fetchrow(q, interaction.user.id)
         if args is not None and args["started_at"]:
             x, y = args["width"] / 2 + 1, args["height"] / 2 + 1
             embed = discord.Embed(
@@ -523,6 +679,38 @@ class Mazes(commands.Cog):
         await new_game(args)
         del args
     
+    @command(name="leaderboard")
+    @describe(ranking="the score ranking to view. defaults to best score")
+    @choices(ranking=[
+        Choice(name="best score", value="best"),
+        Choice(name="total score", value="total"),
+        Choice(name="average score", value="average"),
+    ])
+    @checks.cooldown(1, 10)
+    async def maze_leaderboard(self, interaction: Interaction, ranking: Choice[str] = "best"):
+        """
+        gets the global leaderboards for best, total, and average scores
+        """
+        
+        await interaction.response.defer(thinking=True)
+        if isinstance(ranking, Choice):
+            ranking = ranking.value
+        
+        init_rankings = await Leaderboards.fetch_rankings(self.client.db, ranking, interaction.user.id)
+        lb = Leaderboards(self.client, interaction.user.id, {ranking: init_rankings})
+        lb.original_message = await interaction.original_message()
+        
+        embed = discord.Embed(
+            title=f"global rankings for {ranking} score",
+            description=init_rankings,
+            colour=BotColours.cyan
+        ).set_footer(
+            icon_url=interaction.user.avatar.url,
+            text="use the dropdown to view other rankings"
+        )
+        
+        await interaction.edit_original_message(embed=embed, view=lb)
+    
     @maze.error
     async def maze_error(self, interaction: Interaction, error: AppCommandError):
         if isinstance(error, MaxConcurrencyReached):
@@ -530,6 +718,13 @@ class Mazes(commands.Cog):
                 "you already have a game going on\n"
                 f"[jump to game](<{error.jump_url}>)",
                 ephemeral=True
+            )
+    
+    @maze_leaderboard.error
+    async def maze_leaderboard_error(self, interaction: Interaction, error: AppCommandError):
+        if isinstance(error, errors.CommandOnCooldown):
+            return await interaction.response.send_message(
+                f"this command is on cooldown, try again in `{error.retry_after:.2f}`s"
             )
 
 
