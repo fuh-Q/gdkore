@@ -159,15 +159,28 @@ class MazeConfig(commands.Cog):
         
         await self.set_icon(interaction, icon, "finish")
     
+    @settings.command(name="reset")
+    async def settings_reset(self, interaction: Interaction):
+        """
+        reset all your configurations back to default
+        """
+        
+        q = """DELETE FROM settings WHERE user_id = $1 RETURNING user_id"""
+        found = await self.client.db.fetchval(q, interaction.user.id)
+        if found:
+            msg = f"your settings have been deleted {BotEmojis.HEHEBOI}"
+        else:
+            msg = f"you never had any customizations set {BotEmojis.HAHALOL}"
+        
+        await interaction.response.send_message(msg, ephemeral=True)
+    
     @command(name="deletesave")
     async def deletesave(self, interaction: Interaction):
         """
         delete your saved game
         """
         
-        q = """DELETE FROM mazes
-                WHERE user_id = $1 RETURNING user_id
-            """
+        q = """DELETE FROM mazes WHERE user_id = $1 RETURNING user_id"""
         found = await self.client.db.fetchval(q, interaction.user.id)
         if found:
             msg = f"found your save {BotEmojis.HEHEBOI} its gone now :)"
