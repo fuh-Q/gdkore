@@ -1,4 +1,3 @@
-import discord
 from discord import Interaction
 from discord.app_commands import command
 from discord.ext import commands

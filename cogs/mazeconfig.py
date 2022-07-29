@@ -8,7 +8,7 @@ from discord.app_commands import command, describe, Group
 from discord.ext import commands
 
 from bot import Amaze
-from utils import BotEmojis, BotColours, PrintColours, Confirm
+from utils import BotColours, BotEmojis, Confirm
 
 class MazeConfig(commands.Cog):
     settings = Group(name="settings", description="configuration commands")

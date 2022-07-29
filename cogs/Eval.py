@@ -17,7 +17,7 @@ import discord
 from asyncpg import Record
 from discord.ext import commands
 
-from utils import CHOICES, BotEmojis, NewEmote, PrintColours
+from utils import BotEmojis, CHOICES, NewEmote
 from weather_bot import NotGDKID
 
 quote = r'"'

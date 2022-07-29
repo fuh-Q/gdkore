@@ -35,4 +35,3 @@ class BotEmojis:
     Config class containing emojis
     """
 
-    pass

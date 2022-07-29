@@ -6,16 +6,16 @@ import sys
 import time
 import traceback
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Set, Type
+from typing import Any, Dict, List, Set
 
 import asyncpg
 import discord
-from discord import Interaction, app_commands, ui
+from discord import Interaction
 from discord.gateway import DiscordWebSocket
 from discord.app_commands import Command
 from discord.ext import commands
 from fuzzy_match import match
-from PIL import Image, ImageDraw, ImageFont
+from PIL import ImageFont
 
 from cogs.debug import PaginatorInterFace
 from utils import mobile, new_call_soon
