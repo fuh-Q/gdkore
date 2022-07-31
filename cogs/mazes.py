@@ -520,13 +520,13 @@ class Leaderboards(View):
             return None
         
         if item is self.select_menu and interaction.user.id != self.owner_id:
-            await interaction.response.defer()
             embed = await self.get_embed(interaction, ranking=item.values[0], cache={self.selected: ""})
             
-            view = Leaderboards(self.client, interaction.user.id, {self.selected: embed.description}, timeout=None)
+            view = Leaderboards(self.client, interaction.user.id, {self.selected: embed.description})
             view.selected = item.values[0]
             view.select_menu.options = view.refresh_options()
-            await interaction.followup.send(embed=embed, ephemeral=True, view=view)
+            await interaction.response.send_message(embed=embed, ephemeral=True, view=view)
+            view.original_message = await interaction.original_message()
             
             del view
             return False
@@ -745,7 +745,8 @@ class Mazes(commands.Cog):
     async def maze_leaderboard_error(self, interaction: Interaction, error: AppCommandError):
         if isinstance(error, errors.CommandOnCooldown):
             return await interaction.response.send_message(
-                f"this command is on cooldown, try again in `{error.retry_after:.2f}`s"
+                f"this command is on cooldown, try again in `{error.retry_after:.2f}`s",
+                ephemeral=True
             )
 
 
