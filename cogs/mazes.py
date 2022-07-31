@@ -528,6 +528,7 @@ class Leaderboards(View):
             view.select_menu.options = view.refresh_options()
             await interaction.followup.send(embed=embed, ephemeral=True, view=view)
             
+            del view
             return False
 
         return True
