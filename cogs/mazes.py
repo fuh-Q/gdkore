@@ -345,7 +345,7 @@ class Game(View):
                 DO UPDATE SET
                     best = CASE WHEN leaderboards.best > $2 THEN leaderboards.best ELSE $2 END,
                     total = leaderboards.total + $2,
-                    average = (leaderboards.average + $2) / (leaderboards.num_completed + 1),
+                    average = (leaderboards.total + $2) / (leaderboards.num_completed + 1),
                     num_completed = leaderboards.num_completed + 1
                 WHERE leaderboards.user_id = $1
             """
