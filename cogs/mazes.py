@@ -521,7 +521,7 @@ class Leaderboards(View):
         
         if item is self.select_menu and interaction.user.id != self.owner_id:
             await interaction.response.defer()
-            embed = await self.get_embed(interaction, ranking=item.values[0], cache={})
+            embed = await self.get_embed(interaction, ranking=item.values[0], cache={self.selected: ""})
             
             view = Leaderboards(self.client, interaction.user.id, {self.selected: embed.description}, timeout=None)
             view.selected = item.values[0]
