@@ -474,12 +474,12 @@ class Leaderboards(View):
         discord.SelectOption(label="total score", value="total"),
     ]
     
-    def __init__(self, client: Amaze, owner_id: int, cache: Dict[str, str]):
+    def __init__(self, client: Amaze, owner_id: int, cache: Dict[str, str], *, timeout: int = 10):
         self.client = client
         self.owner_id = owner_id
         self.cache = cache
         
-        super().__init__(timeout=10)
+        super().__init__(timeout=timeout)
         
         self.selected = list(cache)[0]
         self.select_menu.options = self.refresh_options()
@@ -519,15 +519,15 @@ class Leaderboards(View):
         if item is self.formula:
             return None
         
-        if interaction.user.id != self.owner_id:
+        if item is self.select_menu and interaction.user.id != self.owner_id:
             await interaction.response.defer()
-            
             self.selected = item.values[0]
             embed = await self.get_embed(interaction)
             
-            view = Leaderboards(self.client, interaction.user.id, self.cache)
+            view = Leaderboards(self.client, interaction.user.id, self.cache, timeout=None)
+            view.selected = item.values[0]
+            view.select_menu.options = view.refresh_options()
             await interaction.followup.send(embed=embed, ephemeral=True, view=view)
-            view.original_message = await interaction.original_message()
             
             return False
 
