@@ -521,8 +521,7 @@ class Leaderboards(View):
         
         if item is self.select_menu and interaction.user.id != self.owner_id:
             await interaction.response.defer()
-            self.selected = item.values[0]
-            embed = await self.get_embed(interaction, cache={})
+            embed = await self.get_embed(interaction, ranking=item.values[0], cache={})
             
             view = Leaderboards(self.client, interaction.user.id, {self.selected: embed.description}, timeout=None)
             view.selected = item.values[0]
@@ -546,17 +545,18 @@ class Leaderboards(View):
             opt for opt in self.options if opt.value != self.selected
         ]
     
-    async def get_embed(self, interaction: Interaction, *, cache: Dict[str, str] | None = None) -> discord.Embed:
+    async def get_embed(self, interaction: Interaction, *, ranking: str = None, cache: Dict[str, str] = None) -> discord.Embed:
         cache = cache or self.cache
-        rankings = cache.get(self.selected, None)
+        ranking = ranking or self.selected
+        rankings = cache.get(ranking, None)
         
         if not rankings:
-            rankings = await self.fetch_rankings(self.client.db, self.selected, interaction.user.id)
+            rankings = await self.fetch_rankings(self.client.db, ranking, interaction.user.id)
             
-            cache[self.selected] = rankings
+            cache[ranking] = rankings
         
         embed = discord.Embed(
-            title=f"global rankings for {self.selected} score",
+            title=f"global rankings for {ranking} score",
             description=rankings,
             colour=BotColours.cyan
         ).set_footer(
