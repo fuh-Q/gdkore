@@ -482,7 +482,7 @@ class Leaderboards(View):
         super().__init__(timeout=10)
         
         self.selected = list(cache)[0]
-        self.select_menu.options = self.generate_options()
+        self.select_menu.options = self.refresh_options()
     
     @staticmethod
     async def fetch_rankings(db: asyncpg.Pool | asyncpg.Connection, leaderboard: str, user_id: int) -> str:
@@ -515,12 +515,20 @@ class Leaderboards(View):
         
         return rankings
     
-    async def interaction_check(self, interaction: Interaction, item: ui.Item) -> bool:
+    async def interaction_check(self, interaction: Interaction, item: ui.Button | ui.Select) -> bool:
         if item is self.formula:
             return None
         
         if interaction.user.id != self.owner_id:
-            await interaction.response.send_message("its not your menu", ephemeral=True)
+            await interaction.response.defer()
+            
+            self.selected = item.values[0]
+            embed = await self.get_embed(interaction)
+            
+            view = Leaderboards(self.client, interaction.user.id, self.cache)
+            await interaction.followup.send(embed=embed, ephemeral=True, view=view)
+            view.original_message = await interaction.original_message()
+            
             return False
 
         return True
@@ -528,18 +536,17 @@ class Leaderboards(View):
     async def on_timeout(self) -> None:
         self.disable_all()
         
-        await self.original_message.edit(view=self)
+        try:
+            await self.original_message.edit(view=self)
+        except discord.HTTPException:
+            return
     
-    def generate_options(self):
+    def refresh_options(self):
         return [
             opt for opt in self.options if opt.value != self.selected
         ]
     
-    @ui.select(placeholder="rank by...")
-    async def select_menu(self, interaction: Interaction, select: ui.Select):
-        await interaction.response.defer()
-        self.selected = select.values[0]
-        select.options = self.generate_options()
+    async def get_embed(self, interaction: Interaction) -> discord.Embed:
         rankings = self.cache.get(self.selected, None)
         
         if not rankings:
@@ -555,6 +562,15 @@ class Leaderboards(View):
             icon_url=interaction.user.avatar.url,
             text="use the dropdown to view other rankings"
         )
+
+        return embed
+    
+    @ui.select(placeholder="rank by...")
+    async def select_menu(self, interaction: Interaction, select: ui.Select):
+        await interaction.response.defer()
+        self.selected = select.values[0]
+        select.options = self.refresh_options()
+        embed = await self.get_embed(interaction)
         
         await interaction.edit_original_message(embed=embed, view=self)
     
