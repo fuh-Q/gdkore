@@ -53,8 +53,8 @@ class Amaze(commands.Bot):
         allowed_mentions = discord.AllowedMentions.all()
         intents = discord.Intents.all()
         intents.presences = False
-        if sys.platform != "win32":
-            intents.message_content = False
+        #if sys.platform != "win32":
+        #    intents.message_content = False
 
         super().__init__(
             command_prefix=lambda *args: commands.when_mentioned(*args),
