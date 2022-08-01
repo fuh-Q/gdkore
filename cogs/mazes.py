@@ -474,12 +474,12 @@ class Leaderboards(View):
         discord.SelectOption(label="total score", value="total"),
     ]
     
-    def __init__(self, client: Amaze, owner_id: int, cache: Dict[str, str], *, timeout: int = 10):
+    def __init__(self, client: Amaze, owner_id: int, cache: Dict[str, str]):
         self.client = client
         self.owner_id = owner_id
         self.cache = cache
         
-        super().__init__(timeout=timeout)
+        super().__init__(timeout=30)
         
         self.selected = list(cache)[0]
         self.select_menu.options = self.refresh_options()
@@ -707,7 +707,7 @@ class Mazes(commands.Cog):
         Choice(name="total score", value="total"),
         Choice(name="average score", value="average"),
     ])
-    @checks.cooldown(1, 10)
+    @checks.cooldown(1, 15)
     async def maze_leaderboard(self, interaction: Interaction, ranking: Choice[str] = "best"):
         """
         gets the global leaderboards for best, total, and average scores
