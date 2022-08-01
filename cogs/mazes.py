@@ -432,7 +432,7 @@ class Game(View):
         )
         embed = discord.Embed(
             title="quit game",
-            description="would you like to save your game?\n\n**this will not stop the timer tracking how long you took to finish**",
+            description="would you like to save your game?\n\n**this will __not__ pause the maze timer**",
             colour=BotColours.red,
         )
 
