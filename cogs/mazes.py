@@ -431,8 +431,8 @@ class Game(View):
             third_label="cancel",
         )
         embed = discord.Embed(
-            title="end game",
-            description="would you like to save your game?",
+            title="quit game",
+            description="would you like to save your game?\n\n**this will not stop the timer tracking how long you took to finish**",
             colour=BotColours.red,
         )
 
