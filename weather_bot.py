@@ -1,4 +1,5 @@
 import asyncio
+import io
 import json
 import logging
 import os
@@ -15,7 +16,7 @@ from discord.gateway import DiscordWebSocket
 from discord.app_commands import Command
 from discord.ext import commands
 from fuzzy_match import match
-from PIL import ImageFont
+from PIL import Image, ImageFont
 
 from cogs.debug import PaginatorInterFace
 from utils import mobile, new_call_soon
@@ -302,7 +303,17 @@ class NotGDKID(commands.Bot):
         
         @self.tree.command(name="command", description="-")
         async def slash_command(interaction: Interaction):
-            return await interaction.response.send_message("\u200b", ephemeral=True)
+            buffer = io.BytesIO()
+            with Image.new("RGBA", (1, 1), (0, 0, 0, 0))as img:
+                img.save(buffer, "png")
+                buffer.seek(0)
+                
+                del img
+            
+            return await interaction.response.send_message(
+                file=discord.File(buffer, "image.png"),
+                ephemeral=True
+            )
 
 
 if __name__ == "__main__":
