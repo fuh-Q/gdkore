@@ -676,7 +676,7 @@ class Mazes(commands.Cog):
                 title="save found",
                 description=f"a previously saved **{x}x{y}** "
                              "maze has been found, load save or overwrite?"
-                             f"{last}"
+                            f"{last}"
             )
             view = Confirm(interaction.user, yes_label="load", no_label="overwrite")
             await interaction.edit_original_message(content=None, embed=embed, view=view)
