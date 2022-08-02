@@ -287,10 +287,15 @@ class Amaze(commands.Bot):
         self.logger.info(f" saving games...")
         failed = 0
         for index, game in enumerate(self._mazes.values()):
-            await game.stop(mode=StopModes.SHUTDOWN)
+            await game.stop(mode=StopModes.SHUTDOWN, shutdown=True)
             await self.loop.run_in_executor(None, runner, game)
             
-            message = "my developer initiated a bot shutdown, your game has been saved\n\u200b"
+            message = "my developer initiated a bot shutdown, your game has been saved"
+            if game.ranked:
+                message += "\n\n— *points will still be counted when you load it back, sorry for the trouble*\n\u200b"
+            else:
+                message += "\n\u200b"            
+            
             try:
                 await game.original_message.edit(content=message, view=game)
             except discord.HTTPException:

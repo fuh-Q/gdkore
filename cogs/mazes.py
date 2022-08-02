@@ -5,7 +5,7 @@ from enum import Enum
 import io
 import time
 from PIL import Image, ImageDraw
-from typing import TYPE_CHECKING, Dict, List, Tuple, Optional, TypedDict
+from typing import TYPE_CHECKING, Any, Dict, List, Tuple, Optional, TypedDict
 import asyncpg
 
 import discord
@@ -221,6 +221,7 @@ class Game(View):
         moves: int,
         pos_x: int,
         pos_y: int,
+        ranked: bool,
     ):
         wall_rgb, path_rgb = map(lambda i: tuple(i) if i is not None else i, (wall_rgb, path_rgb))
         if title is None:
@@ -231,6 +232,7 @@ class Game(View):
         self.title = title
         self.started_at = start
         self.move_count = moves
+        self.ranked = ranked
         if not maze_blocks:
             self.maze = Maze(width, height)
         else:
@@ -317,15 +319,21 @@ class Game(View):
         done = self.maze_completed()
         if done:
             taken = humanize_timedelta(seconds=(seconds := time.time() - self.started_at.timestamp()))
-            score = round(
-                (self.maze._width * self.maze._height) ** 1.1 / (seconds + self.move_count) / 2.5, 2
-            )
+            if self.ranked:
+                score = round(
+                    (self.maze._width * self.maze._height) ** 1.1 / (seconds + self.move_count) / 2.5, 2
+                )
+                bottom = "use `/leaderboard` to view your rank!"
+            else:
+                score = 0.00
+                bottom = "score is not counted because you loaded a save"
+            
             self.disable_all()
             content = "**you finished!**\n\n" \
                      f"— moves `{self.move_count}`\n" \
                      f"— total time `{taken}`\n\n" \
                      f"— **score** `{score}`\n" \
-                     f"ㅤ*use `/leaderboard` to view your rank!*\n\u200b"
+                     f"ㅤ*{bottom}*\n\u200b"
         
         await interaction.response.edit_message(
             content=content,
@@ -335,7 +343,8 @@ class Game(View):
         
         if done:
             await self.stop(mode=StopModes.COMPLETED)
-            await self.update_leaderboards(score)
+            if self.ranked:
+                await self.update_leaderboards(points=score)
             
             await self.client.loop.run_in_executor(None, self.ram_cleanup)
     
@@ -352,11 +361,11 @@ class Game(View):
         
         await self.client.db.execute(q, self.owner_id, points)
     
-    async def stop(self, mode: StopModes) -> None:
+    async def stop(self, mode: StopModes, *, shutdown: bool = False) -> None:
         super().stop()
         
         if mode not in (StopModes.DELETE, StopModes.COMPLETED):
-            q = """INSERT INTO mazes VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            q = """INSERT INTO mazes VALUES ($1, $2, $3, $4, $5, $6, $7, $8, {0})
                     ON CONFLICT ON CONSTRAINT mazes_pkey
                     DO UPDATE SET
                         blocks = $2,
@@ -364,9 +373,10 @@ class Game(View):
                         height = $4,
                         moves = $6,
                         pos_x = $7,
-                        pos_y = $8
+                        pos_y = $8,
+                        keep_ranked = {0}
                     WHERE excluded.user_id = $1
-                """
+                """.format("TRUE" if shutdown and self.ranked else "FALSE")
             await self.client.db.execute(
                 q,
                 self.owner_id,
@@ -385,7 +395,7 @@ class Game(View):
             q = """DELETE FROM mazes WHERE user_id = $1"""
             await self.client.db.execute(q, self.owner_id)
         
-        if mode is not StopModes.SHUTDOWN:
+        if not shutdown:
             del self.client._mazes[self.owner_id]
     
     def ram_cleanup(self):
@@ -432,7 +442,9 @@ class Game(View):
         )
         embed = discord.Embed(
             title="quit game",
-            description="would you like to save your game?\n\n**this will __not__ pause the maze timer**",
+            description="would you like to save your game?\n\n"
+                        "— **points will no longer be counted if you save**\n"
+                        "— **giving up will score a `0` and will be counted on your average**",
             colour=BotColours.red,
         )
 
@@ -454,6 +466,7 @@ class Game(View):
             
             if view.choice is False:
                 content = f"<@!{self.owner_id}> gave up lol\n\u200b"
+                await self.update_leaderboards(points=0.0)
             else:
                 content = f"<@!{self.owner_id}> alrighty, your game has been saved :)\n\u200b"
             
@@ -617,7 +630,7 @@ class Mazes(commands.Cog):
         await interaction.response.send_message("building maze...")
         original_message = await interaction.original_message()
         
-        async def new_game(args = None):
+        async def new_game(args: Any = None):
             if args is not None and args["started_at"]:
                 q = """DELETE FROM mazes WHERE user_id = $1"""
                 await self.client.db.execute(q, interaction.user.id)
@@ -633,7 +646,7 @@ class Mazes(commands.Cog):
             await self.client.loop.run_in_executor(
                 None,
                 game.setup,
-                self.client, interaction.user.id, *settings, None, None, width, height, now, *zeroes
+                self.client, interaction.user.id, *settings, None, None, width, height, now, *zeroes, True
             )
             game.original_message = original_message
             self.client._mazes[interaction.user.id] = game
@@ -654,10 +667,12 @@ class Mazes(commands.Cog):
         args: MazeGameEntry | None = await self.client.db.fetchrow(q, interaction.user.id)
         if args is not None and args["started_at"]:
             x, y = args["width"] // 2 + 1, args["height"] // 2 + 1
+            last = "\n\n— **loaded saves do __not__ count for leaderboard points**" if not args["keep_ranked"] else ""
             embed = discord.Embed(
                 title="save found",
                 description=f"a previously saved **{x}x{y}** "
                              "maze has been found, load save or overwrite?"
+                             f"{last}"
             )
             view = Confirm(interaction.user, yes_label="load", no_label="overwrite")
             await interaction.edit_original_message(content=None, embed=embed, view=view)
