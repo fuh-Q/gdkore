@@ -592,12 +592,16 @@ class Leaderboards(View):
     @ui.button(label="(true width × true height)^1.1 ÷ (seconds + moves) ÷ 2.5")
     async def formula(self, interaction: Interaction, button: ui.Button):
         content = "\n".join([
+            "`(true width × true height)^1.1 ÷ (seconds + moves) ÷ 2.5`",
+            "",
             "**this the formula used to calculate ranking score.**",
             "",
             "when use terms like `true width` for example, we are referring to the how the width",
-            "of the maze is stored internally. the width you enter when generating the maze",
+            "of the maze is stored internally. for example, the width you enter when generating the maze",
             "is only the number of *path spaces* across, whilst *true width* refers to both the number of",
-            "paths **and** walls across. therefore, __the true width and height of a `15x10` maze is `29x19`__.",
+            "paths **and** walls across. so therefore, __the true width and height of a `15x10` maze is `29x19`__.",
+            "",
+            "and to get from pseudo-width to true width, you multiply by 2, then subtract 1"
         ])
         
         await interaction.response.send_message(content, ephemeral=True)
