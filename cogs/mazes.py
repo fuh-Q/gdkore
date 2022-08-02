@@ -325,7 +325,7 @@ class Game(View):
                 )
                 bottom = "use `/leaderboard` to view your rank!"
             else:
-                score = 0.00
+                score = "NA"
                 bottom = "score is not counted because you loaded a save"
             
             self.disable_all()
