@@ -522,7 +522,7 @@ class Leaderboards(View):
                 if user["rank"] != 11:
                     user_rank = "\n..." + user_rank
             else:
-                user_rank = f"\n...\n`NA.` <@!{user_id}> - `0` points"
+                user_rank = f"\n...\n`NA.` <@!{user_id}> - `0.00` points"
             
             rankings += user_rank
         
