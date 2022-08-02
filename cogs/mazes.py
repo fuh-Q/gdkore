@@ -603,7 +603,7 @@ class Mazes(commands.Cog):
         width="the width of the maze (default 15)",
         height="the height of the maze (default 10)"
     )
-    async def maze(self, interaction: Interaction, width: Range[int, 5, 25] | None = 15, height: Range[int, 5, 25] | None = 10):
+    async def maze(self, interaction: Interaction, width: Optional[Range[int, 5, 25]] = 15, height: Optional[Range[int, 5, 25]] = 10):
         """
         generates a maze puzzle with the given width and height
         """
