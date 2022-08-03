@@ -50,6 +50,15 @@ class StopModes(Enum):
     COMPLETED = 3
 
 
+class MoveModes(Enum):
+    """
+    MEMBER_NAME = int
+    """
+    
+    MAX = 0
+    MODAL = 1
+
+
 class LeaderboardEntry(TypedDict):
     user_id: int
     best: float
@@ -110,10 +119,48 @@ class MoveButton(ui.Button):
             if not block or block and block._block_type is BlockTypes.WALL:
                 return
         else:
-            return await interaction.response.send_modal(MoveModal(self.direction, self.view))
+            if self.view.move_mode is MoveModes.MODAL:
+                return await interaction.response.send_modal(MoveModal(self.direction, self.view))
+            else:
+                unit = self.view.maze._height if vertical else self.view.maze._width
+                r = range(1, unit + 1) if positive else range(-1, -unit - 1, -1)
+                added = await self.view.spaces_moved(interaction, r, self.direction)
+                if added is None:
+                    return
         
         await self.view.update_player(interaction, axis, added)
 
+
+class ModeSwapButton(ui.Button):
+    other: ui.Button
+    
+    @property
+    def view(self) -> Game:
+        return self._view
+
+    def __init__(self, view: Game, swap_to: MoveModes) -> None:
+        self.swap_to = swap_to
+        self._view = view
+        label = "move max" if swap_to is MoveModes.MAX else "use modal"
+
+        super().__init__(
+            row=2,
+            label=label
+        )
+        
+        if view.move_mode is swap_to:
+            self.style = discord.ButtonStyle.success
+            self.disabled = True
+    
+    async def callback(self, interaction: Interaction) -> None:
+        self.view.move_mode = self.swap_to
+        
+        self.other.disabled = False
+        self.other.style = discord.ButtonStyle.secondary
+        self.disabled = True
+        self.style = discord.ButtonStyle.success
+        
+        await interaction.response.edit_message(view=self.view)
 
 class MoveModal(ui.Modal):
     text = ui.TextInput(
@@ -164,31 +211,20 @@ class MoveModal(ui.Modal):
         vu = unit if not value else value * 2
         r = range(1, vu + 1) if positive else range(-1, -vu - 1, -1)
         
-        stop = 0
-        for i in r:
-            if vertical:
-                block = self.game.maze._get_block(self.game.x, added := self.game.y + i)
-            else:
-                block = self.game.maze._get_block(added := self.game.x + i, self.game.y)
-            
-            if not block or block._block_type is BlockTypes.WALL:
-                if stop:
-                    added = getattr(self.game, axis) + (stop if positive else -stop)
-                    break
-                
-                return await interaction.response.defer()
-            
-            if not i % 2:
-                stop += 2
+        added = await self.game.spaces_moved(interaction, r, self.direction)
+        if added is None:
+            return
         
         await self.game.update_player(interaction, axis, added)
 
 
 class Game(View):
     original_message: InteractionMessage
+    move_mode: MoveModes
     
     def __init__(self):
         self.original_message = None
+        self.move_mode = MoveModes.MAX
         
         super().__init__(timeout=180)
         
@@ -199,11 +235,17 @@ class Game(View):
             self.add_item(MoveButton(item, False))
             self.add_item(MoveButton(item, True))
         
+        others: List[ModeSwapButton] = []
+        for item in MoveModes:
+            self.add_item(button := ModeSwapButton(self, item))
+            others.append(button)
+        others[0].other = other_button = others.pop(1)
+        other_button.other = others.pop(0)
+        del others
+        
         for item in og_children:
             self.add_item(item)
         
-        self.fill_gaps()
-    
     def setup(
         self,
         client: Amaze,
@@ -310,6 +352,29 @@ class Game(View):
         del copy
 
         return discord.File(buffer, "maze.png")
+    
+    async def spaces_moved(self, interaction: Interaction, r: range, direction: Directions) -> int | None:
+        axis, positive, vertical = direction.value
+        
+        stop = 0
+        for i in r:
+            if vertical:
+                block = self.maze._get_block(self.x, added := self.y + i)
+            else:
+                block = self.maze._get_block(added := self.x + i, self.y)
+            
+            if not block or block._block_type is BlockTypes.WALL:
+                if stop:
+                    added = getattr(self, axis) + (stop if positive else -stop)
+                    break
+                
+                await interaction.response.defer()
+                return None
+            
+            if not i % 2:
+                stop += 2
+        
+        return added
 
     async def update_player(self, interaction: Interaction, axis: str, pos: int):
         self.move_count += 1
@@ -344,11 +409,12 @@ class Game(View):
         if done:
             await self.stop(mode=StopModes.COMPLETED)
             if self.ranked:
-                await self.update_leaderboards(points=score)
+                await self.update_leaderboards(self.client.db, self.owner_id, points=score)
             
             await self.client.loop.run_in_executor(None, self.ram_cleanup)
     
-    async def update_leaderboards(self, points: float) -> None:
+    @staticmethod
+    async def update_leaderboards(db: asyncpg.Pool, owner_id: int, points: float) -> None:
         q = """INSERT INTO leaderboards VALUES ($1, $2, $2, $2, 1)
                 ON CONFLICT ON CONSTRAINT leaderboards_pkey
                 DO UPDATE SET
@@ -359,7 +425,7 @@ class Game(View):
                 WHERE leaderboards.user_id = $1
             """
         
-        await self.client.db.execute(q, self.owner_id, points)
+        await db.execute(q, owner_id, points)
     
     async def stop(self, mode: StopModes, *, shutdown: bool = False) -> None:
         super().stop()
@@ -466,7 +532,7 @@ class Game(View):
             
             if view.choice is False:
                 content = f"<@!{self.owner_id}> gave up lol\n\u200b"
-                await self.update_leaderboards(points=0.0)
+                await self.update_leaderboards(self.client.db, self.owner_id, points=0.0)
             else:
                 content = f"<@!{self.owner_id}> alrighty, your game has been saved :)\n\u200b"
             
@@ -671,12 +737,14 @@ class Mazes(commands.Cog):
         args: MazeGameEntry | None = await self.client.db.fetchrow(q, interaction.user.id)
         if args is not None and args["started_at"]:
             x, y = args["width"] // 2 + 1, args["height"] // 2 + 1
-            last = "\n\n— **loaded saves do __not__ count for leaderboard points**" if not args["keep_ranked"] else ""
+            last = "— **loaded saves do __not__ count for leaderboard points**\n— **overwriting the save will be counted as giving up**" \
+                   if not args["keep_ranked"] \
+                   else "— **the timer is still counting from when you first started**"
             embed = discord.Embed(
                 title="save found",
                 description=f"a previously saved **{x}x{y}** "
                              "maze has been found, load save or overwrite?"
-                            f"{last}"
+                            f"\n\n{last}"
             )
             view = Confirm(interaction.user, yes_label="load", no_label="overwrite")
             await interaction.edit_original_message(content=None, embed=embed, view=view)
@@ -715,6 +783,9 @@ class Mazes(commands.Cog):
                 self.client._mazes[interaction.user.id] = game
                 del args, game
                 return
+            else:
+                if not args["keep_ranked"]:
+                    await Game.update_leaderboards(self.client.db, interaction.user.id, 0.0)
         
         await new_game(args)
         del args
