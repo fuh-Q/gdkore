@@ -737,9 +737,11 @@ class Mazes(commands.Cog):
         args: MazeGameEntry | None = await self.client.db.fetchrow(q, interaction.user.id)
         if args is not None and args["started_at"]:
             x, y = args["width"] // 2 + 1, args["height"] // 2 + 1
-            last = "— **loaded saves do __not__ count for leaderboard points**\n— **overwriting the save will be counted as giving up**" \
+            last = ("— **loaded saves do __not__ count for leaderboard points**\n"
+                    "— **overwriting the save will be counted as giving up**") \
                    if not args["keep_ranked"] \
-                   else "— **the timer is still counting from when you first started**"
+                   else ("— **the timer is still counting from when you first started**\n"
+                         "— **due to the shutdown, this time you can overwrite and it will __not__ be counted against you**")
             embed = discord.Embed(
                 title="save found",
                 description=f"a previously saved **{x}x{y}** "
