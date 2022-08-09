@@ -29,22 +29,22 @@ class _MazeBlock:
 
 class Maze:
     """
-    Generates random mazes using Kruskal's algorithm
-
-    Arguments:
-    ----------
-    width: `int`
-        The width of the maze grid
-    height: `int`
-        The height of the maze grid
+    Maze maker thingy yes yes
     """
+    
+    __slots__ = ("_width", "_height", "_blocks", "_special_spaces", "_sets")
 
-    __slots__ = ("_width", "_height", "_blocks", "_sets")
-
-    def __init__(self, width: int, height: int, blocks: List | None = None) -> None:
+    def __init__(
+        self,
+        width: int,
+        height: int,
+        blocks: List | None = None,
+        specials: List | None = None,
+    ) -> None:
         self._width = width
         self._height = height
         self._blocks = blocks or []
+        self._special_spaces = specials or []
 
         if not self._blocks:
             for y in range(height):
@@ -57,6 +57,7 @@ class Maze:
             self._sets = {block: set() for block in self._blocks}
 
             self._make_maze()
+            self._pick_special_spaces()
     
     def _ram_cleanup(self):
         del (self._width,
@@ -65,12 +66,12 @@ class Maze:
              self)
     
     @classmethod
-    def from_db_columns(cls, blocks: List[Dict[str, int]], width: int, height: int) -> Maze:
+    def from_db(cls, blocks: List[Dict[str, int]], specials: List[List[int]], width: int, height: int) -> Maze:
         blocks = [_MazeBlock(bl["x"], bl["y"], BlockTypes.PATH
                   if bl["type"] else BlockTypes.WALL)
                   for bl in blocks]
         
-        return cls(width, height, blocks)
+        return cls(width, height, blocks, specials)
 
     def to_image(
         self,
@@ -155,6 +156,18 @@ class Maze:
             wall._frozen = True
     
         del self._sets
+    
+    def _pick_special_spaces(self):
+        choices = [
+            bl
+            for bl in self._blocks[1:-1]
+            if bl._block_type is not BlockTypes.WALL
+            and bl._x % 2 == 0 and bl._y % 2 == 0
+        ]
+        
+        spaces = [[(c := random.choice(choices))._x, c._y] for _ in range(len(self._blocks) // 81)]
+        
+        self._special_spaces = spaces
 
     def _same_set(self, before, after):
         return not self._sets[after].isdisjoint(self._sets[before])

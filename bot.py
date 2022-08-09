@@ -46,6 +46,7 @@ class Amaze(commands.Bot):
     token = secrets["token"]
     testing_token = secrets["testing_token"]
     postgres_dns = secrets["postgres_dns"]
+    topgg_auth = secrets["topgg_auth"]
     
     maze_font = ImageFont.truetype("assets/Kiona-Regular.ttf", size=30)
 
@@ -81,9 +82,11 @@ class Amaze(commands.Bot):
             "cogs.debug",
             "cogs.dev",
             "cogs.Eval",
+            "cogs.inventory",
             "cogs.mazes",
             "cogs.mazeconfig",
             "cogs.misc",
+            "cogs.voting",
             "utils",
         ]
 

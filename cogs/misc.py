@@ -22,16 +22,6 @@ class Misc(commands.Cog):
     def __init__(self, client: Amaze) -> None:
         self.client = client
     
-    @command(name="vote")
-    async def vote(self, interaction: Interaction):
-        """
-        ur cool if you vote (no pressure haha)
-        """
-        
-        await interaction.response.send_message(
-            "[vote on top.gg](https://top.gg/bot/988862592468521031)", ephemeral=True
-        )
-    
     @command(name="invite")
     async def invite(self, interaction: Interaction):
         """

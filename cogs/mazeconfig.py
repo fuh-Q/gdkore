@@ -180,7 +180,7 @@ class MazeConfig(commands.Cog):
         delete your saved game
         """
         
-        return await interaction.response.send_message("this needs to be reworked", ephemeral=True)
+        return await interaction.response.send_message("this command needs fixing", ephemeral=True)
         q = """DELETE FROM mazes WHERE user_id = $1 RETURNING user_id"""
         found = await self.client.db.fetchval(q, interaction.user.id)
         if found:

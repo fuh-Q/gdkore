@@ -3,6 +3,9 @@ from __future__ import annotations
 from datetime import datetime
 from enum import Enum
 import io
+from itertools import cycle
+import os
+import random
 import time
 from PIL import Image, ImageDraw
 from typing import TYPE_CHECKING, Any, Dict, List, Tuple, Optional, TypedDict
@@ -59,6 +62,12 @@ class MoveModes(Enum):
     MODAL = 1
 
 
+class InventoryEntry(TypedDict):
+    user_id: int
+    item_id: str
+    item_count: int
+
+
 class LeaderboardEntry(TypedDict):
     user_id: int
     best: float
@@ -77,6 +86,8 @@ class MazeGameEntry(TypedDict):
     moves: int
     pos_x: int
     pos_y: int
+    keep_ranked: bool
+    specials: List[List[int]]
     path_rgb: List[int]
     wall_rgb: List[int]
     title: str
@@ -119,48 +130,21 @@ class MoveButton(ui.Button):
             if not block or block and block._block_type is BlockTypes.WALL:
                 return
         else:
-            if self.view.move_mode is MoveModes.MODAL:
-                return await interaction.response.send_modal(MoveModal(self.direction, self.view))
-            else:
+            if self.view.max_dash_mode:
                 unit = self.view.maze._height if vertical else self.view.maze._width
                 r = range(1, unit + 1) if positive else range(-1, -unit - 1, -1)
                 added = await self.view.spaces_moved(interaction, r, self.direction)
                 if added is None:
                     return
+                
+                self.view.max_dash_count -= 1
+                self.view.max_dash_button.label = f"max dashing enabled (x{self.view.max_dash_count} remaining)"
+                if not self.view.max_dash_count:
+                    self.view.toggle_max_dash(self.view.max_dash_button, just_hit_zero=True)
+            else:
+                return await interaction.response.send_modal(MoveModal(self.direction, self.view))
         
         await self.view.update_player(interaction, axis, added)
-
-
-class ModeSwapButton(ui.Button):
-    other: ui.Button
-    
-    @property
-    def view(self) -> Game:
-        return self._view
-
-    def __init__(self, view: Game, swap_to: MoveModes) -> None:
-        self.swap_to = swap_to
-        self._view = view
-        label = "move max" if swap_to is MoveModes.MAX else "use modal"
-
-        super().__init__(
-            row=2,
-            label=label
-        )
-        
-        if view.move_mode is swap_to:
-            self.style = discord.ButtonStyle.success
-            self.disabled = True
-    
-    async def callback(self, interaction: Interaction) -> None:
-        self.view.move_mode = self.swap_to
-        
-        self.other.disabled = False
-        self.other.style = discord.ButtonStyle.secondary
-        self.disabled = True
-        self.style = discord.ButtonStyle.success
-        
-        await interaction.response.edit_message(view=self.view)
 
 class MoveModal(ui.Modal):
     text = ui.TextInput(
@@ -220,11 +204,21 @@ class MoveModal(ui.Modal):
 
 class Game(View):
     original_message: InteractionMessage
-    move_mode: MoveModes
     
-    def __init__(self):
+    # ok so turns out i can use these
+    # classvars to set defaults lol
+    max_dash_count: int = 10
+    
+    def __init__(self, *, inventory: List[InventoryEntry]):
+        for item in inventory:
+            try:
+                setattr(self, f"{item['item_id']}_count", item["item_count"])
+            except KeyError:
+                continue
+        
         self.original_message = None
-        self.move_mode = MoveModes.MAX
+        self.move_cycle = cycle([0, 1]) # 0 = modal, 1 = max dash
+        self.max_dash_mode = bool(next(self.move_cycle))
         
         super().__init__(timeout=180)
         
@@ -235,16 +229,10 @@ class Game(View):
             self.add_item(MoveButton(item, False))
             self.add_item(MoveButton(item, True))
         
-        others: List[ModeSwapButton] = []
-        for item in MoveModes:
-            self.add_item(button := ModeSwapButton(self, item))
-            others.append(button)
-        others[0].other = other_button = others.pop(1)
-        other_button.other = others.pop(0)
-        del others
-        
         for item in og_children:
             self.add_item(item)
+        
+        self.max_dash_button.label = f"max dashing disabled (x{self.max_dash_count} remaining)"
         
     def setup(
         self,
@@ -264,6 +252,7 @@ class Game(View):
         pos_x: int,
         pos_y: int,
         ranked: bool,
+        specials: List[List[int]],
     ):
         wall_rgb, path_rgb = map(lambda i: tuple(i) if i is not None else i, (wall_rgb, path_rgb))
         if title is None:
@@ -275,14 +264,15 @@ class Game(View):
         self.started_at = start
         self.move_count = moves
         self.ranked = ranked
+        self.wall_rgb = wall_rgb or (0, 0, 0)
         if not maze_blocks:
             self.maze = Maze(width, height)
         else:
-            self.maze = Maze.from_db_columns(maze_blocks, width, height)
+            self.maze = Maze.from_db(maze_blocks, width, height, specials)
         
         maze_pic = self.maze.to_image(
             path_rgb or (190, 151, 111),
-            wall_rgb or (0, 0, 0),
+            self.wall_rgb,
             finish_icon
         )
         del finish_icon
@@ -309,7 +299,7 @@ class Game(View):
                 ImageDraw.Draw(self.main_pic).text(
                     (width, 15),
                     title,
-                    fill=wall_rgb or (0, 0, 0),
+                    fill=self.wall_rgb,
                     font=client.maze_font,
                 )
             self.main_pic.paste(
@@ -319,6 +309,14 @@ class Game(View):
             )
             maze_pic.close()
             del maze_pic
+        
+        special_icon = Image.open(f"assets/special.png").convert("RGBA")
+        src = special_icon.split()
+        new_img = list(
+            map(lambda i: i.point(lambda _: 0 if not path_rgb or path_rgb and sum(path_rgb) > 382 else 255), src[:3])
+        )
+        new_img.append(src[-1])
+        self.special_icon = Image.merge(special_icon.mode, new_img)
         
         if player_icon:
             self.player_icon = Image.open(io.BytesIO(player_icon))
@@ -341,6 +339,12 @@ class Game(View):
     def to_file(self) -> discord.File:
         buffer = io.BytesIO()
         copy = self.main_pic.copy()
+        for (x, y) in self.maze._special_spaces:
+            copy.paste(
+                self.special_icon,
+                (self.paste_x + x * 20, self.paste_y + y * 20),
+                self.special_icon
+            )
         copy.paste(
             self.player_icon,
             (self.paste_x + self.x * 20, self.paste_y + self.y * 20),
@@ -352,6 +356,26 @@ class Game(View):
         del copy
 
         return discord.File(buffer, "maze.png")
+    
+    def toggle_max_dash(self, button: ui.Button, just_hit_zero: bool = False) -> None:
+        if not self.max_dash_count and not just_hit_zero:
+            raise RuntimeError
+        
+        self.max_dash_mode = bool(next(self.move_cycle))
+        
+        button.label = f"max dashing {'enabled' if self.max_dash_mode else 'disabled'} (x{self.max_dash_count} remaining)"
+        if self.max_dash_mode:
+            button.style = discord.ButtonStyle.danger
+            button.emoji = BotEmojis.MAZE_DASH_ENABLED
+            fast = "FAST_"
+        else:
+            button.style = discord.ButtonStyle.secondary
+            button.emoji = None
+            fast = ""
+        iterator = iter(item.name for item in Directions)
+        for item in self.children:
+            if isinstance(item, ui.Button) and item.row == 1:
+                item.emoji = getattr(BotEmojis, f"MAZE_{fast}{next(iterator)}_2")
     
     async def spaces_moved(self, interaction: Interaction, r: range, direction: Directions) -> int | None:
         axis, positive, vertical = direction.value
@@ -400,6 +424,17 @@ class Game(View):
                      f"— **score** `{score}`\n" \
                      f"ㅤ*{bottom}*\n\u200b"
         
+        if (coords := [self.x, self.y]) in self.maze._special_spaces:
+            self.max_dash_count += (added := random.randint(3, 5))
+            self.maze._special_spaces.remove(coords)
+            
+            content = f"**you picked up {added} dashes!**\n\u200b"
+            text, style = ["enabled", discord.ButtonStyle.danger] \
+                          if self.max_dash_mode else \
+                          ["disabled", discord.ButtonStyle.secondary]
+            self.max_dash_button.label = f"max dashing {text} (x{self.max_dash_count} remaining)"
+            self.max_dash_button.style = style
+        
         await interaction.response.edit_message(
             content=content,
             attachments=[await self.client.loop.run_in_executor(None, self.to_file)],
@@ -427,11 +462,21 @@ class Game(View):
         
         await db.execute(q, owner_id, points)
     
+    async def update_dashes(self):
+        q = """INSERT INTO inventory VALUES ($1, 'max_dash', $2)
+                ON CONFLICT ON CONSTRAINT inventory_pkey1
+                DO UPDATE SET
+                    item_count = $2
+                WHERE excluded.user_id = $1 AND excluded.item_id = 'max_dash'
+            """
+        await self.client.db.execute(q, self.owner_id, self.max_dash_count)
+    
     async def stop(self, mode: StopModes, *, shutdown: bool = False) -> None:
         super().stop()
+        await self.update_dashes()
         
         if mode not in (StopModes.DELETE, StopModes.COMPLETED):
-            q = """INSERT INTO mazes VALUES ($1, $2, $3, $4, $5, $6, $7, $8, {0})
+            q = """INSERT INTO mazes VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
                     ON CONFLICT ON CONSTRAINT mazes_pkey
                     DO UPDATE SET
                         blocks = $2,
@@ -440,9 +485,10 @@ class Game(View):
                         moves = $6,
                         pos_x = $7,
                         pos_y = $8,
-                        keep_ranked = {0}
+                        keep_ranked = $9,
+                        specials = $10
                     WHERE excluded.user_id = $1
-                """.format("TRUE" if shutdown and self.ranked else "FALSE")
+                """
             await self.client.db.execute(
                 q,
                 self.owner_id,
@@ -455,6 +501,8 @@ class Game(View):
                 self.move_count,
                 self.x,
                 self.y,
+                "TRUE" if shutdown and self.ranked else "FALSE",
+                self.maze._special_spaces,
             )
         
         else:
@@ -495,6 +543,22 @@ class Game(View):
         
         await self.stop(mode=StopModes.SAVE)
         await self.client.loop.run_in_executor(None, self.ram_cleanup)
+    
+    @ui.button(row=2)
+    async def max_dash_button(self, interaction: Interaction, button: ui.Button):
+        try:
+            self.toggle_max_dash(button)
+        except RuntimeError:
+            return await interaction.response.send_message(
+                "\n".join([
+                    "**you are out of max dashes!**",
+                    "",
+                    f"but hey, you can get 20 more by voting at https://top.gg/bot/{self.client.user.id}/vote",
+                ]),
+                ephemeral=True
+            )
+        
+        await interaction.response.edit_message(view=self)
     
     @ui.button(emoji=BotEmojis.QUIT_GAME, style=discord.ButtonStyle.danger)
     async def forfeit(self, interaction: Interaction, btn: ui.Button):
@@ -700,7 +764,7 @@ class Mazes(commands.Cog):
         await interaction.response.send_message("building maze...")
         original_message = await interaction.original_message()
         
-        async def new_game(args: Any = None):
+        async def new_game(args: Any = None, **extras):
             if args is not None and args["started_at"]:
                 q = """DELETE FROM mazes WHERE user_id = $1"""
                 await self.client.db.execute(q, interaction.user.id)
@@ -712,11 +776,11 @@ class Mazes(commands.Cog):
             else:
                 settings = (None for _ in range(5))
             zeroes = (0 for _ in range(3))
-            game = Game()
+            game = Game(inventory=extras.pop("inventory"))
             await self.client.loop.run_in_executor(
                 None,
                 game.setup,
-                self.client, interaction.user.id, *settings, None, None, width, height, now, *zeroes, True
+                self.client, interaction.user.id, *settings, None, None, width, height, now, *zeroes, True, None
             )
             game.original_message = original_message
             self.client._mazes[interaction.user.id] = game
@@ -727,6 +791,12 @@ class Mazes(commands.Cog):
                 view=game
             )
             del args, game
+        
+        q = """SELECT item_id, item_count
+                FROM inventory
+                WHERE user_id = $1
+            """
+        user_inventory: List[InventoryEntry] = await self.client.db.fetch(q, interaction.user.id)
         
         q = """SELECT *
                 FROM settings
@@ -769,7 +839,7 @@ class Mazes(commands.Cog):
                 return await view.original_message.edit(embed=embed, view=None)
             
             if view.choice:
-                game = Game()
+                game = Game(inventory=user_inventory)
                 await self.client.loop.run_in_executor(
                     None,
                     game.setup,
@@ -789,7 +859,7 @@ class Mazes(commands.Cog):
                 if not args["keep_ranked"]:
                     await Game.update_leaderboards(self.client.db, interaction.user.id, 0.0)
         
-        await new_game(args)
+        await new_game(args, inventory=user_inventory)
         del args
     
     @command(name="leaderboard")

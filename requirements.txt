@@ -1,12 +1,11 @@
 git+https://github.com/Rapptz/discord.py
 PyNaCl
+jishaku
+topggpy
 
 fuzzy-match
 numpy
+psutil
 pillow
-
 dnspython
 asyncpg
-
-psutil
-jishaku
