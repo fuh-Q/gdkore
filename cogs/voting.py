@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import TYPE_CHECKING, List
 
 import discord
@@ -10,7 +11,7 @@ from discord.app_commands import command
 from aiohttp import web
 from topgg.webhook import WebhookManager
 
-from cogs.mazes import InventoryEntry
+from cogs.mazes import Game
 from utils import BotEmojis
 
 if TYPE_CHECKING:
@@ -29,8 +30,28 @@ class Voting(commands.Cog):
     
     async def on_topgg_vote(self, request: web.Request):
         auth = request.headers.get("Authorization", "")
-        if auth == self.client.topgg_auth:
-            print(await request.json())
+        data = await request.json()
+        if auth == self.client.topgg_auth and data["bot"] == self.client.user.id:
+            uid = int(data["user"])
+            dashes = 25 if datetime.now().weekday() >= 5 else 35
+            
+            if (game := self.client._mazes.get(uid, None)):
+                game.max_dash_count += dashes
+                game.update_max_dash_button()
+                
+                await game.original_message.edit(view=game)
+            else:
+                await Game.update_dashes(self.client.db, uid, dashes, add=True)
+            
+            user = await self.client.fetch_user(uid)
+            weekend = "!" if dashes == 25 else "on a weekend!"
+            e = discord.Embed(
+                title="thanks for voting!",
+                description=f"you got **{dashes}** {BotEmojis.MAZE_DASH_SYMBOL} dashes "
+                            f"for voting on top.gg {weekend}"
+            )
+            await user.send(embed=e)
+            
             return web.Response(status=200, text="OK")
         
         return web.Response(status="401", text="Yeah fuck off you sussy baka")

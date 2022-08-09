@@ -357,6 +357,13 @@ class Game(View):
 
         return discord.File(buffer, "maze.png")
     
+    def update_max_dash_button(self):
+        text, style = ["enabled", discord.ButtonStyle.danger] \
+                      if self.max_dash_mode else \
+                      ["disabled", discord.ButtonStyle.secondary]
+        self.max_dash_button.label = f"max dashing {text} (x{self.max_dash_count} remaining)"
+        self.max_dash_button.style = style
+    
     def toggle_max_dash(self, button: ui.Button, just_hit_zero: bool = False) -> None:
         if not self.max_dash_count and not just_hit_zero:
             raise RuntimeError
@@ -366,7 +373,7 @@ class Game(View):
         button.label = f"max dashing {'enabled' if self.max_dash_mode else 'disabled'} (x{self.max_dash_count} remaining)"
         if self.max_dash_mode:
             button.style = discord.ButtonStyle.danger
-            button.emoji = BotEmojis.MAZE_DASH_ENABLED
+            button.emoji = BotEmojis.MAZE_DASH_SYMBOL
             fast = "FAST_"
         else:
             button.style = discord.ButtonStyle.secondary
@@ -429,11 +436,7 @@ class Game(View):
             self.maze._special_spaces.remove(coords)
             
             content = f"**you picked up {added} dashes!**\n\u200b"
-            text, style = ["enabled", discord.ButtonStyle.danger] \
-                          if self.max_dash_mode else \
-                          ["disabled", discord.ButtonStyle.secondary]
-            self.max_dash_button.label = f"max dashing {text} (x{self.max_dash_count} remaining)"
-            self.max_dash_button.style = style
+            self.update_max_dash_button()
         
         await interaction.response.edit_message(
             content=content,
@@ -462,18 +465,19 @@ class Game(View):
         
         await db.execute(q, owner_id, points)
     
-    async def update_dashes(self):
+    @staticmethod
+    async def update_dashes(db: asyncpg.Pool, owner_id: int, dash_count: int, *, add: bool = False):
         q = """INSERT INTO inventory VALUES ($1, 'max_dash', $2)
                 ON CONFLICT ON CONSTRAINT inventory_pkey1
                 DO UPDATE SET
-                    item_count = $2
-                WHERE excluded.user_id = $1 AND excluded.item_id = 'max_dash'
-            """
-        await self.client.db.execute(q, self.owner_id, self.max_dash_count)
+                    item_count = $2{0}
+                WHERE inventory.user_id = $1 AND excluded.item_id = 'max_dash'
+            """.format(" + inventory.item_count" if add else "")
+        await db.execute(q, owner_id, dash_count)
     
     async def stop(self, mode: StopModes, *, shutdown: bool = False) -> None:
         super().stop()
-        await self.update_dashes()
+        await self.update_dashes(self.client.db, self.owner_id, self.max_dash_count)
         
         if mode not in (StopModes.DELETE, StopModes.COMPLETED):
             q = """INSERT INTO mazes VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
