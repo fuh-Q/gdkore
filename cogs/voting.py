@@ -31,7 +31,7 @@ class Voting(commands.Cog):
     async def on_topgg_vote(self, request: web.Request):
         auth = request.headers.get("Authorization", "")
         data = await request.json()
-        if auth == self.client.topgg_auth and data["bot"] == self.client.user.id:
+        if auth == self.client.topgg_auth and int(data["bot"]) == self.client.user.id:
             uid = int(data["user"])
             dashes = 25 if datetime.now().weekday() >= 5 else 35
             
@@ -47,7 +47,7 @@ class Voting(commands.Cog):
             weekend = "!" if dashes == 25 else "on a weekend!"
             e = discord.Embed(
                 title="thanks for voting!",
-                description=f"you got **{dashes}** {BotEmojis.MAZE_DASH_SYMBOL} dashes "
+                description=f"you got {BotEmojis.MAZE_DASH_SYMBOL} **{dashes}** dashes "
                             f"for voting on top.gg {weekend}"
             )
             await user.send(embed=e)
