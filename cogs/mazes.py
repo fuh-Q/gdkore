@@ -207,7 +207,7 @@ class Game(View):
     
     # ok so turns out i can use these
     # classvars to set defaults lol
-    max_dash_count: int = 10
+    max_dash_count: int = 5
     
     def __init__(self, *, inventory: List[InventoryEntry]):
         for item in inventory:
