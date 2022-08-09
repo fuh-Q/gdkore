@@ -22,10 +22,10 @@ class Voting(commands.Cog):
         self.client = client
         
         self.client.topgg_wh = WebhookManager(client)
-        self.client.topgg_wh.run(1337)
         self.client.topgg_wh.webserver.router.add_post(
             "/dbl", handler=self.on_topgg_vote
         )
+        self.client.topgg_wh.run(1337)
     
     async def on_topgg_vote(self, request: web.Request):
         auth = request.headers.get("Authorization", "")
@@ -34,6 +34,9 @@ class Voting(commands.Cog):
             return web.Response(status=200, text="OK")
         
         return web.Response(status="401", text="Yeah fuck off you sussy baka")
+    
+    async def cog_unload(self) -> None:
+        await self.client.topgg_wh.close()
 
     @command(name="vote")
     async def vote(self, interaction: Interaction):

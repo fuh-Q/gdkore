@@ -16,6 +16,7 @@ from discord.gateway import DiscordWebSocket
 from discord.app_commands import Command, AppCommandError
 from discord.ext import commands
 from fuzzy_match import match
+from topgg.webhook import WebhookManager
 from cogs.mazes import Game, StopModes
 
 from utils import mobile, new_call_soon, BotColours, db_init, BotEmojis, PrintColours
@@ -47,6 +48,7 @@ class Amaze(commands.Bot):
     testing_token = secrets["testing_token"]
     postgres_dns = secrets["postgres_dns"]
     topgg_auth = secrets["topgg_auth"]
+    topgg_wh: WebhookManager
     
     maze_font = ImageFont.truetype("assets/Kiona-Regular.ttf", size=30)
 
