@@ -1,4 +1,5 @@
 import asyncio
+import io
 import json
 import logging
 import os
@@ -233,10 +234,18 @@ class Amaze(commands.Bot):
                 ephemeral=True
             )
             
-            await self.error_logs.send(
-                f"error in guild {interaction.guild_id}"
-                f"```py\n{tr}\n```"
-            )
+            if sys.platform == "win32":
+                location = f"guild {interaction.guild_id}" \
+                            if interaction.guild \
+                            else f"dms with <@!{interaction.user.id}>"
+                
+                await self.error_logs.send(
+                    f"error in {location}",
+                    file=discord.File(
+                        io.BytesIO(tr.encode("utf-8")),
+                        filename="traceback.py"
+                    )
+                )
 
     async def on_message(self, message: discord.Message):
         if message.content in [f"<@!{self.user.id}>", f"<@{self.user.id}>"]:

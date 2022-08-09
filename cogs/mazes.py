@@ -78,6 +78,12 @@ class LeaderboardEntry(TypedDict):
 
 
 class MazeGameEntry(TypedDict):
+    path_rgb: List[int] | None
+    wall_rgb: List[int] | None
+    title: str | None
+    player_icon: bytes | None
+    finish_icon: bytes | None
+    default_dash_mode: bool | None
     user_id: int
     blocks: Dict[str, int]
     width: int
@@ -88,11 +94,6 @@ class MazeGameEntry(TypedDict):
     pos_y: int
     keep_ranked: bool
     specials: List[List[int]]
-    path_rgb: List[int]
-    wall_rgb: List[int]
-    title: str
-    player_icon: bytes
-    finish_icon: bytes
 
 
 class MaxConcurrencyReached(CheckFailure):
@@ -140,7 +141,7 @@ class MoveButton(ui.Button):
                 self.view.max_dash_count -= 1
                 self.view.max_dash_button.label = f"max dashing enabled (x{self.view.max_dash_count} remaining)"
                 if not self.view.max_dash_count:
-                    self.view.toggle_max_dash(self.view.max_dash_button, just_hit_zero=True)
+                    self.view.toggle_max_dash(just_hit_zero=True)
             else:
                 return await interaction.response.send_modal(MoveModal(self.direction, self.view))
         
@@ -243,6 +244,7 @@ class Game(View):
         title: str | None,
         player_icon: bytes | None,
         finish_icon: bytes | None,
+        default_dash_mode: bool | None,
         mazes_uid: int | None,
         maze_blocks: List[Dict[str, int]] | None,
         width: int,
@@ -257,6 +259,9 @@ class Game(View):
         wall_rgb, path_rgb = map(lambda i: tuple(i) if i is not None else i, (wall_rgb, path_rgb))
         if title is None:
             title = "please help mee6 to the trash"
+        
+        if default_dash_mode is not None and self.max_dash_count:
+            self.toggle_max_dash()
         
         self.client = client
         self.owner_id = mazes_uid or settings_uid
@@ -360,24 +365,24 @@ class Game(View):
     def update_max_dash_button(self):
         text, style = ["enabled", discord.ButtonStyle.danger] \
                       if self.max_dash_mode else \
-                      ["disabled", discord.ButtonStyle.secondary]
+                      ["disabled", discord.ButtonStyle.primary]
         self.max_dash_button.label = f"max dashing {text} (x{self.max_dash_count} remaining)"
         self.max_dash_button.style = style
     
-    def toggle_max_dash(self, button: ui.Button, just_hit_zero: bool = False) -> None:
+    def toggle_max_dash(self, just_hit_zero: bool = False) -> None:
         if not self.max_dash_count and not just_hit_zero:
             raise RuntimeError
         
         self.max_dash_mode = bool(next(self.move_cycle))
         
-        button.label = f"max dashing {'enabled' if self.max_dash_mode else 'disabled'} (x{self.max_dash_count} remaining)"
+        self.max_dash_button.label = f"max dashing {'enabled' if self.max_dash_mode else 'disabled'} (x{self.max_dash_count} remaining)"
         if self.max_dash_mode:
-            button.style = discord.ButtonStyle.danger
-            button.emoji = BotEmojis.MAZE_DASH_SYMBOL
+            self.max_dash_button.style = discord.ButtonStyle.danger
+            self.max_dash_button.emoji = BotEmojis.MAZE_DASH_SYMBOL
             fast = "FAST_"
         else:
-            button.style = discord.ButtonStyle.secondary
-            button.emoji = None
+            self.max_dash_button.style = discord.ButtonStyle.primary
+            self.max_dash_button.emoji = None
             fast = ""
         iterator = iter(item.name for item in Directions)
         for item in self.children:
@@ -548,10 +553,10 @@ class Game(View):
         await self.stop(mode=StopModes.SAVE)
         await self.client.loop.run_in_executor(None, self.ram_cleanup)
     
-    @ui.button(row=2)
+    @ui.button(row=2, style=discord.ButtonStyle.primary)
     async def max_dash_button(self, interaction: Interaction, button: ui.Button):
         try:
-            self.toggle_max_dash(button)
+            self.toggle_max_dash()
         except RuntimeError:
             return await interaction.response.send_message(
                 "\n".join([
@@ -776,11 +781,11 @@ class Mazes(commands.Cog):
             
             now = datetime.now()
             if args:
-                settings = args[1:6]
+                settings = args[1:7]
             else:
-                settings = (None for _ in range(5))
+                settings = (None for _ in range(6))
             zeroes = (0 for _ in range(3))
-            game = Game(inventory=extras.pop("inventory"))
+            game = Game(inventory=extras.get("inventory"))
             await self.client.loop.run_in_executor(
                 None,
                 game.setup,

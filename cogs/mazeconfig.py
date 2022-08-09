@@ -159,6 +159,31 @@ class MazeConfig(commands.Cog):
         
         await self.set_icon(interaction, icon, "finish")
     
+    @settings.command(name="defaultdashmode")
+    @describe(value="have max dashing enabled by default when you start a maze")
+    async def settings_defaultdashmode(self, interaction: Interaction, value: Optional[bool]):
+        """
+        change whether to have max dashing enabled by default in mazes
+        """
+        
+        if value is True:
+            q = """INSERT INTO settings (user_id, default_dash_mode) VALUES ($1, TRUE)
+                    ON CONFLICT ON CONSTRAINT settings_pkey
+                    DO UPDATE SET
+                        default_dash_mode = TRUE
+                    WHERE excluded.user_id = $1
+                """
+        else:
+            q = """UPDATE settings
+                    SET default_dash_mode = NULL
+                    WHERE user_id = $1
+                """
+        await self.client.db.execute(q, interaction.user.id)
+        
+        await interaction.response.send_message(
+            f"default set {BotEmojis.HEHEBOI}", ephemeral=True
+        )
+    
     @settings.command(name="reset")
     async def settings_reset(self, interaction: Interaction):
         """
