@@ -505,7 +505,7 @@ class Game(View):
                 self.move_count,
                 self.x,
                 self.y,
-                "TRUE" if shutdown and self.ranked else "FALSE",
+                True if shutdown and self.ranked else False,
                 self.maze._special_spaces,
             )
         
