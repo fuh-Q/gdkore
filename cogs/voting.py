@@ -33,7 +33,7 @@ class Voting(commands.Cog):
         data = await request.json()
         if auth == self.client.topgg_auth and int(data["bot"]) == self.client.user.id:
             uid = int(data["user"])
-            dashes = 25 if datetime.now().weekday() >= 5 else 35
+            dashes = 35 if datetime.now().weekday() >= 5 else 25
             
             if (game := self.client._mazes.get(uid, None)):
                 game.max_dash_count += dashes
