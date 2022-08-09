@@ -12,10 +12,15 @@ from aiohttp import web
 from topgg.webhook import WebhookManager
 
 from cogs.mazes import Game
-from utils import BotEmojis
+from utils import BotEmojis, PrintColours
 
 if TYPE_CHECKING:
     from bot import Amaze
+
+R = PrintColours.RED
+G = PrintColours.GREEN
+W = PrintColours.WHITE
+P = PrintColours.PURPLE
 
 
 class Voting(commands.Cog):
@@ -50,7 +55,13 @@ class Voting(commands.Cog):
                 description=f"you got {BotEmojis.MAZE_DASH_SYMBOL} **{dashes}** dashes "
                             f"for voting on top.gg {weekend}"
             )
-            await user.send(embed=e)
+            try:
+                await user.send(embed=e)
+            except discord.HTTPException:
+                self.client.logger.warning(
+                    f"Could not DM {G}{user.name}{R}#{user.discriminator}{W} "
+                    f"[{P}{user.id}{W}] whilst giving vote rewards"
+                )
             
             return web.Response(status=200, text="OK")
         
