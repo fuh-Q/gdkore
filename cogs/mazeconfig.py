@@ -206,7 +206,7 @@ class MazeConfig(commands.Cog):
         await interaction.response.send_message(
             embed=confirm_embed, view=view, ephemeral=True
         )
-        view.original_message = await interaction.original_message()
+        view.original_message = await interaction.original_response()
         await view.wait()
         await view.interaction.response.edit_message(view=view)
         

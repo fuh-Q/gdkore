@@ -579,7 +579,7 @@ class Game(View):
         )
 
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
-        view.original_message = await interaction.original_message()
+        view.original_message = await interaction.original_response()
 
         timeout = await view.wait()
         if timeout:
@@ -669,7 +669,7 @@ class Leaderboards(View):
             view.selected = item.values[0]
             view.select_menu.options = view.refresh_options()
             await interaction.response.send_message(embed=embed, ephemeral=True, view=view)
-            view.original_message = await interaction.original_message()
+            view.original_message = await interaction.original_response()
             
             del view
             return False
@@ -717,7 +717,7 @@ class Leaderboards(View):
         select.options = self.refresh_options()
         embed = await self.get_embed(interaction)
         
-        await interaction.edit_original_message(embed=embed, view=self)
+        await interaction.edit_original_response(embed=embed, view=self)
     
     @ui.button(label="(true width × true height)^1.1 ÷ (seconds + moves) ÷ 2.5")
     async def formula(self, interaction: Interaction, button: ui.Button):
@@ -762,7 +762,7 @@ class Mazes(commands.Cog):
         
         width, height = self._recal_width_and_height(width, height)
         await interaction.response.send_message("building maze...")
-        original_message = await interaction.original_message()
+        original_message = await interaction.original_response()
         
         async def new_game(args: Any = None, **extras):
             if args is not None and args["started_at"]:
@@ -785,7 +785,7 @@ class Mazes(commands.Cog):
             game.original_message = original_message
             self.client._mazes[interaction.user.id] = game
             
-            await interaction.edit_original_message(
+            await interaction.edit_original_response(
                 content=None,
                 attachments=[await self.client.loop.run_in_executor(None, game.to_file)],
                 view=game
@@ -819,7 +819,7 @@ class Mazes(commands.Cog):
                             f"\n\n{last}"
             )
             view = Confirm(interaction.user, yes_label="load", no_label="overwrite")
-            await interaction.edit_original_message(content=None, embed=embed, view=view)
+            await interaction.edit_original_response(content=None, embed=embed, view=view)
             view.original_message = original_message
             
             expired = await view.wait()
@@ -827,7 +827,7 @@ class Mazes(commands.Cog):
                 for c in view.children:
                     c.disabled = True
                 
-                await interaction.edit_original_message(view=view)
+                await interaction.edit_original_response(view=view)
                 return
             
             if interaction.user.id in self.client._mazes:
@@ -881,7 +881,7 @@ class Mazes(commands.Cog):
         
         init_rankings = await Leaderboards.fetch_rankings(self.client.db, ranking, interaction.user.id)
         lb = Leaderboards(self.client, interaction.user.id, {ranking: init_rankings})
-        lb.original_message = await interaction.original_message()
+        lb.original_message = await interaction.original_response()
         
         embed = discord.Embed(
             title=f"global rankings for {ranking} score",
@@ -892,7 +892,7 @@ class Mazes(commands.Cog):
             text="use the dropdown to view other rankings"
         )
         
-        await interaction.edit_original_message(embed=embed, view=lb)
+        await interaction.edit_original_response(embed=embed, view=lb)
     
     @maze.error
     async def maze_error(self, interaction: Interaction, error: AppCommandError):
