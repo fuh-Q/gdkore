@@ -84,6 +84,7 @@ class MazeGameEntry(TypedDict):
     player_icon: bytes | None
     finish_icon: bytes | None
     default_dash_mode: bool | None
+    dash_rgb: List[int] | None
     user_id: int
     blocks: Dict[str, int]
     width: int
@@ -245,6 +246,7 @@ class Game(View):
         player_icon: bytes | None,
         finish_icon: bytes | None,
         default_dash_mode: bool | None,
+        dash_rgb: Tuple[int] | None,
         mazes_uid: int | None,
         maze_blocks: List[Dict[str, int]] | None,
         width: int,
@@ -273,7 +275,7 @@ class Game(View):
         if not maze_blocks:
             self.maze = Maze(width, height)
         else:
-            self.maze = Maze.from_db(maze_blocks, width, height, specials)
+            self.maze = Maze.from_db(maze_blocks, specials, width, height)
         
         maze_pic = self.maze.to_image(
             path_rgb or (190, 151, 111),
@@ -317,8 +319,11 @@ class Game(View):
         
         special_icon = Image.open(f"assets/special.png").convert("RGBA")
         src = special_icon.split()
+        #new_img = list(
+        #    map(lambda i: i.point(lambda _: 0 if not path_rgb or path_rgb and sum(path_rgb) > 382 else 255), src[:3])
+        #)
         new_img = list(
-            map(lambda i: i.point(lambda _: 0 if not path_rgb or path_rgb and sum(path_rgb) > 382 else 255), src[:3])
+            map(lambda tu: tu[1].point(lambda _: (dash_rgb or self.wall_rgb)[tu[0]]), enumerate(src[:3]))
         )
         new_img.append(src[-1])
         self.special_icon = Image.merge(special_icon.mode, new_img)
@@ -592,7 +597,6 @@ class Game(View):
 
         timeout = await view.wait()
         if timeout:
-            view.disable_all()
             return await view.original_message.edit(view=view)
 
         await view.interaction.response.edit_message(view=view)
@@ -781,9 +785,9 @@ class Mazes(commands.Cog):
             
             now = datetime.now()
             if args:
-                settings = args[1:7]
+                settings = args[1:8]
             else:
-                settings = (None for _ in range(6))
+                settings = (None for _ in range(7))
             zeroes = (0 for _ in range(3))
             game = Game(inventory=extras.get("inventory"))
             await self.client.loop.run_in_executor(
@@ -897,7 +901,6 @@ class Mazes(commands.Cog):
             description=init_rankings,
             colour=BotColours.cyan
         ).set_footer(
-            icon_url=interaction.user.avatar.url,
             text="use the dropdown to view other rankings"
         )
         

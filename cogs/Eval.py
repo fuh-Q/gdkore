@@ -16,9 +16,9 @@ import aiohttp
 import discord
 from asyncpg import Record
 from discord.ext import commands
+from helper_bot import NotGDKID
 
 from utils import BotEmojis, CHOICES, NewEmote
-from weather_bot import NotGDKID
 
 quote = r'"'
 wraps = r"\(\)\[\]\{\}"
@@ -527,7 +527,7 @@ class Eval(commands.Cog):
                 )
                 return
 
-    @repl.command(name="noreturn", aliases=["nr"], brief="Runs code", hidden=True)
+    @commands.command(name="eval", aliases=["exec"], brief="Runs code", hidden=True)
     @commands.is_owner()
     async def _eval(self, ctx: commands.Context, *, code: str):
         env = self.get_environment(ctx)

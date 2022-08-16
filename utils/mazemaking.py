@@ -165,7 +165,12 @@ class Maze:
             and bl._x % 2 == 0 and bl._y % 2 == 0
         ]
         
-        spaces = [[(c := random.choice(choices))._x, c._y] for _ in range(len(self._blocks) // 81)]
+        coords = lambda: [(c := random.choice(choices))._x, c._y]
+        
+        if len(self._blocks) >= 120:
+            spaces = [coords() for _ in range(len(self._blocks) // 120)]
+        else:
+            spaces = [coords()]
         
         self._special_spaces = spaces
 

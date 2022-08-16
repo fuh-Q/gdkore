@@ -79,8 +79,7 @@ class Confirm(DPYView):
         return True
 
     async def on_timeout(self) -> None:
-        for c in self.children:
-            c.disabled = True
+        self.disable_all()
 
         try:
             await self.original_message.edit(view=self)
@@ -93,9 +92,8 @@ class Confirm(DPYView):
             c.disabled = True
     
     def _callback(self, interaction: Interaction, btn: Button):
-        for c in self.children:
-            c.disabled = True
-        
+        self.disable_all()
+
         btn.style = discord.ButtonStyle.success
         self.interaction = interaction
         return self.stop()

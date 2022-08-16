@@ -22,6 +22,9 @@ G = PrintColours.GREEN
 W = PrintColours.WHITE
 P = PrintColours.PURPLE
 
+WEEKDAY = 20
+WEEKEND = 30
+
 
 class Voting(commands.Cog):
     def __init__(self, client: Amaze) -> None:
@@ -38,7 +41,7 @@ class Voting(commands.Cog):
         data = await request.json()
         if auth == self.client.topgg_auth and int(data["bot"]) == self.client.user.id:
             uid = int(data["user"])
-            dashes = 35 if datetime.now().weekday() >= 5 else 25
+            dashes = WEEKEND if datetime.now().weekday() >= 5 else WEEKDAY
             
             if (game := self.client._mazes.get(uid, None)):
                 game.max_dash_count += dashes
@@ -49,7 +52,7 @@ class Voting(commands.Cog):
                 await Game.update_dashes(self.client.db, uid, dashes, add=True)
             
             user = await self.client.fetch_user(uid)
-            weekend = "!" if dashes == 25 else "on a weekend!"
+            weekend = "!" if dashes == WEEKDAY else "on a weekend!"
             e = discord.Embed(
                 title="thanks for voting!",
                 description=f"you got {BotEmojis.MAZE_DASH_SYMBOL} **{dashes}** dashes "

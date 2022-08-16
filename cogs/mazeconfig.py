@@ -88,9 +88,9 @@ class MazeConfig(commands.Cog):
             f"reset your {icon_type} icon {BotEmojis.HEHEBOI}", ephemeral=True
         )
     
-    @settings.command(name="pathcolor")
+    @settings.command(name="pathcolour")
     @describe(colour="the path colour; format must be hex")
-    async def settings_pathcolor(self, interaction: Interaction, colour: Optional[str]):
+    async def settings_pathcolour(self, interaction: Interaction, colour: Optional[str]):
         """
         customise your path colour. only hex is supported atm
         """
@@ -100,9 +100,9 @@ class MazeConfig(commands.Cog):
         
         await self.set_colour(interaction, colour, "path")
     
-    @settings.command(name="wallcolor")
+    @settings.command(name="wallcolour")
     @describe(colour="the wall colour; format must be hex")
-    async def settings_pathcolor(self, interaction: Interaction, colour: Optional[str]):
+    async def settings_pathcolour(self, interaction: Interaction, colour: Optional[str]):
         """
         customise your wall colour. only hex is supported atm
         """
@@ -111,6 +111,18 @@ class MazeConfig(commands.Cog):
             return await self.reset_colour(interaction, "wall")
         
         await self.set_colour(interaction, colour, "wall")
+    
+    @settings.command(name="dashcolour")
+    @describe(colour="the dash icon colour; format must be hex")
+    async def settings_dashcolour(self, interaction: Interaction, colour: Optional[str]):
+        """
+        customise your dash icon colour. only hex is supported atm
+        """
+        
+        if not colour:
+            return await self.reset_colour(interaction, "dash")
+        
+        await self.set_colour(interaction, colour, "dash")
     
     @settings.command(name="title")
     @describe(text="the text to set as the title")
@@ -220,6 +232,8 @@ class MazeConfig(commands.Cog):
         """
         deletes all data the bot has stored on you
         """
+        
+        return await interaction.response.send_message("this command needs reworking", ephemeral=True)
         
         view = Confirm(interaction.user)
         confirm_embed = discord.Embed(
