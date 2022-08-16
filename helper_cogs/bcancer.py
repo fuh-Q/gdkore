@@ -85,13 +85,17 @@ class BCancer(commands.Cog):
     
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
-        if not self.is_bcancered(member):
+        if (not self.is_bcancered(member)
+            and member.guild.id == self.client.AMAZE_GUILD_ID
+        ):
             nick = self.make_nick(member.display_name)
             await member.edit(nick=nick, reason="member 🅱️-cancer'd")
     
     @commands.Cog.listener()
     async def on_member_update(self, before: discord.Member, after: discord.Member):
-        if before.display_name != after.display_name:
+        if (before.display_name != after.display_name
+            and after.guild.id == self.client.AMAZE_GUILD_ID
+        ):
             if not self.is_bcancered(after):
                 nick = self.make_nick(after.display_name)
                 await after.edit(nick=nick, reason="member 🅱️-cancer'd")
