@@ -116,7 +116,7 @@ class BCancer(commands.Cog):
                       and m.id not in self.WHITELIST]
         if not to_bcancer:
             return await ctx.reply(
-                "theres no one to `🅱️`-cancer 🅱️reh", mention_author=True
+                "theres no one to `🅱️`-cancer `🅱️`reh", mention_author=True
             )
         
         base = "would you like to `🅱️`-cancer the following **`{0}`** members?"
