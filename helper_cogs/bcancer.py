@@ -22,6 +22,12 @@ class BCancer(commands.Cog):
     VOWELS = ("a", "e", "i", "o", "u", "y")
     REPLACABLES = ["c", "d", "g", "j", "k", "p", "q", "t", "v", "z"]
     
+    WHITELIST = [
+        988862592468521031, # Amaze
+        859104775429947432, # Not GDKID
+        596481615253733408, # GDKID
+    ]
+    
     def __init__(self, client: NotGDKID) -> None:
         self.client = client
     
@@ -105,7 +111,9 @@ class BCancer(commands.Cog):
     @commands.command(name="bhoist")
     @commands.is_owner()
     async def bhoist(self, ctx: commands.Context):
-        to_bcancer = [m for m in ctx.guild.members if not self.is_bcancered(m)]
+        to_bcancer = [m for m in ctx.guild.members 
+                      if not self.is_bcancered(m) 
+                      and m.id not in self.WHITELIST]
         if not to_bcancer:
             return await ctx.reply(
                 "theres no one to `🅱️`-cancer 🅱️reh", mention_author=True
