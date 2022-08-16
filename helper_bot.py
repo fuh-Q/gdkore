@@ -55,7 +55,6 @@ class NotGDKID(commands.Bot):
         super().__init__(
             command_prefix=lambda *args: commands.when_mentioned(*args),
             allowed_mentions=allowed_mentions,
-            help_command=None,
             intents=intents,
             case_insensitive=True,
             status=discord.Status.idle,

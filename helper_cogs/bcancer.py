@@ -116,16 +116,23 @@ class BCancer(commands.Cog):
         
         try:
             cutoff = 10
-            content = "\n".join([
+            content = [
                 base.format(len(to_bcancer)),
                 "\u200b",
                 "```py",
-                "\n".join(f"{m.name}#{m.discriminator}" for m in to_bcancer[:cutoff]),
-                "", f"... ({len(to_bcancer) - cutoff} more)",
-                "```"
-            ])
+            ]
+            if len(to_bcancer) > cutoff:
+                content.append(
+                    "\n".join(f"{m.name}#{m.discriminator}" for m in to_bcancer[:cutoff])
+                )
+                content.append(f"\n... ({len(to_bcancer) - cutoff} more)")
+            else:
+                content.append(
+                    "\n".join(f"{m.name}#{m.discriminator}" for m in to_bcancer)
+                )
+            content.append("```")
             
-            msg = await ctx.reply(content, view=view, mention_author=True)
+            msg = await ctx.reply("\n".join(content), view=view, mention_author=True)
         except discord.HTTPException:
             content = base.format(len(to_bcancer)) + "\n\u200b"
             text = "\n".join(f"{m.name}#{m.discriminator}" for m in to_bcancer)
@@ -149,14 +156,14 @@ class BCancer(commands.Cog):
         
         await view.interaction.response.edit_message(view=view)
         msg = await ctx.reply(
-            f"alrighty, i should be finishing up <t:{int(time.time() + len(to_bcancer * 1.25))}:R>",
+            f"alrighty, i should be finishing up <t:{int(time.time() + (len(to_bcancer) * 1.25))}:R>",
             mention_author=True
         )
         async with ctx.typing():
             success = fail = 0
             
-            for member in to_bcancer:
-                nick = self.make_nick(member)
+            for member in to_bcancer.copy():
+                nick = self.make_nick(member.name)
                 try:
                     await member.edit(nick=nick)
                     success += 1
@@ -170,7 +177,7 @@ class BCancer(commands.Cog):
         return await msg.reply(
             "`🅱️`-hoist completed\n\n"
             f"— {BotEmojis.YES} success `{success}`"
-            f"— {BotEmojis.NO} fails `{fail}`"
+            f"— {BotEmojis.NO} fails `{fail}`—"
         )
         
     
