@@ -42,6 +42,15 @@ class NotGDKID(commands.Bot):
     
     AMAZE_GUILD_ID = 996435988194791614
     MEMBER_ROLE_ID = 1008572377703129119
+    
+    WHITELISTED_GUILDS = [
+        716684586129817651, # GDK1D's Discord
+        749892811905564672, # Mod Mail Inbox
+        956041825129496586, # not gdkid
+        764592577575911434, # Vector Development
+        890355226517860433, # Stupidly Decent
+        996435988194791614, # Amaze Discord
+    ]
 
     token = secrets["helper_token"]
     testing_token = secrets["testing_token"]
@@ -145,7 +154,11 @@ class NotGDKID(commands.Bot):
 
             except discord.HTTPException:
                 pass
-
+    
+    async def on_guild_join(self, guild: discord.Guild):
+        if guild.id not in self.WHITELISTED_GUILDS:
+            await guild.leave()
+    
     def run(self) -> None:
         async def runner():
             async with self:
