@@ -52,11 +52,11 @@ class Voting(commands.Cog):
                 await Game.update_dashes(self.client.db, uid, dashes, add=True)
             
             user = await self.client.fetch_user(uid)
-            weekend = "!" if dashes == WEEKDAY else "on a weekend!"
+            weekend = "!" if dashes == WEEKDAY else " on a weekend!"
             e = discord.Embed(
                 title="thanks for voting!",
                 description=f"you got {BotEmojis.MAZE_DASH_SYMBOL} **{dashes}** dashes "
-                            f"for voting on top.gg {weekend}"
+                            f"for voting on top.gg{weekend}"
             )
             try:
                 await user.send(embed=e)

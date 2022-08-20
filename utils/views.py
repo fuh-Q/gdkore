@@ -121,6 +121,13 @@ class View(DPYView):
 
     client: Amaze = None
     original_message: discord.Message = None
+    
+    @property
+    def weights(self):
+        """
+        It's no longer private now >:D
+        """
+        return self.__weights
 
     async def _scheduled_task(self, item: Item, interaction: Interaction):
         try:
