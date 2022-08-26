@@ -80,7 +80,7 @@ class Voting(commands.Cog):
         """
         
         await interaction.response.send_message(
-            "[vote on top.gg](https://top.gg/bot/988862592468521031)", ephemeral=True
+            f"[vote on top.gg](https://top.gg/bot/{self.client.user.id}/vote)", ephemeral=True
         )
 
 
