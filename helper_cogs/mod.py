@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 muted = lambda user: f"""
 hello, i have been summoned by the great `{user.name}` to restore some peace and sanity in this hell of a server.
 
-their desires are simple - i literally wrote it one line above
+their desires are simple - i literally said it one line above
 
 and as for fulfilling this desire, i shall utilise the neverfailing power of the **indefinite mute**.
 
