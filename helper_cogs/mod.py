@@ -36,7 +36,7 @@ class Mod(commands.Cog):
     
     @guild_only()
     async def mute_user(self, interaction: Interaction, member: discord.Member):
-        if interaction.guild.get_role(self.client.ADMIN_ROLE_ID) in member.roles:
+        if interaction.guild.get_role(self.client.ADMIN_ROLE_ID) in interaction.user.roles:
             await member.add_roles(
                 discord.Object(self.client.MUTED_ROLE_ID),
                 reason=f"member mute requested by {interaction.user.name}#{interaction.user.discriminator}"
