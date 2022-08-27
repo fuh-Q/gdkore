@@ -23,6 +23,14 @@ and as for fulfilling this desire, i shall utilise the neverfailing power of the
 L
 """
 
+self_muted = lambda: f"""
+okay, you've muted yourself forever.
+
+if you wanna get unmuted, dm `gdkid#0111` so he can laugh at you {BotEmojis.HAHALOL}
+
+this message is also able to be seen by the entire server, because it really is just that funny
+"""
+
 
 class Mod(commands.Cog):
     def __init__(self, client: NotGDKID) -> None:
@@ -43,6 +51,14 @@ class Mod(commands.Cog):
             )
             await interaction.response.send_message(
                 muted(interaction.user)
+            )
+        elif interaction.user.id == member.id:
+            await member.add_roles(
+                discord.Object(self.client.MUTED_ROLE_ID),
+                reason=f"self-mute requested by {interaction.user.name}#{interaction.user.discriminator}"
+            )
+            await interaction.response.send_message(
+                self_muted()
             )
         else:
             await interaction.response.send_message(
