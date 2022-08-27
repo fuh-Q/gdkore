@@ -37,6 +37,7 @@ class Mod(commands.Cog):
         self.client = client
         self.mute_user = ContextMenu(
             name="shut the fuck up",
+            guild_ids=[self.client.AMAZE_GUILD_ID],
             callback=self.mute_user
         )
         
