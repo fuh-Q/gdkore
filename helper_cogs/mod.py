@@ -81,9 +81,9 @@ class Mod(commands.Cog):
         q = """SELECT role_id FROM stickyroles
                 WHERE user_id = $1
             """
-        roles: List[discord.Role] = list(map(
+        roles: List[discord.Role] = map(
             lambda rec: member.guild.get_role(rec["role_id"]), await self.client.db.fetch(q, member.id)
-        ))
+        )
         
         for role in roles:
             await member.add_roles(role, reason="sticky roles")
