@@ -85,8 +85,7 @@ class Mod(commands.Cog):
             lambda rec: member.guild.get_role(rec["role_id"]), await self.client.db.fetch(q, member.id)
         )
         
-        for role in roles:
-            await member.add_roles(role, reason="sticky roles")
+        await member.add_roles(*roles, reason="sticky roles")
     
     @commands.Cog.listener()
     async def on_guild_role_delete(self, role: discord.Role):
