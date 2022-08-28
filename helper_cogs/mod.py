@@ -51,7 +51,7 @@ class Mod(commands.Cog):
             if not role:
                 raise ValueError
         except ValueError:
-            role: discord.Role = match.extractOne(search, guild.roles)
+            role: discord.Role = match.extractOne(search, guild.roles)[0]
         
         return role
     
