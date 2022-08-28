@@ -14,7 +14,6 @@ import discord
 from discord.gateway import DiscordWebSocket
 from discord.app_commands import Command
 from discord.ext import commands
-from fuzzy_match import match
 
 from utils import mobile, new_call_soon
 
@@ -56,7 +55,7 @@ class NotGDKID(commands.Bot):
 
     token = secrets["helper_token"]
     testing_token = secrets["testing_token"]
-    postgres_dns = secrets["postgres_dns"]
+    postgres_dns = secrets["postgres_dns"] + "notgdkid"
 
     def __init__(self):
         allowed_mentions = discord.AllowedMentions.all()

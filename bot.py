@@ -47,7 +47,7 @@ class Amaze(commands.Bot):
 
     token = secrets["token"]
     testing_token = secrets["testing_token"]
-    postgres_dns = secrets["postgres_dns"]
+    postgres_dns = secrets["postgres_dns"] + "amaze"
     topgg_auth = secrets["topgg_auth"]
     topgg_wh: WebhookManager
     
