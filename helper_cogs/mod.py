@@ -63,8 +63,9 @@ class Mod(commands.Cog):
         muted_role = after.guild.get_role(self.client.MUTED_ROLE_ID)
         
         if muted_role not in before.roles and muted_role in after.roles:
-            q = """INSERT INTO stickyroles
-                    VALUES ($1, $2)
+            q = """INSERT INTO stickyroles VALUES ($1, $2)
+                    ON CONFLICT ON CONSTRAINT stickyroles_pkey
+                    DO NOTHING
                 """
         elif muted_role in before.roles and not muted_role in after.roles:
             q = """DELETE FROM stickyroles
@@ -80,9 +81,9 @@ class Mod(commands.Cog):
         q = """SELECT role_id FROM stickyroles
                 WHERE user_id = $1
             """
-        roles: List[discord.Role] = map(
+        roles: List[discord.Role] = list(map(
             lambda rec: member.guild.get_role(rec["role_id"]), await self.client.db.fetch(q, member.id)
-        )
+        ))
         
         await member.add_roles(roles, reason="sticky roles")
     
