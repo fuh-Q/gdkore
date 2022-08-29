@@ -34,7 +34,7 @@ from jishaku.shim.paginator_200 import \
 from utils import *
 
 if TYPE_CHECKING:
-    from weather_bot import NotGDKID
+    from helper_bot import NotGDKID
 
 try:
     import psutil
