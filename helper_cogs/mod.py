@@ -95,22 +95,31 @@ class Mod(commands.Cog):
         await self.client.db.execute(q, role.id)
     
     @guild_only()
-    async def mute_user(self, interaction: Interaction, member: discord.Member):
-        if interaction.guild.get_role(self.client.ADMIN_ROLE_ID) in interaction.user.roles:
-            await member.add_roles(
-                discord.Object(self.client.MUTED_ROLE_ID),
-                reason=f"member mute requested by {interaction.user.name}#{interaction.user.discriminator}"
-            )
-            await interaction.response.send_message(
-                muted(interaction.user)
-            )
-        elif interaction.user.id == member.id:
-            await member.add_roles(
+    async def mute_user(self, interaction: Interaction, target: discord.Member | discord.User):
+        if interaction.user.id == target.id:
+            await target.add_roles(
                 discord.Object(self.client.MUTED_ROLE_ID),
                 reason=f"self-mute requested by {interaction.user.name}#{interaction.user.discriminator}"
             )
             await interaction.response.send_message(
                 self_muted()
+            )
+        elif interaction.guild.get_role(self.client.ADMIN_ROLE_ID) in interaction.user.roles:
+            if isinstance(target, discord.Member):
+                await target.add_roles(
+                    discord.Object(self.client.MUTED_ROLE_ID),
+                    reason=f"member mute requested by {interaction.user.name}#{interaction.user.discriminator}"
+                )
+                return await interaction.response.send_message(
+                    muted(interaction.user)
+                )
+            q = """INSERT INTO stickyroles VALUES ($1, $2)
+                    ON CONFLICT ON CONSTRAINT stickyroles_pkey
+                    DO NOTHING
+                """
+            await self.client.db.execute(q, target.id, self.client.MUTED_ROLE_ID)
+            await interaction.response.send_message(
+                "this user is not in the server, but they've been binded with the sticky role"
             )
         else:
             await interaction.response.send_message(
@@ -120,16 +129,16 @@ class Mod(commands.Cog):
     
     @commands.command(name="bind", aliases=["bindrole", "br"])
     @commands.is_owner()
-    async def bind_role(self, ctx: commands.Context, member: discord.Member, *, role_search: str):
+    async def bind_role(self, ctx: commands.Context, target: discord.User | discord.Member, *, role_search: str):
         role = self.find_role(ctx.guild, role_search)
         q = """INSERT INTO stickyroles VALUES ($1, $2)
                 ON CONFLICT ON CONSTRAINT stickyroles_pkey
                 DO NOTHING
             """
-        await self.client.db.execute(q, member.id, role.id)
+        await self.client.db.execute(q, target.id, role.id)
         
-        if role not in member.roles:
-            await member.add_roles(role)
+        if isinstance(target, discord.Member) and role not in target.roles:
+            await target.add_roles(role)
         
         await ctx.message.add_reaction(BotEmojis.YES)
     
