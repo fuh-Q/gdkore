@@ -144,21 +144,21 @@ class Mod(commands.Cog):
     
     @commands.command(name="unbind", aliases=["unbindrole", "ub"])
     @commands.is_owner()
-    async def unbind_role(self, ctx: commands.Context, member: discord.Member, *, role_search: str | None = None):
+    async def unbind_role(self, ctx: commands.Context, target: discord.User, *, role_search: str | None = None):
         if not role_search:
             q = """DELETE FROM stickyroles
                     WHERE user_id = $1
                 """
-            await self.client.db.execute(q, member.id)
+            await self.client.db.execute(q, target.id)
             return await ctx.reply(
-                f"all sticky roles cleared for `{member.name}`", mention_author=True
+                f"all sticky roles cleared for `{target.name}`", mention_author=True
             )
         
         role = self.find_role(ctx.guild, role_search)
         q = """DELETE FROM stickyroles
                 WHERE user_id = $1 AND role_id = $2
             """
-        await self.client.db.execute(q, member.id, role.id)
+        await self.client.db.execute(q, target.id, role.id)
         
         await ctx.message.add_reaction(BotEmojis.YES)
 
