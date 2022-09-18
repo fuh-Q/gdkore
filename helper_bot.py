@@ -11,6 +11,7 @@ from typing import Any, Dict, Set
 
 import asyncpg
 import discord
+from discord import Interaction
 from discord.gateway import DiscordWebSocket
 from discord.app_commands import Command
 from discord.ext import commands
@@ -217,6 +218,12 @@ class NotGDKID(commands.Bot):
                 await ctx.reply(f"Reloaded `{extension}`")
             except Exception as e:
                 await ctx.reply(f"error\n```py\n{e}\n```")
+        
+        @self.tree.command(name="shoppingcart")
+        async def _shoppingcart(interaction: Interaction):
+            await interaction.response.send_message(
+                "https://i.redd.it/3zhf6p3lrky41.jpg", ephemeral=True
+            )
 
 
 if __name__ == "__main__":
