@@ -1,5 +1,5 @@
 discord.py[speed]
-jishaku
+jishaku==2.5.0
 topggpy
 
 pillow
