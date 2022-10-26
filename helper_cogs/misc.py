@@ -29,7 +29,7 @@ class Misc(commands.Cog):
         def runner(avatar: bytes) -> discord.File:
             with io.BytesIO(avatar) as buffer:
                 with Image.open(buffer) as pfp:
-                    with Image.open("assets/finger.png") as finger:
+                    with Image.open("assets/finger.png").convert("RGBA") as finger:
                         pfp.paste(finger, (100, 100), finger)
                         pfp.save(buffer, "png")
             
