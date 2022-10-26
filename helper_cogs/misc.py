@@ -33,7 +33,7 @@ class Misc(commands.Cog):
                         pfp.paste(finger, (100, 100), finger)
                         pfp.save(buffer, "png")
             
-                return discord.File(buffer.getvalue(), "fu.png")
+                return discord.File(buffer, "fu.png")
         
         content = f"{user.mention} {interaction.user.display_name} tells me to tell you to fuck off"
         avatar = interaction.user.avatar.with_size(256)
