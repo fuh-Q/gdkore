@@ -316,6 +316,9 @@ class GClass(commands.Bot):
         await self.guild_logs.send(embed=e)
     
     async def on_app_command(self, interaction: Interaction):
+        if interaction.command.name == "vote":
+            return await interaction.response.send_message("https://top.gg/bot/988862592468521031/vote", ephemeral=True)
+        
         if interaction.user.id not in self.owner_ids:
             await interaction.response.send_message(embed=discord.Embed(
                 description="amaze is being permanently retired. we're working on something "
