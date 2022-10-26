@@ -1,3 +1,4 @@
+# <-- stdlib imports -->
 import asyncio
 import io
 import json
@@ -7,58 +8,89 @@ import sys
 import time
 import traceback
 from datetime import datetime, timedelta, timezone
-from PIL import ImageFont
-from typing import Any, Dict, Mapping, Set
+from typing import Any, Dict, List, Set
 
-import asyncpg
+# <-- discord imports -->
 import discord
 from discord import Interaction
 from discord.gateway import DiscordWebSocket
-from discord.app_commands import Command, AppCommandError
+from discord.app_commands import Command, AppCommandError, CheckFailure
 from discord.ext import commands
+
+# <-- google imports -->
+from google_auth_oauthlib.flow import Flow
+from google.auth.exceptions import RefreshError
+from google.oauth2.credentials import Credentials
+from google.auth.transport.requests import Request
+
+# <-- database imports -->
+import asyncpg
+import aiohttp
+import aioredis
+
+# <-- other imports -->
 from fuzzy_match import match
 from topgg.webhook import WebhookManager
-from cogs.mazes import Game, StopModes
 
-from utils import mobile, new_call_soon, BotColours, db_init, BotEmojis, PrintColours
+# <-- utility imports -->
+from utils import (
+    BotColours,
+    BotEmojis,
+    GClassLogging,
+    PrintColours,
+    db_init,
+    mobile,
+    new_call_soon
+)
+
 
 with open("config/secrets.json", "r") as f:
     secrets: Dict[str, str] = json.load(f)
 
-
 start = time.monotonic()
 
 asyncio.BaseEventLoop.call_soon = new_call_soon
-
 DiscordWebSocket.identify = mobile
 
+logging.getLogger("googleapiclient.discovery_cache").setLevel(logging.ERROR)
 
-logging.basicConfig(level=logging.INFO)
 
-
-class Amaze(commands.Bot):
+class GClass(commands.Bot):
     """
     The sexiest bot of all time.
     """
 
     __file__ = __file__
     
-    logger = logging.getLogger(os.path.basename(__file__)[:-3].title())
+    SCOPES = [
+        "https://www.googleapis.com/auth/userinfo.profile",
+        "https://www.googleapis.com/auth/classroom.announcements.readonly",
+        "https://www.googleapis.com/auth/classroom.courses.readonly",
+        "https://www.googleapis.com/auth/classroom.courseworkmaterials.readonly",
+        "https://www.googleapis.com/auth/classroom.student-submissions.me.readonly",
+        "https://www.googleapis.com/auth/classroom.topics.readonly",
+    ]
+    
+    logger = logging.getLogger(__name__)
 
     token = secrets["token"]
     testing_token = secrets["testing_token"]
-    postgres_dns = secrets["postgres_dns"] + "amaze"
+    postgres_dns = secrets["postgres_dns"] + "gclass"
+    redis_dns = f"redis://{secrets['vps_ip']}"
     topgg_auth = secrets["topgg_auth"]
     topgg_wh: WebhookManager
-    
-    maze_font = ImageFont.truetype("assets/Kiona-Regular.ttf", size=30)
+    session: aiohttp.ClientSession
+
+    google_flow = Flow.from_client_secrets_file(
+        "config/google-creds.json", scopes=SCOPES
+    )
+    google_flow.redirect_uri = "https://gclass.onrender.com"
 
     def __init__(self):
         allowed_mentions = discord.AllowedMentions.all()
-        intents = discord.Intents.all()
-        intents.presences = False
-        #if sys.platform != "win32":
-        #    intents.message_content = False
+        intents = discord.Intents.default()
+        if sys.platform == "win32":
+            intents.message_content = True
 
         super().__init__(
             command_prefix=lambda *args: commands.when_mentioned(*args),
@@ -82,14 +114,13 @@ class Amaze(commands.Bot):
         os.environ["JISHAKU_USE_BRAILLE_J"] = "True"
 
         self.init_extensions = [
+            "cogs.authorization",
+            "cogs.browser",
             "cogs.debug",
             "cogs.dev",
             "cogs.Eval",
-            "cogs.inventory",
-            "cogs.mazes",
-            "cogs.mazeconfig",
-            "cogs.misc",
             "cogs.voting",
+            "cogs.webhooks",
             "utils",
         ]
 
@@ -98,10 +129,50 @@ class Amaze(commands.Bot):
         self.guild_limit = []
         self._restart = False
         
-        self._mazes: Mapping[int, Game] = {}
-
         self.tree.on_error = self.on_app_command_error
+        self.tree.interaction_check = self.on_app_command
         self.add_commands()
+    
+    async def remove_access(self, user_id: int):
+        """
+        Revokes a user's access on both the bot's end as well as Google's end.
+        
+        Parameters
+        ----------
+        user_id: `int`
+            The ID of the user to revoke.
+        
+        Raises
+        ------
+        `RuntimeError`
+            The user was not found.
+        """
+        
+        q = """DELETE FROM authorized
+                WHERE user_id = $1 RETURNING expiry, credentials
+            """
+        data = await self.db.fetchrow(q, user_id)
+        if not data:
+            raise RuntimeError("Could not find user.")
+        else:
+            creds = Credentials.from_authorized_user_info(data["credentials"])
+            creds.expiry = data["expiry"]
+            
+            names = self.table_names
+            names.remove("authorized")
+            for table in names:
+                q = """DELETE FROM %s
+                        WHERE user_id = $1
+                    """ % table
+                await self.db.execute(q, user_id)
+        
+        if not creds.valid:
+            await asyncio.to_thread(creds.refresh, Request())
+        await self.session.post(
+            "https://oauth2.googleapis.com/revoke",
+            data={"token": creds.token},
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+        )
 
     @property
     def app_commands(self) -> Set[Command[Any, ..., Any]]:
@@ -113,31 +184,48 @@ class Amaze(commands.Bot):
         cmds = {c for c in self.tree.walk_commands()}
 
         return cmds
+
+    @property
+    def table_names(self) -> List[str]:
+        """
+        List[:class:`str`] A list of names of database tables used for various features
+        """
+        
+        return self._table_names.copy()
     
     async def load_extension(self, name: str) -> None:
         await super().load_extension(name)
         
         self.logger.info(
-            f"{PrintColours.GREEN} loaded {PrintColours.WHITE}{name}"
+            f"{PrintColours.GREEN}loaded{PrintColours.WHITE} {name}"
         )
     
     async def unload_extension(self, name: str) -> None:
         await super().unload_extension(name)
         
         self.logger.info(
-            f"{PrintColours.RED} unloaded {PrintColours.WHITE}{name}"
+            f"{PrintColours.RED}unloaded{PrintColours.WHITE} {name}"
         )
     
     async def reload_extension(self, name: str) -> None:
         await super().reload_extension(name)
         
         self.logger.info(
-            f"{PrintColours.YELLOW} reloaded {PrintColours.WHITE}{name}"
+            f"{PrintColours.YELLOW}reloaded{PrintColours.WHITE} {name}"
         )
 
     async def setup_hook(self) -> None:
         self.db = await asyncpg.create_pool(self.postgres_dns, init=db_init)
-        self.logger.info(f"{PrintColours.GREEN} Database connected {PrintColours.WHITE}")
+        self.redis = aioredis.from_url(
+            self.redis_dns,
+            password=secrets["redis_password"],
+            port=6379,
+            encoding="utf-8",
+            decode_responses=True,
+            socket_connect_timeout=60.0,
+            socket_timeout=60.0,
+        )
+        self.logger.info(f"{PrintColours.GREEN}databases connected")
 
         self.loop.create_task(self.first_ready()).add_done_callback(
             lambda exc: self.logger.error(
@@ -146,6 +234,12 @@ class Amaze(commands.Bot):
             if exc.exception()
             else None
         )
+        
+        q = """SELECT tablename FROM pg_tables
+                WHERE tableowner = 'GDKID'
+            """
+        self._table_names = [i[0] for i in await self.db.fetch(q)]
+        self.avatar_bytes = await self.user.avatar.read()
 
         for extension in self.init_extensions:
             await self.load_extension(extension)
@@ -154,8 +248,7 @@ class Amaze(commands.Bot):
         await self.wait_until_ready()
         self.logger.info(
             PrintColours.PURPLE + \
-            f"Logged in as: {self.user.name}#{self.user.discriminator} : {self.user.id}" + \
-            PrintColours.WHITE
+            f"logged in as: {self.user.name}#{self.user.discriminator} : {self.user.id}"
         )
 
         await self.change_presence(status=discord.Status.online, activity=None)
@@ -222,30 +315,62 @@ class Amaze(commands.Bot):
 
         await self.guild_logs.send(embed=e)
     
+    async def on_app_command(self, interaction: Interaction):
+        if interaction.user.id not in self.owner_ids:
+            await interaction.response.send_message(embed=discord.Embed(
+                description="amaze is being permanently retired. we're working on something "
+                            "entirely different though, so join [our server](https://discord.gg/gKEKpyXeEB) "
+                            "to keep up with what's to come!"
+            ), ephemeral=True)
+            
+            return False
+        return True
+    
     async def on_app_command_error(self, interaction: Interaction, error: AppCommandError):
-        tr = traceback.format_exc()
-        self.logger.error(f"\n{tr}")
-        if not interaction.response.is_done(): # already handled
-            await interaction.response.send_message(
-                "oopsie poopsie, an error occured\n"
-                "if its an error on my end, my dev'll probably fix it soon\n"
-                f"really depends on how lazy he is atm {BotEmojis.LUL}"
-                f"```py\n{error}\n```",
+        if (responded := interaction.response.is_done()) and isinstance(error, CheckFailure):
+            return
+        else:
+            method = interaction.response.send_message \
+                    if not responded else interaction.followup.send
+        
+        if hasattr(error, "original"):
+            error = error.original
+        
+        # <-- actual error checks -->
+        if isinstance(error, RefreshError):
+            q = """DELETE FROM authorized
+                    WHERE user_id = $1
+                """
+            await self.db.execute(q, interaction.user.id)
+        
+        if isinstance(error, (CheckFailure, RefreshError)):
+            return await method(
+                "you need to be logged in, you can do so with </login:1022667405484359680>",
                 ephemeral=True
             )
-            
-            if sys.platform == "win32":
-                location = f"guild {interaction.guild_id}" \
-                            if interaction.guild \
-                            else f"dms with <@!{interaction.user.id}>"
-                
-                await self.error_logs.send(
-                    f"error in {location}",
-                    file=discord.File(
-                        io.BytesIO(tr.encode("utf-8")),
-                        filename="traceback.py"
-                    )
-                )
+        
+        # <-- send to error logs -->
+        tr = traceback.format_exc()
+        self.logger.error(f"\n{PrintColours.RED}{tr}")
+        await method(
+            "oopsie poopsie, an error occured\n"
+            "if its an error on my end, my dev'll probably fix it soon\n"
+            f"really depends on how lazy he is atm {BotEmojis.LUL}"
+            f"```py\n{error}\n```",
+            ephemeral=True
+        )
+        
+        location = f"guild {interaction.guild_id}" \
+                    if interaction.guild \
+                    else f"dms with <@!{interaction.user.id}>"
+        
+        await self.error_logs.send(
+            f"error in {location}",
+            file=discord.File(
+                io.BytesIO(tr.encode("utf-8")),
+                filename="traceback.py"
+            )
+        )
 
     async def on_message(self, message: discord.Message):
         if message.content in [f"<@!{self.user.id}>", f"<@{self.user.id}>"]:
@@ -270,6 +395,14 @@ class Amaze(commands.Bot):
         async def runner():
             async with self:
                 await self.start()
+        
+        handler = logging.StreamHandler()
+        handler.setFormatter(GClassLogging())
+        discord.utils.setup_logging(
+            handler=handler,
+            formatter=handler.formatter,
+            level=logging.INFO
+        )
 
         try:
             asyncio.run(runner())
@@ -279,50 +412,25 @@ class Amaze(commands.Bot):
             # and `self.start` closes all sockets and the HTTPClient instance.
             return
         finally:
-            self.logger.info(f"{PrintColours.PURPLE} successfully logged out :D {PrintColours.WHITE}")
+            self.logger.info(f"{PrintColours.PURPLE}successfully logged out :D")
             
             if self._restart:
                 sys.exit(69)
 
     async def start(self):
+        self.session = aiohttp.ClientSession()
+        
         if sys.platform == "win32":
             await super().start(self.testing_token)
         else:
             await super().start(self.token)
 
     async def close(self, restart: bool = False):
-        def runner(game: Game):
-            game.disable_all()
-            game.ram_cleanup()
-        
         self._restart = restart
-        
-        length = len(self._mazes)
-        self.logger.info(f" saving games...")
-        failed = 0
-        for index, game in enumerate(self._mazes.values()):
-            await game.stop(mode=StopModes.SHUTDOWN, shutdown=True)
-            await self.loop.run_in_executor(None, runner, game)
-            
-            message = "my developer initiated a bot shutdown, your game has been saved"
-            if game.ranked:
-                message += "\n\n— *points will still be counted when you load it back, sorry for the trouble*\n\u200b"
-            else:
-                message += "\n\u200b"            
-            
-            try:
-                await game.original_message.edit(content=message, view=game)
-            except discord.HTTPException:
-                failed += 1
-            
-            if index != length:
-                await asyncio.sleep(0.2)
-        self.logger.info(f" {PrintColours.GREEN}{length}{PrintColours.WHITE} games were saved")
-        self.logger.info(f" {PrintColours.RED}{failed}{PrintColours.WHITE} games failed to save")
-        
-        del self._mazes
 
         await self.db.close()
+        await self.redis.close()
+        await self.session.close()
         await super().close()
     
     def add_commands(self):
@@ -409,4 +517,4 @@ class Amaze(commands.Bot):
 
 
 if __name__ == "__main__":
-    Amaze().run()
+    GClass().run()

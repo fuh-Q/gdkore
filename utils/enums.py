@@ -1,13 +1,5 @@
 from enum import Enum
 
-class BlockTypes(Enum):
-    """
-    Block types in mazes
-    """
-    
-    WALL = 0
-    PATH = 1
-
 
 class PrintColours:
     """
@@ -36,4 +28,6 @@ class BotColours:
     green = 0x2ECC70
     cyan = 0x09DFFF
     blue = 0x0000FF
+    blurple = 0x7289da
+    purple = 0x673ab7
     pink = 0xFF0080

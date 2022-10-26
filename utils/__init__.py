@@ -1,9 +1,11 @@
+from .checks import *
 from .emojis import *
 from .enums import *
 from .formatting import *
-from .mazemaking import *
+from .iterators import *
 from .misc import *
 from .monkeypatching import *
+from .types import *
 from .views import *
 
 async def setup(_):

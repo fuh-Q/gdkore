@@ -1,33 +1,28 @@
 from __future__ import annotations
 
-from datetime import datetime
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
-import discord
 from discord import Interaction
 from discord.ext import commands
 from discord.app_commands import command
 
 from aiohttp import web
 from topgg.webhook import WebhookManager
+from topgg.types import BotVoteData
 
-from cogs.mazes import Game
-from utils import BotEmojis, PrintColours
+from utils import PrintColours
 
 if TYPE_CHECKING:
-    from bot import Amaze
+    from bot import GClass
 
 R = PrintColours.RED
 G = PrintColours.GREEN
 W = PrintColours.WHITE
 P = PrintColours.PURPLE
 
-WEEKDAY = 20
-WEEKEND = 30
-
 
 class Voting(commands.Cog):
-    def __init__(self, client: Amaze) -> None:
+    def __init__(self, client: GClass) -> None:
         self.client = client
         
         self.client.topgg_wh = WebhookManager(client)
@@ -38,37 +33,11 @@ class Voting(commands.Cog):
     
     async def on_topgg_vote(self, request: web.Request):
         auth = request.headers.get("Authorization", "")
-        data = await request.json()
+        data: BotVoteData = await request.json()
         if auth == self.client.topgg_auth and int(data["bot"]) == self.client.user.id:
-            uid = int(data["user"])
-            dashes = WEEKEND if datetime.now().weekday() >= 5 else WEEKDAY
-            
-            if (game := self.client._mazes.get(uid, None)):
-                game.max_dash_count += dashes
-                game.update_max_dash_button()
-                
-                await game.original_message.edit(view=game)
-            else:
-                await Game.update_dashes(self.client.db, uid, dashes, add=True)
-            
-            user = await self.client.fetch_user(uid)
-            weekend = "!" if dashes == WEEKDAY else " on a weekend!"
-            e = discord.Embed(
-                title="thanks for voting!",
-                description=f"you got {BotEmojis.MAZE_DASH_SYMBOL} **{dashes}** dashes "
-                            f"for voting on top.gg{weekend}"
-            )
-            try:
-                await user.send(embed=e)
-            except discord.HTTPException:
-                self.client.logger.warning(
-                    f"Could not DM {G}{user.name}{R}#{user.discriminator}{W} "
-                    f"[{P}{user.id}{W}] whilst giving vote rewards"
-                )
-            
             return web.Response(status=200, text="OK")
         
-        return web.Response(status="401", text="Yeah fuck off you sussy baka")
+        return web.Response(status="401", text="nope fuck off")
     
     async def cog_unload(self) -> None:
         await self.client.topgg_wh.close()
@@ -84,5 +53,5 @@ class Voting(commands.Cog):
         )
 
 
-async def setup(client: Amaze):
+async def setup(client: GClass):
     await client.add_cog(Voting(client=client))

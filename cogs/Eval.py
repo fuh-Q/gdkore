@@ -26,22 +26,22 @@ expression = rf"[\w\./\\:=<>!{wraps}{quote}', ]"
 
 # fmt: off
 REGEX_LIST: list[re.Pattern[str]] = [
-    re.compile(rf"^(?:async )?def \w+\({expression}*\)(?::| *-> [\w\[\]\(\), ]*:) *$"),  # FUNCTION
-    re.compile(r"^class \w+(?:\(.*\))?:"),                                               # CLASS
-    re.compile(rf"^if {expression}+: *$"),                                               # IF
-    re.compile(rf"^elif {expression}+: *$"),                                             # ELIF
-    re.compile(r"^else: *$"),                                                            # ELSE
-    re.compile(r"^try: *$"),                                                             # TRY
-    re.compile(r"^except(?: (?:\(?(?:[\w\.]*)(?:, ?)?\)?(?:| as \w+))| \w)?: *$"),       # EXCEPT
-    re.compile(r"^finally: *$"),                                                         # FINALLY
-    re.compile(rf"^(?:async )?with [\w\.]+\({expression}*\)(?: as \w+)?: *$"),           # WITH
-    re.compile(rf"^(?:async )?for \w+ in {expression}+: *$"),                            # FOR
-    re.compile(rf"^while {expression}+: *$"),                                            # WHILE
-    re.compile(r"{ *$"),                                                                 # DICT
-    re.compile(r"\[ *$"),                                                                # LIST
-    re.compile(r"\( *$"),                                                                # TUPLE
-    re.compile(r", *$"),                                                                 # BREAKLINE
-    re.compile(r"^\)(?::| *-> [\w\[\]\(\), ]*:) *$"),                                    # MULTILINE FUNCTION HEADER
+    re.compile(rf"^(?:async\s+)?def\s+\w+\({expression}*\)(?::|\s*->\s*[\w\[\]\(\),\s]+:)\s*$"),  # FUNCTION
+    re.compile(r"^class\s+\w+(?:\(.*\))?:"),                                                      # CLASS
+    re.compile(rf"^if\s+{expression}+:\s*$"),                                                     # IF
+    re.compile(rf"^elif\s+{expression}+:\s*$"),                                                   # ELIF
+    re.compile(r"^else:\s*$"),                                                                    # ELSE
+    re.compile(r"^try:\s*$"),                                                                     # TRY
+    re.compile(r"^except(?:\s+(?:\(?(?:[\w\.]*)(?:,\s+?)?\)?(?:|\s+as\s+\w+))|\s+\w)?:\s*$"),     # EXCEPT
+    re.compile(r"^finally:\s*$"),                                                                 # FINALLY
+    re.compile(rf"^(?:async\s+)?with\s+[\w\.]+\({expression}*\)(?:\s+as\s+\w+)?:\s*$"),           # WITH
+    re.compile(rf"^(?:async\s+)?for\s+\w+\s+in\s+{expression}+:\s*$"),                            # FOR
+    re.compile(rf"^while\s+{expression}+:\s*$"),                                                  # WHILE
+    re.compile(r"{\s*$"),                                                                         # DICT
+    re.compile(r"\[\s*$"),                                                                        # LIST
+    re.compile(r"\(\s*$"),                                                                        # TUPLE
+    re.compile(r",\s*$"),                                                                         # BREAKLINE
+    re.compile(r"^\)(?::|\s*-> [\w\[\]\(\),\s]*:)\s*$"),                                          # MULTILINE FUNCTION DECLARATION
 ]
 
 

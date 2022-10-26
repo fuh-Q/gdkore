@@ -1,5 +1,74 @@
-import datetime
+import logging
+import sys
+from datetime import datetime, timedelta, timezone
+from functools import partial
 from typing import Generator, SupportsInt
+
+from .enums import PrintColours
+from .types import Post
+
+class GClassLogging(logging.Formatter):
+    """
+    Custom colour formatter for GClass's logging setup
+    """
+    
+    _ = "#" if sys.platform == "win32" else "-"
+    FMT = f"%Y/%{_}m/%{_}d %{_}I:%M:%S %p"
+    
+    COLOURS = {
+        logging.DEBUG: PrintColours.WHITE,
+        logging.INFO: PrintColours.BLUE,
+        logging.WARNING: PrintColours.YELLOW,
+        logging.ERROR: PrintColours.RED,
+        logging.CRITICAL: PrintColours.RED + PrintColours.BOLD
+    }
+    
+    def __init__(self):
+        super().__init__(
+            "|{levelname:<8}|",
+            style="{"
+        )
+    
+    def format(self, record: logging.LogRecord) -> str:
+        log_fmt = self.COLOURS[record.levelno]
+        colour = PrintColours.WHITE if record.levelno < logging.ERROR else PrintColours.RED
+        formatter = logging.Formatter(
+            log_fmt + self._fmt + "{asctime}" + colour + "{message}" + PrintColours.WHITE,
+            datefmt=f"{PrintColours.YELLOW} [{datetime.now().strftime(self.FMT)}] ",
+            style="{"
+        )
+        
+        if record.exc_info:
+            text = formatter.formatException(record.exc_info)
+            record.exc_text = f"{PrintColours.RED}{text}{PrintColours.WHITE}"
+        
+        ret = formatter.format(record)
+        record.exc_text = None
+        return ret
+
+
+def format_google_time(post: Post) -> datetime:
+    """
+    Formats a time string returned from Google's APIs
+    
+    Arguments
+    ---------
+    post: `Post`
+        The classroom post to format
+    
+    Returns
+    -------
+    format_google_time: `datetime`
+        A timezone-aware datetime object in UTC
+    """
+    parse = partial(datetime.strptime, post["creationTime"])
+    try:
+        parsed = parse("%Y-%m-%dT%H:%M:%S.%fZ")
+    except ValueError:
+        parsed = parse("%Y-%m-%dT%H:%M:%SZ")
+    
+    return parsed.replace(tzinfo=timezone.utc)
+
 
 def all_casings(input_string: str) -> Generator[str, None, None]:
     """
@@ -30,7 +99,7 @@ def all_casings(input_string: str) -> Generator[str, None, None]:
 
 def humanize_timedelta(
     *,
-    timedelta: datetime.timedelta | None = None,
+    timedelta: timedelta | None = None,
     seconds: SupportsInt | None = None,
 ) -> str:
     """

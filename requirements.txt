@@ -1,11 +1,14 @@
-git+https://github.com/Rapptz/discord.py
-PyNaCl
+discord.py[speed]
 jishaku
 topggpy
 
+pillow
+
 fuzzy-match
 numpy
+
 psutil
-pillow
+
 dnspython
 asyncpg
+aioredis
