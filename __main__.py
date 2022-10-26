@@ -25,9 +25,8 @@ bot_map = {
     3: "rickroll_bot.py",
 }
 
-major = sys.version_info[:2][0]
-minor = sys.version_info[:2][1]
-version = f"{major}.{minor}"
+v = sys.version_info
+version = f"{v.major}.{v.minor}"
 
 
 def generate_kwargs() -> dict[str, str]:
@@ -62,8 +61,8 @@ def print_intro() -> None:
         )
     )
 
-    processes = list(psutil.process_iter())
-    proc_cmd_regex = re.compile(rf"py(?:thon{major}\.{minor})? ((?:rickroll_|weather_)?bot\.py)")
+    processes = psutil.process_iter()
+    proc_cmd_regex = re.compile(rf"py(?:thon{v.major}\.{v.minor})? ((?:rickroll_|helper_)?bot\.py)")
     for process in processes:
         try:
             proc_cmd = " ".join(process.cmdline())
