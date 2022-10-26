@@ -1,5 +1,5 @@
 discord.py[speed]
-jishaku==2.5.0
+jishaku
 topggpy
 
 google-api-python-client
