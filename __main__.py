@@ -76,7 +76,7 @@ def print_intro() -> None:
         [
             f"{G}0.{W} Exit Launcher",
             "",
-            f"{G}1.{W} Amaze {R + '-- RUNNING' + W if process_map['bot.py'] else ''}",
+            f"{G}1.{W} GClass {R + '-- RUNNING' + W if process_map['bot.py'] else ''}",
             f"{G}2.{W} Helper Bot {R + '-- RUNNING' + W if process_map['helper_bot.py'] else ''}",
             f"{G}3.{W} Rickroll Bot {R + '-- RUNNING' + W if process_map['rickroll_bot.py'] else ''}",
         ]
