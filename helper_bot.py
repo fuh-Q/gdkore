@@ -62,7 +62,6 @@ class NotGDKID(commands.Bot):
         allowed_mentions = discord.AllowedMentions.all()
         intents = discord.Intents.default()
         intents.members = True
-        intents.message_content = True
 
         super().__init__(
             command_prefix=lambda *args: commands.when_mentioned(*args),
