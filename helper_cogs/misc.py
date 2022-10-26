@@ -26,6 +26,7 @@ class Misc(commands.Cog):
     
     @guild_only()
     async def middle_finger(self, interaction: Interaction, user: discord.User):
+        return await interaction.response.send_message("soon:tm:", ephemeral=True)
         def runner(avatar: bytes) -> discord.File:
             with io.BytesIO(avatar) as buffer:
                 with Image.open(buffer) as pfp:
