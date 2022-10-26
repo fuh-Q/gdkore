@@ -88,6 +88,7 @@ class NotGDKID(commands.Bot):
             "helper_cogs.autorole",
             "helper_cogs.bcancer",
             "helper_cogs.emojis",
+            "helper_cogs.misc",
             "helper_cogs.mod",
             "utils",
         ]
