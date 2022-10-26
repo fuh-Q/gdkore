@@ -20,7 +20,7 @@ class Misc(commands.Cog):
         self.client = client
         
         self.client.tree.add_command(ContextMenu(
-            name="tell them to fuck off",
+            name="flip them off",
             callback=self.middle_finger
         ))
     
