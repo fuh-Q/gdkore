@@ -328,7 +328,7 @@ class ClassHome(GoBack):
                 description="failed to create the webhook, make sure i have `manage webhook` permissions"
             )
             return await interaction.edit_original_response(embed=e, view=GoBack(self._home))
-        except discord.HTTPException as err:
+        except Exception as err:
             e = discord.Embed(title="error creating webhook", description=f"```py\n{err}\n```")
             return await interaction.edit_original_response(embed=e, view=GoBack(self._home))
         
