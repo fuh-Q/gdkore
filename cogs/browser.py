@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime, timezone
+from functools import partial
 from itertools import chain
 from typing import Dict, List, Tuple
 
@@ -264,6 +265,26 @@ class ClassHome(GoBack):
                 view=GoBack(self._home)
             )
         
+        edit = partial(interaction.response.edit_message, view=GoBack(self._home))
+        edit_original = partial(interaction.edit_original_response, view=GoBack(self._home))
+        
+        if not interaction.channel.permissions_for(interaction.user).manage_channels:
+            return await edit(embed=discord.Embed(
+                description="you need `manage channels` to perform this operation"
+            ))
+        
+        q = """SELECT 1 FROM webhooks
+                WHERE user_id = $1
+                AND course_id = $2
+                AND channel_id = $3
+            """
+        if await self.client.db.fetchval(q,
+            self._interaction.user.id,
+            int(self._course["id"]),
+            interaction.channel_id
+        ):
+            return await edit(embed=discord.Embed(description="this webhook already exists"))
+        
         view = Confirm(interaction.user)
         embed = discord.Embed(
             title="create a webhook",
@@ -298,24 +319,7 @@ class ClassHome(GoBack):
                     "you can't setup a webhook for a course owned by your own account." \
                     "\ngoogle made it this way, there's literally nothing i can do about it lol"
             )
-            return await interaction.edit_original_response(
-                embed=e, view=GoBack(self._home)
-            )
-        
-        q = """SELECT 1 FROM webhooks
-                WHERE user_id = $1
-                AND course_id = $2
-                AND channel_id = $3
-            """
-        if await self.client.db.fetchval(q,
-            self._interaction.user.id,
-            int(self._course["id"]),
-            interaction.channel_id
-        ):
-            return await interaction.edit_original_response(
-                embed=discord.Embed(description="this webhook already exists"),
-                view=GoBack(self._home)
-            )
+            return await edit_original(embed=e)
         
         try:
             wh = await interaction.channel.create_webhook(
@@ -327,10 +331,10 @@ class ClassHome(GoBack):
             e = discord.Embed(
                 description="failed to create the webhook, make sure i have `manage webhook` permissions"
             )
-            return await interaction.edit_original_response(embed=e, view=GoBack(self._home))
+            return await edit_original(embed=e)
         except Exception as err:
             e = discord.Embed(title="error creating webhook", description=f"```py\n{err}\n```")
-            return await interaction.edit_original_response(embed=e, view=GoBack(self._home))
+            return await edit_original(embed=e)
         
         q = """INSERT INTO webhooks VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
                 ON CONFLICT ON CONSTRAINT webhooks_pkey
@@ -350,10 +354,7 @@ class ClassHome(GoBack):
         desc = f"successfully created a webhook for **{n}** " \
                f"in {interaction.channel.mention}!"
         
-        await interaction.edit_original_response(
-            embed=discord.Embed(description=desc),
-            view=GoBack(self._home)
-        )
+        await edit_original(embed=discord.Embed(description=desc))
     
     @button(label="view assignments", style=discord.ButtonStyle.primary)
     async def view_attachments(self, interaction: Interaction, button: Button):
