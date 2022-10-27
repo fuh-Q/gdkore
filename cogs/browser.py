@@ -327,11 +327,10 @@ class ClassHome(GoBack):
             e = discord.Embed(
                 description="failed to create the webhook, make sure i have `manage webhook` permissions"
             )
-            return await interaction.edit_original_response(
-                embed=e, view=GoBack(self._home)
-            )
+            return await interaction.edit_original_response(embed=e, view=GoBack(self._home))
         except discord.HTTPException as err:
             e = discord.Embed(title="error creating webhook", description=f"```py\n{err}\n```")
+            return await interaction.edit_original_response(embed=e, view=GoBack(self._home))
         
         q = """INSERT INTO webhooks VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
                 ON CONFLICT ON CONSTRAINT webhooks_pkey
