@@ -115,8 +115,6 @@ class NotGDKID(commands.Bot):
         self.description = self.__doc__
         self.uptime = datetime.utcnow().astimezone(timezone(timedelta(hours=-4)))
         self._restart = False
-        
-        self.status_task = status_task.start(self)
 
         self.add_commands()
 
@@ -134,6 +132,7 @@ class NotGDKID(commands.Bot):
     async def setup_hook(self) -> None:
         self.db = await asyncpg.create_pool(self.postgres_dns)
 
+        self.status_task = status_task.start()
         ready_task = self.loop.create_task(self.first_ready())
         ready_task.add_done_callback(
             lambda exc: print(
