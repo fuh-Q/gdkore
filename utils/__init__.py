@@ -5,6 +5,7 @@ from .formatting import *
 from .iterators import *
 from .misc import *
 from .monkeypatching import *
+from .time import *
 from .types import *
 from .views import *
 

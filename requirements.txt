@@ -12,6 +12,7 @@ fuzzy-match
 numpy
 
 psutil
+pytz
 
 dnspython
 asyncpg
