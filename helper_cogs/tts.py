@@ -5,9 +5,10 @@ import discord
 from discord import Interaction
 from discord.app_commands import command, describe
 from discord.ext import commands
+
 from gtts import gTTS
 
-from bot import NotGDKID
+from helper_bot import NotGDKID
 
 
 class TTS(commands.Cog):
