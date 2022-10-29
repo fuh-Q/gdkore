@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 import asyncio
-import io
 import json
 import logging
 import os
@@ -11,12 +12,11 @@ from typing import Any, Dict, Set
 
 import asyncpg
 import discord
-from discord import Interaction
 from discord.gateway import DiscordWebSocket
 from discord.app_commands import Command
-from discord.ext import commands
+from discord.ext import commands, tasks
 
-from utils import mobile, new_call_soon
+from utils import mobile, new_call_soon, is_dst
 
 with open("config/secrets.json", "r") as f:
     secrets: Dict[str, str] = json.load(f)
@@ -31,6 +31,24 @@ DiscordWebSocket.identify = mobile
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("Bot")
+
+
+@tasks.loop(minutes=1)
+async def status_task(client: NotGDKID):
+    now = datetime.now(timezone(timedelta(hours=-4 if is_dst() else -5)))
+    fmt = now.strftime("%-I:%M")
+
+    await client.change_presence(
+        status=discord.Status.idle,
+        activity=discord.Activity(
+            name=f"the time, its {fmt}",
+            type=discord.ActivityType.watching,
+        ),
+    )
+
+@status_task.before_loop
+async def before_status_task():
+    await asyncio.sleep(60 - datetime.utcnow().second)
 
 
 class NotGDKID(commands.Bot):
@@ -90,12 +108,15 @@ class NotGDKID(commands.Bot):
             "helper_cogs.emojis",
             "helper_cogs.misc",
             "helper_cogs.mod",
+            "helper_cogs.tts",
             "utils",
         ]
 
         self.description = self.__doc__
         self.uptime = datetime.utcnow().astimezone(timezone(timedelta(hours=-4)))
         self._restart = False
+        
+        self.status_task = status_task.start(self)
 
         self.add_commands()
 
@@ -188,6 +209,7 @@ class NotGDKID(commands.Bot):
     async def close(self, restart: bool = False):
         self._restart = restart
         
+        self.status_task.cancel()
         await self.db.close()
         await super().close()
 
