@@ -132,7 +132,7 @@ class NotGDKID(commands.Bot):
     async def setup_hook(self) -> None:
         self.db = await asyncpg.create_pool(self.postgres_dns)
 
-        self.status_task = status_task.start()
+        self.status_task = status_task.start(self)
         ready_task = self.loop.create_task(self.first_ready())
         ready_task.add_done_callback(
             lambda exc: print(
