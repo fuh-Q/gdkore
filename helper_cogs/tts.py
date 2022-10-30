@@ -15,10 +15,6 @@ class TTS(commands.Cog):
     def __init__(self, client: NotGDKID) -> None:
         self.client = client
 
-    @commands.Cog.listener()
-    async def on_ready(self):
-        print("TTS cog loaded")
-
     @command()
     @describe(text="what i'll say")
     async def tts(self, interaction: Interaction, text: str):

@@ -174,17 +174,6 @@ class GClass(commands.Bot):
         )
 
     @property
-    def app_commands(self) -> Set[Command[Any, ..., Any]]:
-        """
-        Set[:class:`.Command`]: A set of application commands registered to this bot
-
-        NOTE: This does not include :class:`.Group` objects, only their subcommands are listed
-        """
-        cmds = {c for c in self.tree.walk_commands()}
-
-        return cmds
-
-    @property
     def table_names(self) -> List[str]:
         """
         List[:class:`str`] A list of names of database tables used for various features

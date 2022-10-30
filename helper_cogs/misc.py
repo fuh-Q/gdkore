@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-import io
+from io import BytesIO
 from typing import TYPE_CHECKING
 
 from PIL import Image
@@ -24,22 +24,27 @@ class Misc(commands.Cog):
             callback=self.middle_finger
         ))
     
+    async def cog_unload(self) -> None:
+        self.client.tree.remove_command("flip them off")
+    
     @guild_only()
     async def middle_finger(self, interaction: Interaction, user: discord.User):
-        return await interaction.response.send_message("soon:tm:", ephemeral=True)
         def runner(avatar: bytes) -> discord.File:
-            with io.BytesIO(avatar) as buffer:
+            with BytesIO(avatar) as buffer:
                 with Image.open(buffer) as pfp:
                     with Image.open("assets/finger.png").convert("RGBA") as finger:
-                        pfp.paste(finger, (100, 100), finger)
+                        pfp.paste(finger, (138, pfp.height - finger.height), finger)
+                        buffer.seek(0)
                         pfp.save(buffer, "png")
+                        buffer.seek(0)
             
                 return discord.File(buffer, "fu.png")
         
-        content = f"{user.mention} {interaction.user.display_name} tells me to tell you to fuck off"
+        await interaction.response.defer()
+        content = f"{user.mention} {interaction.user.display_name} told me to flip you off"
         avatar = interaction.user.avatar.with_size(256)
         
-        await interaction.response.send_message(
+        await interaction.followup.send(
             content=content,
             file=await asyncio.to_thread(runner, await avatar.read())
         )

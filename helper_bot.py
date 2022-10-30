@@ -8,35 +8,31 @@ import sys
 import time
 import traceback
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, Set
+from typing import Dict
 
 import asyncpg
 import discord
+from discord import Interaction
+from discord.app_commands import AppCommandError
 from discord.gateway import DiscordWebSocket
-from discord.app_commands import Command
 from discord.ext import commands, tasks
 
-from utils import mobile, new_call_soon, is_dst
+from utils import GClassLogging, PrintColours, mobile, new_call_soon, is_dst
+
 
 with open("config/secrets.json", "r") as f:
     secrets: Dict[str, str] = json.load(f)
 
-
 start = time.monotonic()
-
 asyncio.BaseEventLoop.call_soon = new_call_soon
-
 DiscordWebSocket.identify = mobile
-
-
-logging.basicConfig(level=logging.INFO)
-log = logging.getLogger("Bot")
 
 
 @tasks.loop(minutes=1)
 async def status_task(client: NotGDKID):
+    _ = "#" if sys.platform == "win32" else "-"
     now = datetime.now(timezone(timedelta(hours=-4 if is_dst() else -5)))
-    fmt = now.strftime("%-I:%M")
+    fmt = now.strftime(f"%{_}I:%M")
 
     await client.change_presence(
         status=discord.Status.idle,
@@ -57,6 +53,8 @@ class NotGDKID(commands.Bot):
     """
 
     __file__ = __file__
+    
+    logger = logging.getLogger(__name__)
     
     AMAZE_GUILD_ID = 996435988194791614
     ADMIN_ROLE_ID = 996437815619489922
@@ -116,21 +114,33 @@ class NotGDKID(commands.Bot):
         self.uptime = datetime.utcnow().astimezone(timezone(timedelta(hours=-4)))
         self._restart = False
 
+        self.tree.on_error = self.on_app_command_error
         self.add_commands()
 
-    @property
-    def app_commands(self) -> Set[Command[Any, ..., Any]]:
-        """
-        Set[:class:`.Command`]: A set of application commands registered to this bot
-
-        NOTE: This does not include :class:`.Group` objects, only their subcommands are listed
-        """
-        cmds = {c for c in self.tree.walk_commands()}
-
-        return cmds
+    async def load_extension(self, name: str) -> None:
+        await super().load_extension(name)
+        
+        self.logger.info(
+            f"{PrintColours.GREEN}loaded{PrintColours.WHITE} {name}"
+        )
+    
+    async def unload_extension(self, name: str) -> None:
+        await super().unload_extension(name)
+        
+        self.logger.info(
+            f"{PrintColours.RED}unloaded{PrintColours.WHITE} {name}"
+        )
+    
+    async def reload_extension(self, name: str) -> None:
+        await super().reload_extension(name)
+        
+        self.logger.info(
+            f"{PrintColours.YELLOW}reloaded{PrintColours.WHITE} {name}"
+        )
 
     async def setup_hook(self) -> None:
         self.db = await asyncpg.create_pool(self.postgres_dns)
+        self.logger.info(f"{PrintColours.GREEN}database connected")
 
         self.status_task = status_task.start(self)
         ready_task = self.loop.create_task(self.first_ready())
@@ -147,8 +157,9 @@ class NotGDKID(commands.Bot):
 
     async def first_ready(self):
         await self.wait_until_ready()
-        log.info(
-            f"Logged in as: {self.user.name} : {self.user.id}\n----- Cogs and Extensions -----\nMain bot online"
+        self.logger.info(
+            PrintColours.PURPLE + \
+            f"logged in as: {self.user.name}#{self.user.discriminator} : {self.user.id}"
         )
 
         await self.change_presence(status=discord.Status.idle, activity=None)
@@ -183,10 +194,23 @@ class NotGDKID(commands.Bot):
         if guild.id not in self.WHITELISTED_GUILDS:
             await guild.leave()
     
+    async def on_app_command_error(self, interaction: Interaction, error: AppCommandError):
+        tr = traceback.format_exc()
+        
+        self.logger.error("\n" + tr)
+    
     def run(self) -> None:
         async def runner():
             async with self:
                 await self.start()
+        
+        handler = logging.StreamHandler()
+        handler.setFormatter(GClassLogging())
+        discord.utils.setup_logging(
+            handler=handler,
+            formatter=handler.formatter,
+            level=logging.INFO
+        )
 
         try:
             asyncio.run(runner())
@@ -196,14 +220,13 @@ class NotGDKID(commands.Bot):
             # and `self.start` closes all sockets and the HTTPClient instance.
             return
         finally:
+            self.logger.info(f"{PrintColours.PURPLE}successfully logged out :D")
+            
             if self._restart:
                 sys.exit(69)
 
     async def start(self):
-        if sys.platform == "win32":
-            await super().start(self.testing_token)
-        else:
-            await super().start(self.token)
+        await super().start(self.token)
 
     async def close(self, restart: bool = False):
         self._restart = restart
