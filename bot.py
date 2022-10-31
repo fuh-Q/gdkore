@@ -419,9 +419,9 @@ class GClass(commands.Bot):
     async def close(self, restart: bool = False):
         self._restart = restart
 
+        await self.session.close()
         await self.db.close()
         await self.redis.close()
-        await self.session.close()
         await super().close()
     
     def add_commands(self):
