@@ -88,7 +88,7 @@ async def fetch_posts(client: GClass):
             "courseId": webhook["course_id"],
             "pageSize": 5
         }
-        courses = service.courses()
+        courses: Resource = service.courses()
         _: Callable[[Resource], Post] = lambda item: item.list(**kwargs).execute()
         
         return tuple(chain.from_iterable(map(lambda i: tuple(filter(
