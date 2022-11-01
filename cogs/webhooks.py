@@ -186,14 +186,18 @@ async def fetch_posts(client: GClass):
                     await delete_webhook()
         
         q = """UPDATE webhooks SET
-                    last_date = $2,
-                    last_announcement_post = $3,
-                    last_material_post = $4,
-                    last_assignment_post = $5
+                    last_date = $4,
+                    last_announcement_post = $5,
+                    last_material_post = $6,
+                    last_assignment_post = $7
                 WHERE user_id = $1
+                AND course_id = $2
+                AND channel_id = $3
             """
         await client.db.execute(q,
             webhook["user_id"],
+            webhook["course_id"],
+            webhook["channel_id"],
             datetime.now(tz=timezone.utc),
             *last_posts.values()
         )
