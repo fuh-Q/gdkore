@@ -40,7 +40,9 @@ def format_google_time(post: Post) -> datetime:
     format_google_time: `datetime`
         A timezone-aware datetime object in UTC
     """
-    parse = partial(datetime.strptime, post["creationTime"])
+    time = post.get("updateTime", None) or post["creationTime"]
+    
+    parse = partial(datetime.strptime, time)
     try:
         parsed = parse("%Y-%m-%dT%H:%M:%S.%fZ")
     except ValueError:
