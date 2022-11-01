@@ -153,11 +153,10 @@ async def fetch_posts(client: GClass):
             pass # we tried
     
     async def post_data(pages: List[EmbedWithPostData]) -> None: # post embeds to the webhook's channel
-        args = 0, timezone.utc
         last_posts = {
-            "announcement": datetime.fromtimestamp(*args),
-            "material": datetime.fromtimestamp(*args),
-            "assignment": datetime.fromtimestamp(*args)
+            "announcement": datetime.now(timezone.utc),
+            "material": datetime.now(timezone.utc),
+            "assignment": datetime.now(timezone.utc)
         }
         
         for page in pages:
