@@ -202,8 +202,8 @@ async def fetch_posts(client: GClass):
         )
     
     webhooks: List[WebhookData] = await client.db.fetch("SELECT * FROM webhooks")
-    resource_cache: CappedDict[int, Resource] = CappedDict(25)
-    post_cache: CappedDict[int, Tuple[Post]] = CappedDict(50)
+    resource_cache: CappedDict[int, Resource] = CappedDict(50)
+    post_cache: CappedDict[int, Tuple[Post]] = CappedDict(100)
     
     client.logger.info(
         PrintColours.BLUE + "running loop for "
@@ -231,8 +231,7 @@ async def fetch_posts(client: GClass):
                     key = lambda i: format_google_time(i).timestamp()
                 ))
                 post_cache[webhook["course_id"]] = new_posts
-            
-            if not new_posts:
+            elif not new_posts:
                 continue
             
             await post_data(make_embeds(new_posts))
