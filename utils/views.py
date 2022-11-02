@@ -137,7 +137,7 @@ class View(DPYView):
 
     async def _scheduled_task(self, item: Item, interaction: Interaction):
         try:
-            item._refresh_state(interaction.data)
+            item._refresh_state(interaction, interaction.data)
             
             allow = await self.interaction_check(interaction, item)
             if allow is False:
