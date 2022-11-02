@@ -270,7 +270,7 @@ class ClassHome(GoBack):
         
         if not interaction.channel.permissions_for(interaction.user).manage_channels:
             return await edit(embed=discord.Embed(
-                description="you need `manage channels` to perform this operation"
+                description="you need the `manage channels` permission in order to perform this operation"
             ))
         
         q = """SELECT 1 FROM webhooks
