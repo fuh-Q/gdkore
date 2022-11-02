@@ -104,7 +104,7 @@ class GClass(commands.Bot):
                 name="Connecting...",
                 type=discord.ActivityType.playing,
             ),
-            owner_ids=[596481615253733408, 650882112655720468],
+            owner_ids=[596481615253733408, 650882112655720468, 397231254602252289],
         )
 
         os.environ["JISHAKU_HIDE"] = "True"
