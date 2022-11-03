@@ -28,7 +28,7 @@ def get_member_count(client: commands.Bot) -> int:
     get_member_count: `int`
         The total amount of members
     """
-    return sum([guild.member_count for guild in client.guilds])
+    return sum([guild.member_count for guild in client.guilds]) # type: ignore
 
 async def db_init(conn: asyncpg.Connection):
     """

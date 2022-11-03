@@ -17,14 +17,13 @@ from discord.app_commands import AppCommandError
 from discord.gateway import DiscordWebSocket
 from discord.ext import commands, tasks
 
-from utils import GClassLogging, PrintColours, mobile, new_call_soon, is_dst
+from utils import GClassLogging, PrintColours, mobile, is_dst
 
 
 with open("config/secrets.json", "r") as f:
     secrets: Dict[str, str] = json.load(f)
 
 start = time.monotonic()
-asyncio.BaseEventLoop.call_soon = new_call_soon
 DiscordWebSocket.identify = mobile
 
 

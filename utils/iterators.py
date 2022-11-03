@@ -1,9 +1,10 @@
 import asyncio
-import json
-from typing import Any, Callable, Dict, List, Tuple
+from typing import Any, Callable, Generic, List, Tuple, TypeVar
+
+IT = TypeVar("IT")
 
 
-class GoogleChunker:
+class GoogleChunker(Generic[IT]):
     """
     Async iterator to split the Google data fetch into multiple chunks.
     
@@ -21,7 +22,7 @@ class GoogleChunker:
     
     Note
     ----
-    The callback `MUST` take a `nextPageToken` parameter as its first argument. This can be set to `None` by default.
+    The callback `MUST` take a `nextPageToken` parameter as its LAST argument. This can be set to `None` by default.
     """
     
     def __init__(
@@ -42,12 +43,12 @@ class GoogleChunker:
     def __aiter__(self):
         return self
     
-    async def __anext__(self) -> List[Dict]:
+    async def __anext__(self) -> List[IT]:
         if self._stop:
             raise StopAsyncIteration
         
         result = await self.loop.run_in_executor(
-            None, self.func, self.next_page, *self.args
+            None, self.func, *self.args, self.next_page
         )
         
         if not (next_page := result.get("nextPageToken", "")):

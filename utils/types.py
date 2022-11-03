@@ -1,18 +1,30 @@
 from __future__ import annotations
 
-from datetime import datetime
-from typing import Dict, List, Literal, TypedDict
+from discord import Interaction, TextChannel
 
-__all__ = (
-    "Announcement",
-    "Attachment",
-    "Course",
-    "CourseWork",
-    "CourseWorkMaterials",
-    "Post",
-    "StudentSubmissions",
-    "WebhookData"
-)
+from googleapiclient.discovery import HttpRequest
+
+from datetime import datetime
+from typing import Any, Dict, List, Literal, Protocol, TypedDict
+
+class Resource(Protocol):
+    def courses(self) -> Resource:
+        ...
+    
+    def announcements(self) -> Resource:
+        ...
+    
+    def courseWorkMaterials(self) -> Resource:
+        ...
+    
+    def courseWork(self) -> Resource:
+        ...
+    
+    def studentSubmissions(self) -> Resource:
+        ...
+    
+    def list(self, **kwargs: Any) -> HttpRequest:
+        ...
 
 class Announcement(TypedDict):
     updateTime: str
@@ -77,6 +89,7 @@ class CourseWork(TypedDict):
     materials: List[Attachment]
     individualStudentsOptions: Dict[Literal["studentIds"], List[str]]
     multipleChoiceQuestion: Dict[Literal["choices"], List[str]]
+    studentSubmissions: Any | None
 
 class CourseWorkMaterials(TypedDict):
     topicId: str

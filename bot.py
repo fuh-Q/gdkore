@@ -7,14 +7,16 @@ import os
 import sys
 import time
 import traceback
+from contextlib import suppress
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Set
+from types import ModuleType
+from typing import Any, Callable, Dict, List, Protocol, Tuple, TYPE_CHECKING
 
 # <-- discord imports -->
 import discord
 from discord import Interaction
 from discord.gateway import DiscordWebSocket
-from discord.app_commands import errors, AppCommandError, CheckFailure
+from discord.app_commands import errors, AppCommandError, CommandInvokeError, CheckFailure
 from discord.ext import commands
 
 # <-- google imports -->
@@ -32,7 +34,7 @@ import aioredis
 from fuzzy_match import match
 from topgg.webhook import WebhookManager
 
-# <-- utility imports -->
+# <-- local imports -->
 from utils import (
     BotColours,
     BotEmojis,
@@ -40,20 +42,38 @@ from utils import (
     PrintColours,
     db_init,
     mobile,
-    new_call_soon
 )
 
+# <-- type checking -->
+if TYPE_CHECKING:
+    from cogs.browser import Browser
 
 with open("config/secrets.json", "r") as f:
     secrets: Dict[str, str] = json.load(f)
 
+CommandError = AppCommandError | CommandInvokeError
 start = time.monotonic()
 
-asyncio.BaseEventLoop.call_soon = new_call_soon
 DiscordWebSocket.identify = mobile
 
 logging.getLogger("googleapiclient.discovery_cache").setLevel(logging.ERROR)
 
+
+class PostgresPool(Protocol):
+    async def execute(self, query: str, *args: Any, timeout: float | None = None) -> str:
+        ...
+
+    async def fetch(self, query: str, *args: Any, timeout: float | None = None) -> List[Any]:
+        ...
+
+    async def fetchrow(self, query: str, *args: Any, timeout: float | None = None) -> Any | None:
+        ...
+    
+    async def fetchval(self, query: str, *args: Any, timeout: float | None = None) -> Any | None:
+        ...
+    
+    async def close(self) -> None:
+        ...
 
 class GClass(commands.Bot):
     """
@@ -79,11 +99,16 @@ class GClass(commands.Bot):
     topgg_auth = secrets["topgg_auth"]
     topgg_wh: WebhookManager
     session: aiohttp.ClientSession
-
+    
     google_flow = Flow.from_client_secrets_file(
         "config/google-creds.json", scopes=SCOPES
     )
     google_flow.redirect_uri = "https://gclass.onrender.com"
+    
+    user: discord.ClientUser
+    owner_ids: List[int]
+    get_guild: Callable[[int], discord.Guild]
+    get_channel: Callable[[int], discord.abc.Messageable]
 
     def __init__(self):
         allowed_mentions = discord.AllowedMentions.all()
@@ -123,7 +148,7 @@ class GClass(commands.Bot):
             "utils",
         ]
 
-        self.description = self.__doc__
+        self.description = self.__doc__ or ""
         self.uptime = datetime.utcnow().astimezone(timezone(timedelta(hours=-4)))
         self.guild_limit = []
         self._restart = False
@@ -146,6 +171,10 @@ class GClass(commands.Bot):
         `RuntimeError`
             The user was not found.
         """
+        
+        with suppress(KeyError):
+            cog: Browser = self.get_cog("Browser") # type: ignore
+            del cog.course_cache[user_id]
         
         q = """DELETE FROM authorized
                 WHERE user_id = $1 RETURNING expiry, credentials
@@ -172,6 +201,10 @@ class GClass(commands.Bot):
             data={"token": creds.token},
             headers={"Content-Type": "application/x-www-form-urlencoded"},
         )
+    
+    @property
+    def db(self) -> PostgresPool:
+        return self._db # type: ignore
 
     @property
     def table_names(self) -> List[str]:
@@ -203,7 +236,7 @@ class GClass(commands.Bot):
         )
 
     async def setup_hook(self) -> None:
-        self.db = await asyncpg.create_pool(self.postgres_dns, init=db_init)
+        self._db = await asyncpg.create_pool(self.postgres_dns, init=db_init)
         self.redis = aioredis.from_url(
             self.redis_dns,
             password=secrets["redis_password"],
@@ -227,7 +260,7 @@ class GClass(commands.Bot):
                 WHERE tableowner = 'GDKID'
             """
         self._table_names = [i[0] for i in await self.db.fetch(q)]
-        self.avatar_bytes = await self.user.avatar.read()
+        self.avatar_bytes = await self.user.avatar.read() if self.user.avatar else b""
 
         for extension in self.init_extensions:
             await self.load_extension(extension)
@@ -258,6 +291,7 @@ class GClass(commands.Bot):
             if server.owner_id == guild.owner_id:
                 counter += 1
         if counter > 2:
+            assert guild.owner_id
             owner = await guild.fetch_member(guild.owner_id)
             await owner.send(
                 f"I have automatically left your server [`{guild.name}`] because you've reached the limit of 2 servers owned by you with the bot. This is to encourage the \"organic growth\" needed for the bot's verification process in the future. (It's Discord's way of doing things, once the bot is verified, this limit will be removed)"
@@ -303,9 +337,11 @@ class GClass(commands.Bot):
 
         await self.guild_logs.send(embed=e)
     
-    async def on_app_command(self, interaction: Interaction):
+    async def on_app_command(self, interaction: Interaction) -> bool:
+        assert interaction.command
         if interaction.command.name == "vote":
-            return await interaction.response.send_message("https://top.gg/bot/988862592468521031/vote", ephemeral=True)
+            await interaction.response.send_message("https://top.gg/bot/988862592468521031/vote", ephemeral=True)
+            return False
         
         if interaction.user.id not in self.owner_ids:
             await interaction.response.send_message(embed=discord.Embed(
@@ -317,7 +353,7 @@ class GClass(commands.Bot):
             return False
         return True
     
-    async def on_app_command_error(self, interaction: Interaction, error: AppCommandError):
+    async def on_app_command_error(self, interaction: Interaction, error: CommandError):
         if (responded := interaction.response.is_done()) and isinstance(error, CheckFailure):
             return
         else:
@@ -325,7 +361,7 @@ class GClass(commands.Bot):
                     if not responded else interaction.followup.send
         
         if hasattr(error, "original"):
-            error = error.original
+            error = getattr(error, "original")
         
         # <-- actual error checks -->
         if isinstance(error, errors.CommandOnCooldown):
@@ -393,10 +429,11 @@ class GClass(commands.Bot):
                 await self.start()
         
         handler = logging.StreamHandler()
-        handler.setFormatter(GClassLogging())
+        formatter = GClassLogging()
+        handler.setFormatter(formatter)
         discord.utils.setup_logging(
             handler=handler,
-            formatter=handler.formatter,
+            formatter=formatter,
             level=logging.INFO
         )
 
@@ -433,7 +470,10 @@ class GClass(commands.Bot):
         @self.command(name="load", brief="Load cogs", hidden=True)
         @commands.is_owner()
         async def _load(ctx: commands.Context, extension: str):
-            the_match = match.extractOne(extension, os.listdir("./cogs") + ["utils"])
+            the_match: Tuple[str, float] = match.extractOne(
+                extension, os.listdir("./cogs") + ["utils"]
+            ) # type: ignore
+            
             if the_match[1] < 0.1:
                 return await ctx.reply(
                     content="Couldn't find a cog using the query given. Sorry",
@@ -459,7 +499,10 @@ class GClass(commands.Bot):
         @self.command(name="unload", brief="Unload cogs", hidden=True)
         @commands.is_owner()
         async def _unload(ctx: commands.Context, extension: str):
-            the_match = match.extractOne(extension, self.extensions)
+            the_match: Tuple[ModuleType, float] = match.extractOne(
+                extension, self.extensions
+            ) # type: ignore
+            
             if the_match[1] < 0.1:
                 return await ctx.reply(
                     content="Couldn't find a cog using the query given. Sorry",
@@ -495,7 +538,10 @@ class GClass(commands.Bot):
                 return await ctx.reply(
                     content=f"Reloaded {', '.join(li)}", mention_author=True
                 )
-            the_match = match.extractOne(extension, self.extensions)
+            the_match: Tuple[ModuleType, float] = match.extractOne(
+                extension, self.extensions
+            ) # type: ignore
+            
             if the_match[1] < 0.1:
                 return await ctx.reply(
                     content="Couldn't find a cog using the query given. Sorry",

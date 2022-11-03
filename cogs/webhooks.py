@@ -4,7 +4,7 @@ import asyncio
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from itertools import chain
-from typing import Callable, Generic, List, Tuple, TypeVar
+from typing import Any, Callable, Dict, Generic, List, Tuple, TypeVar
 
 import discord
 from discord import Webhook, Interaction
@@ -15,7 +15,7 @@ from discord.ui import Button, Item, Select
 
 from google.auth.exceptions import RefreshError
 from google.oauth2.credentials import Credentials
-from googleapiclient.discovery import build, Resource, HttpError
+from googleapiclient.discovery import build, HttpError
 
 from bot import GClass
 from cogs.browser import AttachmentsView, get_due_date, ICONS
@@ -24,25 +24,30 @@ from utils import (
     BasePages,
     BotColours,
     Confirm,
+    CourseWork,
     Post,
     PrintColours,
     View,
+    Resource,
     WebhookData,
     format_google_time,
     is_logged_in,
 )
-
-KT = TypeVar("KT")
-VT = TypeVar("VT")
 
 DEL_QUERY = """DELETE FROM webhooks
                 WHERE user_id = $1
                 AND course_id = $2
                 AND channel_id = $3"""
 
+KT = TypeVar("KT")
+VT = TypeVar("VT")
+
 @dataclass(repr=False, eq=False)
 class CappedDict(dict, Generic[KT, VT]):
     cap: int
+    
+    def get(self, k: KT, default: Any | None = None) -> Any:
+        super().get(k, default)
     
     def __setitem__(self, k: KT, v: VT) -> None:
         super().__setitem__(k, v)
@@ -89,7 +94,7 @@ async def fetch_posts(client: GClass):
             "pageSize": 5
         }
         courses: Resource = service.courses()
-        _: Callable[[Resource], Post] = lambda item: item.list(**kwargs).execute()
+        _: Callable[[Resource], Dict[str, Post]] = lambda item: item.list(**kwargs).execute()
         
         return tuple(chain.from_iterable(map(lambda i: tuple(filter(
             lambda m: (created_at := format_google_time(m)) > webhook[tuple(webhook.keys())[i[0] + 7]]
@@ -120,7 +125,7 @@ async def fetch_posts(client: GClass):
             if post.get("workType", None):
                 page.colour = BotColours.purple
             
-            if (due_date := get_due_date(post)):
+            if (due_date := get_due_date(post)): # type: ignore
                 page.add_field(
                     name="assignment due",
                     value=f"<t:{int(due_date.timestamp())}:R>"
@@ -174,7 +179,7 @@ async def fetch_posts(client: GClass):
             
             wh = Webhook.from_url(webhook["url"], session=client.session)
             async with client.session.post(
-                f"https://discord.com/api/v{INTERNAL_API_VERSION}/webhooks/{wh.id}/{wh.token}",
+                url=f"https://discord.com/api/v{INTERNAL_API_VERSION}/webhooks/{wh.id}/{wh.token}",
                 json={
                     "username": webhook["course_name"],
                     "embeds": [page.embed.to_dict()],
@@ -244,6 +249,8 @@ async def fetch_posts(client: GClass):
                 await delete_webhook()
 
 class WebhookPicker(Select):
+    _view: WebhookPages
+    
     @property
     def view(self) -> WebhookPages:
         return self._view
@@ -277,13 +284,15 @@ class WebhookPicker(Select):
         
         expired = await view.wait()
         if expired:
-            return await view.original_message.edit(view=view)
+            await view.original_message.edit(view=view)
+            return
     
         await view.interaction.response.edit_message(view=view)
         if not view.choice:
-            return await interaction.followup.send(
+            await interaction.followup.send(
                 "phew, dodged a bullet there", ephemeral=True
             )
+            return
         
         try:
             await Webhook.from_url(
@@ -322,7 +331,7 @@ class WebhookPages(BasePages):
         self._parent = False
         self._interaction = interaction
 
-        self._webhooks: List[WebhookData] = []
+        self._webhooks: List[List[WebhookData]] = []
         
         self.webhooks_to_pages(webhooks=webhooks)
         
@@ -332,7 +341,7 @@ class WebhookPages(BasePages):
         self.add_item(self.select_menu)
         for item in self.children:
             if isinstance(item, Button) and item is not self.button_current:
-                item.callback = None
+                item.callback = None # type: ignore
     
     def webhooks_to_pages(self, *, webhooks: List[WebhookData]):
         interaction = self._interaction
@@ -341,7 +350,7 @@ class WebhookPages(BasePages):
             page = discord.Embed()
             page.set_author(
                 name=f"{interaction.user.name}#{interaction.user.discriminator}'s webhooks",
-                icon_url=interaction.user.avatar.url
+                icon_url=interaction.user.display_avatar.url
             )
             self._webhooks.append(bundle := webhooks[:self.WEBHOOKS_PER_PAGE])
             for webhook in bundle:
@@ -359,8 +368,8 @@ class WebhookPages(BasePages):
     def select_options(self):
         return [
             discord.SelectOption(
-                label=w["course_name"],
-                value=idx,
+                label=w["course_name"], # type: ignore
+                value=str(idx),
             )
             for idx, w in enumerate(self._webhooks[self.current_page])
         ]
@@ -377,7 +386,7 @@ class WebhookPages(BasePages):
                 else:
                     self._current = 0
                 
-                self.children[-1].options = self.select_options
+                self.select_menu.options = self.select_options
                 
                 self.update_components()
                 await interaction.response.edit_message(**self.edit_kwargs)

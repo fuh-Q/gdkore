@@ -11,7 +11,7 @@ def is_logged_in():
     """
     
     async def predicate(interaction: Interaction) -> bool:
-        client: GClass = interaction.client
+        client: GClass = interaction.client # type: ignore
         user_id: int = interaction.user.id
         
         q = """SELECT credentials FROM authorized

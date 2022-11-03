@@ -1,17 +1,17 @@
 from __future__ import annotations
 
 import random
-from traceback import format_exc
 from typing import List, TYPE_CHECKING
 
 from . import CHOICES
 
 import discord
-from discord import User, Interaction, InteractionMessage
+from discord import Interaction, InteractionMessage, Member, User
 from discord.ui import (
     View as DPYView,
     Item,
     Button,
+    Select,
     button
 )
 
@@ -19,7 +19,7 @@ from google.auth.exceptions import RefreshError
 
 if TYPE_CHECKING:
     from bot import GClass
-    
+
 
 class Confirm(DPYView):
     """
@@ -47,24 +47,26 @@ class Confirm(DPYView):
     interaction: `Interaction`
         The (unresponded) `Interaction` object from the user's button click.
     """
+    
+    interaction: Interaction
+    original_message: discord.WebhookMessage | InteractionMessage
+    children: List[Button | Select]
 
     def __init__(
         self,
-        owner: User,
+        owner: User | Member,
         *,
         timeout: int = 120,
         default: bool = False,
         add_third: bool = False,
-        yes_label: str = None,
-        no_label: str = None,
-        third_label: str = None,
+        yes_label: str | None = None,
+        no_label: str | None = None,
+        third_label: str | None = None,
     ):
         super().__init__(timeout=timeout)
         
         self.choice = default
-        self.interaction: Interaction = None
         self.owner = owner
-        self.original_message: InteractionMessage = None
         
         self.ye.label = yes_label or "ye"
         self.nu.label = no_label or "nu"
@@ -125,8 +127,9 @@ class View(DPYView):
     
     TIMEOUT = 180
 
-    client: GClass = None
-    original_message: discord.Message | InteractionMessage = None
+    client: GClass
+    original_message: discord.Message | discord.WebhookMessage | InteractionMessage
+    children: List[Button | Select]
     
     @property
     def weights(self):
@@ -137,7 +140,7 @@ class View(DPYView):
 
     async def _scheduled_task(self, item: Item, interaction: Interaction):
         try:
-            item._refresh_state(interaction, interaction.data)
+            item._refresh_state(interaction, interaction.data) # type: ignore
             
             allow = await self.interaction_check(interaction, item)
             if allow is False:
@@ -213,6 +216,7 @@ class BasePages(View):
     _interaction: Interaction # typically the initial interaction from the user
     _current: int # current page
     
+    _home: BasePages # homepage
     _parent: bool # currently focused in a "sub-view"
     
     async def interaction_check(self, interaction: Interaction, item: Item) -> bool:
@@ -245,7 +249,7 @@ class BasePages(View):
         Returns the main bot object
         """
         
-        return self._interaction.client
+        return self._interaction.client # type: ignore
     
     @property
     def pages(self) -> List[discord.Embed]:

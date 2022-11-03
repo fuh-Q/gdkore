@@ -12,6 +12,7 @@ class GClassLogging(logging.Formatter):
     
     _ = "#" if sys.platform == "win32" else "-"
     FMT = f"%Y/%{_}m/%{_}d %{_}I:%M:%S %p"
+    _fmt: str
     
     COLOURS = {
         logging.DEBUG: PrintColours.WHITE,

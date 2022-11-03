@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import asyncio
+import time
 from datetime import datetime, timezone
 from functools import partial
 from itertools import chain
-from typing import Dict, List, Tuple
+from typing import Any, Dict, Generic, List, Iterable, Tuple, TypeVar
 
 import discord
 from discord import Interaction
@@ -19,7 +20,7 @@ from discord.ui import (
 
 from google.auth.exceptions import RefreshError
 from google.oauth2.credentials import Credentials
-from googleapiclient.discovery import build, Resource, HttpError
+from googleapiclient.discovery import build, HttpError
 
 from bot import GClass
 from utils import (
@@ -31,11 +32,47 @@ from utils import (
     Course,
     CourseWork,
     GoogleChunker,
+    Resource,
     View,
     format_google_time,
     is_logged_in,
 )
 
+
+HomeT = TypeVar("HomeT", bound=BasePages)
+KT = TypeVar("KT")
+VT = TypeVar("VT", bound=Iterable)
+
+class ExpiringDict(dict, Generic[KT, VT]):
+    def __init__(self, timeout: int):
+        self.timeout = timeout
+    
+    def get(self, k: KT, default: Any | None = None) -> VT | None:
+        value = super().get(k, default)
+        if value:
+            return value[0]
+    
+    def _clear_expired(self):
+        now = time.monotonic()
+        expired = tuple(k for (k, (v, t)) in self.items() if now - t > self.timeout)
+        for key in expired:
+            del self[key]
+    
+    def __contains__(self, o: object) -> bool:
+        self._clear_expired()
+        return super().__contains__(o)
+    
+    def __getitem__(self, key: KT) -> VT:
+        self._clear_expired()
+        value = super().__getitem__(key)
+        return value[0]
+    
+    def __setitem__(self, k: KT, v: VT) -> None:
+        self._clear_expired()
+        super().__setitem__(k, (v, time.monotonic()))
+    
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}({super().__repr__()})"
 
 ICONS: Dict[str, str] = {
     "announcement": "https://i.vgy.me/KUQqCn.png",
@@ -59,9 +96,8 @@ def get_due_date(assignment: CourseWork) -> datetime | None:
     
     return due_date
 
-
-class GoBack(View):
-    def __init__(self, homepage: CoursePages):
+class GoBack(View, Generic[HomeT]):
+    def __init__(self, homepage: HomeT):
         self._home = homepage
         
         super().__init__(timeout=self.TIMEOUT)
@@ -94,6 +130,8 @@ class GoBack(View):
         await self._home.start(edit_existing=True, interaction=interaction)      
 
 class ClassPicker(Select):
+    _view: CoursePages
+    
     @property
     def view(self) -> CoursePages:
         return self._view
@@ -141,9 +179,9 @@ class ClassPicker(Select):
 
 class CoursePages(BasePages):
     COURSES_PER_PAGE = 12
-    credentials: Credentials | None
+    credentials: Credentials
     
-    cache: Dict[str, Tuple[List[CourseWork], Course]] | None
+    cache: Dict[str, Tuple[List[CourseWork], Course]]
     
     def __init__(
         self,
@@ -166,10 +204,11 @@ class CoursePages(BasePages):
         
         super().__init__(timeout=self.TIMEOUT)
         
-        self.add_item(ClassPicker(self))
+        self.select_menu = ClassPicker(self)
+        self.add_item(self.select_menu)
         for item in self.children:
             if isinstance(item, Button) and item is not self.button_current:
-                item.callback = None
+                item.callback = None # type: ignore
     
     def courses_to_pages(self, *, courses: List[Course]) -> None:
         interaction = self._interaction
@@ -178,7 +217,7 @@ class CoursePages(BasePages):
             page = discord.Embed()
             page.set_author(
                 name=f"{interaction.user.name}#{interaction.user.discriminator}'s courses",
-                icon_url=interaction.user.avatar.url
+                icon_url=interaction.user.display_avatar.url
             )
             self._courses.append(bundle := courses[:self.COURSES_PER_PAGE])
             for course in bundle:
@@ -211,7 +250,7 @@ class CoursePages(BasePages):
                 else:
                     self._current = 0
                 
-                self.children[-1].options = self.select_options
+                self.select_menu.options = self.select_options
                 
                 self.update_components()
                 await interaction.response.edit_message(**self.edit_kwargs)
@@ -236,11 +275,11 @@ class ClassHome(GoBack):
         self._interaction = interaction
         self._assignments = assignments_from_cache
         
-        self.client = interaction.client
+        self.client = interaction.client # type: ignore
         
         super().__init__(homepage=homepage)
     
-    def run_google(self, nextPageToken = None, service = None): # all of the google libs are sync
+    def run_google(self, service: Resource, nextPageToken: str | None = None): # all of the google libs are sync
         if nextPageToken is not None:
             extras = {
                 "pageToken": nextPageToken,
@@ -268,6 +307,7 @@ class ClassHome(GoBack):
         edit = partial(interaction.response.edit_message, view=GoBack(self._home))
         edit_original = partial(interaction.edit_original_response, view=GoBack(self._home))
         
+        assert interaction.channel and isinstance(interaction.user, discord.Member)
         if not interaction.channel.permissions_for(interaction.user).manage_channels:
             return await edit(embed=discord.Embed(
                 description="you need the `manage channels` permission in order to perform this operation"
@@ -289,7 +329,7 @@ class ClassHome(GoBack):
         embed = discord.Embed(
             title="create a webhook",
             description=f"confirm you want to receive notifications from **{self._course['name']}** " \
-                        f"in {interaction.channel.mention}?"
+                        f"in <#{interaction.channel.id}>?"
         )
         await interaction.response.edit_message(
             embed=embed, view=view
@@ -322,6 +362,7 @@ class ClassHome(GoBack):
             return await edit_original(embed=e)
         
         try:
+            assert isinstance(interaction.channel, discord.TextChannel)
             wh = await interaction.channel.create_webhook(
                 name=self._course["name"],
                 avatar=self.client.avatar_bytes,
@@ -352,24 +393,22 @@ class ClassHome(GoBack):
         n = self._course["name"]
         n = n if len(n) <= 256 else n[:253] + "..."
         desc = f"successfully created a webhook for **{n}** " \
-               f"in {interaction.channel.mention}!"
+               f"in <#{interaction.channel.id}>!"
         
         await edit_original(embed=discord.Embed(description=desc))
     
     @button(label="view assignments", style=discord.ButtonStyle.primary)
     async def view_attachments(self, interaction: Interaction, button: Button):
         await interaction.response.defer()
-        next_page = None
+        next_page: str | None = None
         
         if (assignments := self._assignments) is None:
-            service = self._resource
-            
             e = discord.Embed(
                 description=f"{BotEmojis.LOADING} fetching data..."
             )
             await interaction.edit_original_response(embed=e, view=None)
             try:
-                assignments = await asyncio.to_thread(self.run_google, service=service)
+                assignments = await asyncio.to_thread(self.run_google, service=self._resource)
             except HttpError:
                 e = discord.Embed(
                     description= \
@@ -393,7 +432,7 @@ class ClassHome(GoBack):
             )
         
         content = None
-        menu = await ClassMenu().async_init(
+        menu: ClassMenu = await ClassMenu().async_init(
             self._home,
             self._interaction,
             self._course,
@@ -407,7 +446,9 @@ class ClassHome(GoBack):
         if not next_page:
             return # we don't need to worry about fetching the remaining data
         
-        assignment_chunks = GoogleChunker(self.client.loop, self.run_google, next_page, service)
+        assignment_chunks: GoogleChunker[CourseWork] = GoogleChunker(
+            self.client.loop, self.run_google, next_page, self._resource # type: ignore
+        )
         async for assignments in assignment_chunks:
             menu._assignments += assignments
             
@@ -421,7 +462,7 @@ class AttachmentsView(GoBack):
         homepage: ClassMenu,
         attachments: List[Attachment],
         service: Resource,
-        content: str = None
+        content: str | None = None
     ):
         self._home = homepage
         self._resource = service
@@ -493,11 +534,7 @@ class ClassMenu(BasePages):
         self._assignments = assignments
         
         if not self._home.cache.get(course["id"], None):
-            self._home.cache[course["id"]] = assignments, {
-                "name": course["name"],
-                "id": course["id"],
-                "alternateLink": course["alternateLink"],
-            }
+            self._home.cache[course["id"]] = assignments, course
         
         if not assignments[0].get("materials", None):
             self.remove_item(self.view_attachments)
@@ -549,6 +586,7 @@ class ClassMenu(BasePages):
             url=assignment["alternateLink"]
         )
         
+        name = value = ""
         if (due_date := get_due_date(assignment)):
             if (submission := assignment.get("studentSubmissions", None)) is None:
                 submission = await asyncio.to_thread(run_google, assignment["id"])
@@ -628,9 +666,9 @@ class ClassMenu(BasePages):
         
         now_utc = datetime.utcnow()
         if now_utc.timestamp() >= due.timestamp():
-            return BotEmojis.RED_WARNING + \
+            return f"{BotEmojis.RED_WARNING}" + \
                   f" **assignment late or __due very soon.__ ㅤㅤ [<t:{time_int}:R>]** " + \
-                   BotEmojis.RED_WARNING + "\n\u200b"
+                   f"{BotEmojis.RED_WARNING}\n\u200b"
         elif due.timestamp() - now_utc.timestamp() <= 172800: # 2 days away:
             return "\N{WARNING SIGN}" \
                   f" assignment due soon. ㅤㅤ [<t:{time_int}:R>] " \
@@ -676,6 +714,8 @@ class ClassMenu(BasePages):
 class Browser(commands.Cog):
     def __init__(self, client: GClass):
         self.client = client
+        
+        self.course_cache: ExpiringDict[int, List[Course]] = ExpiringDict(300)
     
     @command(name="courses")
     @is_logged_in()
@@ -691,7 +731,7 @@ class Browser(commands.Cog):
             )
             return build("classroom", "v1", credentials=creds)
         
-        def run_google_courses(nextPageToken = None): # all of the google libs are sync
+        def run_google_courses(nextPageToken = None) -> Dict: # all of the google libs are sync
             kwargs = {
                 "pageSize": 50
             }
@@ -703,10 +743,15 @@ class Browser(commands.Cog):
         await interaction.response.defer(ephemeral=True)
         data = interaction.extras["credentials"]
         
+        next_page: str | None = None
         service = await asyncio.to_thread(run_google_service, data)
-        courses = await asyncio.to_thread(run_google_courses)
-        next_page = courses.get("nextPageToken", None)
-        courses = courses.get("courses", [])
+        
+        if not (courses := self.course_cache.get(interaction.user.id, None)):
+            courses = await asyncio.to_thread(run_google_courses)
+            next_page = courses.get("nextPageToken", None)
+            courses = courses.get("courses", [])
+            
+        self.course_cache[interaction.user.id] = courses
         
         if not courses:
             return await interaction.response.send_message(
