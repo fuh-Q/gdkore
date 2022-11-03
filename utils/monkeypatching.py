@@ -43,3 +43,22 @@ async def mobile(self: DiscordWebSocket):
         "before_identify", self.shard_id, initial=self._initial_identify
     )
     await self.send_as_json(payload)
+
+
+def new_call_soon(
+    self: Any,
+    callback: Callable[..., object],
+    *args: Any,
+    context=None
+) -> Handle: # type: ignore
+    """
+    `asyncio` override to suppress the FUCKING ANNOYING error thrown on Windows.
+    """
+    if not self._closed:
+        if self._debug:
+            self._check_thread()
+            self._check_callback(callback, "call_soon")
+        handle = self._call_soon(callback, args, context)
+        if handle._source_traceback:
+            del handle._source_traceback[-1]
+        return handle

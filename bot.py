@@ -42,6 +42,7 @@ from utils import (
     PrintColours,
     db_init,
     mobile,
+    new_call_soon
 )
 
 # <-- type checking -->
@@ -54,6 +55,7 @@ with open("config/secrets.json", "r") as f:
 CommandError = AppCommandError | CommandInvokeError
 start = time.monotonic()
 
+asyncio.BaseEventLoop.call_soon = new_call_soon
 DiscordWebSocket.identify = mobile
 
 logging.getLogger("googleapiclient.discovery_cache").setLevel(logging.ERROR)
