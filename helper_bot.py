@@ -8,7 +8,7 @@ import sys
 import time
 import traceback
 from datetime import datetime, timedelta, timezone
-from typing import Dict
+from typing import Callable, Dict, List
 
 import asyncpg
 import discord
@@ -17,7 +17,7 @@ from discord.app_commands import AppCommandError
 from discord.gateway import DiscordWebSocket
 from discord.ext import commands, tasks
 
-from utils import GClassLogging, PrintColours, mobile, is_dst, new_call_soon
+from utils import GClassLogging, PostgresPool, PrintColours, mobile, is_dst, new_call_soon
 
 
 with open("config/secrets.json", "r") as f:
@@ -73,6 +73,11 @@ class NotGDKID(commands.Bot):
     token = secrets["helper_token"]
     testing_token = secrets["testing_token"]
     postgres_dns = secrets["postgres_dns"] + "notgdkid"
+    
+    user: discord.ClientUser
+    owner_ids: List[int]
+    get_guild: Callable[[int], discord.Guild]
+    get_channel: Callable[[int], discord.abc.Messageable]
 
     def __init__(self):
         allowed_mentions = discord.AllowedMentions.all()
@@ -110,12 +115,16 @@ class NotGDKID(commands.Bot):
             "utils",
         ]
 
-        self.description = self.__doc__
+        self.description = self.__doc__ or ""
         self.uptime = datetime.utcnow().astimezone(timezone(timedelta(hours=-4)))
         self._restart = False
 
         self.tree.on_error = self.on_app_command_error
         self.add_commands()
+    
+    @property
+    def db(self) -> PostgresPool:
+        return self._db # type: ignore
 
     async def load_extension(self, name: str) -> None:
         await super().load_extension(name)
@@ -139,17 +148,14 @@ class NotGDKID(commands.Bot):
         )
 
     async def setup_hook(self) -> None:
-        self.db = await asyncpg.create_pool(self.postgres_dns)
+        self._db = await asyncpg.create_pool(self.postgres_dns)
         self.logger.info(f"{PrintColours.GREEN}database connected")
 
         self.status_task = status_task.start(self)
         ready_task = self.loop.create_task(self.first_ready())
         ready_task.add_done_callback(
-            lambda exc: print(
-                "".join(traceback.format_exception(e, e, e.__traceback__))
-            )
-            if (e := exc.exception())
-            else ...
+            lambda exc: print(traceback.format_exc())
+            if exc.exception() else ...
         )
 
         for extension in self.init_extensions:
@@ -205,10 +211,11 @@ class NotGDKID(commands.Bot):
                 await self.start()
         
         handler = logging.StreamHandler()
-        handler.setFormatter(GClassLogging())
+        formatter = GClassLogging()
+        handler.setFormatter(formatter)
         discord.utils.setup_logging(
             handler=handler,
-            formatter=handler.formatter,
+            formatter=formatter,
             level=logging.INFO
         )
 

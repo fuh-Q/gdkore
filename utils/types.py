@@ -1,11 +1,25 @@
 from __future__ import annotations
 
-from discord import Interaction, TextChannel
-
 from googleapiclient.discovery import HttpRequest
 
 from datetime import datetime
 from typing import Any, Dict, List, Literal, Protocol, TypedDict
+
+class PostgresPool(Protocol):
+    async def execute(self, query: str, *args: Any, timeout: float | None = None) -> str:
+        ...
+
+    async def fetch(self, query: str, *args: Any, timeout: float | None = None) -> List[Any]:
+        ...
+
+    async def fetchrow(self, query: str, *args: Any, timeout: float | None = None) -> Any | None:
+        ...
+    
+    async def fetchval(self, query: str, *args: Any, timeout: float | None = None) -> Any | None:
+        ...
+    
+    async def close(self) -> None:
+        ...
 
 class Resource(Protocol):
     def courses(self) -> Resource:

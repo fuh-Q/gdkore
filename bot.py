@@ -39,6 +39,7 @@ from utils import (
     BotColours,
     BotEmojis,
     GClassLogging,
+    PostgresPool,
     PrintColours,
     db_init,
     mobile,
@@ -60,22 +61,6 @@ DiscordWebSocket.identify = mobile
 
 logging.getLogger("googleapiclient.discovery_cache").setLevel(logging.ERROR)
 
-
-class PostgresPool(Protocol):
-    async def execute(self, query: str, *args: Any, timeout: float | None = None) -> str:
-        ...
-
-    async def fetch(self, query: str, *args: Any, timeout: float | None = None) -> List[Any]:
-        ...
-
-    async def fetchrow(self, query: str, *args: Any, timeout: float | None = None) -> Any | None:
-        ...
-    
-    async def fetchval(self, query: str, *args: Any, timeout: float | None = None) -> Any | None:
-        ...
-    
-    async def close(self) -> None:
-        ...
 
 class GClass(commands.Bot):
     """
@@ -251,11 +236,8 @@ class GClass(commands.Bot):
         self.logger.info(f"{PrintColours.GREEN}databases connected")
 
         self.loop.create_task(self.first_ready()).add_done_callback(
-            lambda exc: self.logger.error(
-                f"\n{PrintColours.RED}" + "".join(traceback.format_exc()) + PrintColours.WHITE
-            )
-            if exc.exception()
-            else None
+            lambda exc: self.logger.error(traceback.format_exc())
+            if exc.exception() else None
         )
         
         q = """SELECT tablename FROM pg_tables
