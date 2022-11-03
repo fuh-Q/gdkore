@@ -39,9 +39,9 @@ from utils import (
 )
 
 
-HomeT = TypeVar("HomeT", bound=BasePages)
 KT = TypeVar("KT")
 VT = TypeVar("VT", bound=Iterable)
+HomeT = TypeVar("HomeT", bound=BasePages)
 
 class ExpiringDict(dict, Generic[KT, VT]):
     def __init__(self, timeout: int):
