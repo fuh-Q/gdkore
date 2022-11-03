@@ -8,7 +8,7 @@ from typing import Callable, Generic, List, Tuple, TypeVar
 
 import discord
 from discord import Webhook, Interaction
-from discord.app_commands import command
+from discord.app_commands import checks, command
 from discord.ext import commands, tasks
 from discord.http import INTERNAL_API_VERSION
 from discord.ui import Button, Item, Select
@@ -403,6 +403,7 @@ class Webhooks(commands.Cog):
     
     @command(name="webhooks")
     @is_logged_in()
+    @checks.cooldown(1, 15)
     async def view_webhooks(self, interaction: Interaction):
         """
         view your configured webhooks

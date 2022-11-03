@@ -14,7 +14,7 @@ from typing import Any, Dict, List, Set
 import discord
 from discord import Interaction
 from discord.gateway import DiscordWebSocket
-from discord.app_commands import Command, AppCommandError, CheckFailure
+from discord.app_commands import errors, AppCommandError, CheckFailure
 from discord.ext import commands
 
 # <-- google imports -->
@@ -328,6 +328,11 @@ class GClass(commands.Bot):
             error = error.original
         
         # <-- actual error checks -->
+        if isinstance(error, errors.CommandOnCooldown):
+            return await method(
+                f"this command is on cooldown, try again in `{error.retry_after:.2f}`s",
+                ephemeral=True
+            )
         if isinstance(error, RefreshError):
             q = """DELETE FROM authorized
                     WHERE user_id = $1

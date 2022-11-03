@@ -8,7 +8,7 @@ from typing import Dict, List, Tuple
 
 import discord
 from discord import Interaction
-from discord.app_commands import command
+from discord.app_commands import checks, command
 from discord.ext import commands
 from discord.ui import (
     button,
@@ -679,6 +679,7 @@ class Browser(commands.Cog):
     
     @command(name="courses")
     @is_logged_in()
+    @checks.cooldown(1, 15)
     async def list_courses(self, interaction: Interaction):
         """
         lists your courses. you can also pick on a course to view specific things
