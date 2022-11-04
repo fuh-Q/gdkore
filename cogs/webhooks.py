@@ -4,10 +4,10 @@ import asyncio
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from itertools import chain
-from typing import Any, Callable, Dict, Generic, List, Tuple, TypeVar
+from typing import Any, Callable, Dict, Generic, List, Tuple, TypeVar, TYPE_CHECKING
 
 import discord
-from discord import Webhook, Interaction
+from discord import Webhook
 from discord.app_commands import checks, command
 from discord.ext import commands, tasks
 from discord.http import INTERNAL_API_VERSION
@@ -17,22 +17,27 @@ from google.auth.exceptions import RefreshError
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build, HttpError
 
-from bot import GClass
 from cogs.browser import AttachmentsView, get_due_date, ICONS
 from utils import (
-    Attachment,
     BasePages,
     BotColours,
     Confirm,
-    CourseWork,
-    Post,
     PrintColours,
     View,
-    Resource,
-    WebhookData,
     format_google_time,
     is_logged_in,
 )
+
+if TYPE_CHECKING:
+    from discord import Interaction
+    
+    from bot import GClass
+    from utils import (
+        Attachment,
+        Post,
+        Resource,
+        WebhookData
+    )
 
 DEL_QUERY = """DELETE FROM webhooks
                 WHERE user_id = $1
@@ -42,9 +47,9 @@ DEL_QUERY = """DELETE FROM webhooks
 KT = TypeVar("KT")
 VT = TypeVar("VT")
 
-@dataclass(repr=False, eq=False)
 class CappedDict(dict, Generic[KT, VT]):
-    cap: int
+    def __init__(self, cap: int):
+        self.cap = cap
     
     def get(self, k: KT, default: Any | None = None) -> Any:
         super().get(k, default)
@@ -93,11 +98,12 @@ async def fetch_posts(client: GClass):
             "courseId": webhook["course_id"],
             "pageSize": 5
         }
+        start = len(webhook) - 3
         courses: Resource = service.courses()
         _: Callable[[Resource], Dict[str, Post]] = lambda item: item.list(**kwargs).execute()
         
         return tuple(chain.from_iterable(map(lambda i: tuple(filter(
-            lambda m: (created_at := format_google_time(m)) > webhook[tuple(webhook.keys())[i[0] + 7]]
+            lambda m: (created_at := format_google_time(m)) > webhook[tuple(webhook.keys())[i[0] + start]]
             and created_at > webhook["last_date"], i[1]
         )), enumerate((
             _(courses.announcements()).get("announcements", []),              # announcements
@@ -245,7 +251,7 @@ async def fetch_posts(client: GClass):
             await delete_webhook()
             await client.remove_access(webhook["user_id"])
         except HttpError as e:
-            if e.status_code == 404:
+            if e.status_code in (403, 404):
                 await delete_webhook()
 
 class WebhookPicker(Select):

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from discord import Interaction
 from discord.ext import commands
 from discord.app_commands import command
 
@@ -13,6 +12,8 @@ from topgg.types import BotVoteData
 from utils import PrintColours
 
 if TYPE_CHECKING:
+    from discord import Interaction
+    
     from bot import GClass
 
 R = PrintColours.RED
@@ -37,7 +38,7 @@ class Voting(commands.Cog):
         if auth == self.client.topgg_auth and int(data["bot"]) == self.client.user.id:
             return web.Response(status=200, text="OK")
         
-        return web.Response(status="401", text="nope fuck off")
+        return web.Response(status=401, text="nope fuck off")
     
     async def cog_unload(self) -> None:
         await self.client.topgg_wh.close()

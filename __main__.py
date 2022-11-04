@@ -29,7 +29,7 @@ v = sys.version_info
 version = f"{v.major}.{v.minor}"
 
 
-def generate_kwargs() -> dict[str, str]:
+def generate_kwargs() -> dict[str, str | bool | int]:
     """
     Creating a new instance of `subprocess.Popen` requires
     different arguments to be passed through on Windows and Linux,
@@ -137,7 +137,7 @@ def main():
             "cls" if sys.platform == "win32" else "clear"
         )  # Makes things look nicer
 
-        proc = subprocess.Popen(**generate_kwargs())
+        proc = subprocess.Popen(**generate_kwargs()) # type: ignore
 
         code = proc.wait()
         proc.kill()  # Just in case

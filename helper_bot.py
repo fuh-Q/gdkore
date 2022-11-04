@@ -8,16 +8,20 @@ import sys
 import time
 import traceback
 from datetime import datetime, timedelta, timezone
-from typing import Callable, Dict, List
+from typing import Callable, Dict, List, TYPE_CHECKING
 
 import asyncpg
 import discord
-from discord import Interaction
 from discord.app_commands import AppCommandError
 from discord.gateway import DiscordWebSocket
 from discord.ext import commands, tasks
 
-from utils import GClassLogging, PostgresPool, PrintColours, mobile, is_dst, new_call_soon
+from utils import GClassLogging, PrintColours, mobile, is_dst, new_call_soon
+
+if TYPE_CHECKING:
+    from discord import Interaction
+    
+    from utils import PostgresPool
 
 
 with open("config/secrets.json", "r") as f:

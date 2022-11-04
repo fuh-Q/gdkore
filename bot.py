@@ -9,14 +9,12 @@ import time
 import traceback
 from contextlib import suppress
 from datetime import datetime, timedelta, timezone
-from types import ModuleType
-from typing import Any, Callable, Dict, List, Protocol, Tuple, TYPE_CHECKING
+from typing import Callable, Dict, List, Tuple, TYPE_CHECKING
 
 # <-- discord imports -->
 import discord
-from discord import Interaction
 from discord.gateway import DiscordWebSocket
-from discord.app_commands import errors, AppCommandError, CommandInvokeError, CheckFailure
+from discord.app_commands import errors, CheckFailure
 from discord.ext import commands
 
 # <-- google imports -->
@@ -32,7 +30,6 @@ import aioredis
 
 # <-- other imports -->
 from fuzzy_match import match
-from topgg.webhook import WebhookManager
 
 # <-- local imports -->
 from utils import (
@@ -48,6 +45,13 @@ from utils import (
 
 # <-- type checking -->
 if TYPE_CHECKING:
+    from types import ModuleType
+    
+    from discord import Interaction
+    from discord.app_commands import AppCommandError, CommandInvokeError
+    
+    from topgg.webhook import WebhookManager
+    
     from cogs.browser import Browser
 
 with open("config/secrets.json", "r") as f:

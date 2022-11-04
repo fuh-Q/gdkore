@@ -37,7 +37,7 @@ class Resource(Protocol):
     def studentSubmissions(self) -> Resource:
         ...
     
-    def list(self, **kwargs: Any) -> HttpRequest:
+    def list(self, **kwargs: str | int) -> HttpRequest:
         ...
 
 class Announcement(TypedDict):

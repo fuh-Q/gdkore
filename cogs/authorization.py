@@ -1,13 +1,17 @@
 import asyncio
 import time
+from typing import TYPE_CHECKING
 
 import discord
-from discord import Interaction
 from discord.ext import commands
 from discord.app_commands import command
 
-from bot import GClass
 from utils import BotColours, Confirm, is_logged_in
+
+if TYPE_CHECKING:
+    from bot import GClass
+    
+    from discord import Interaction
 
 
 class Authorization(commands.Cog):

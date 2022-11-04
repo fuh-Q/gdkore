@@ -5,10 +5,9 @@ import time
 from datetime import datetime, timezone
 from functools import partial
 from itertools import chain
-from typing import Any, Dict, Generic, List, Iterable, Tuple, TypeVar
+from typing import Any, Dict, Generic, List, Iterable, Tuple, TypeVar, TYPE_CHECKING
 
 import discord
-from discord import Interaction
 from discord.app_commands import checks, command
 from discord.ext import commands
 from discord.ui import (
@@ -22,21 +21,27 @@ from google.auth.exceptions import RefreshError
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build, HttpError
 
-from bot import GClass
 from utils import (
-    Attachment,
     BasePages,
     BotEmojis,
     BotColours,
     Confirm,
-    Course,
-    CourseWork,
     GoogleChunker,
-    Resource,
     View,
     format_google_time,
     is_logged_in,
 )
+
+if TYPE_CHECKING:
+    from discord import Interaction
+    
+    from bot import GClass
+    from utils import (
+        Attachment,
+        Course,
+        CourseWork,
+        Resource
+    )
 
 
 KT = TypeVar("KT")
@@ -330,6 +335,11 @@ class ClassHome(GoBack):
             title="create a webhook",
             description=f"confirm you want to receive notifications from **{self._course['name']}** " \
                         f"in <#{interaction.channel.id}>?"
+        ).set_footer(
+            text="note that due to a limitation imposed by google, you can't " \
+                  "create a webhook for a course owned by your own account." \
+                  "\nwe're assuming you don't own this course, but if your webhook breaks, " \
+                  "you'll know why."
         )
         await interaction.response.edit_message(
             embed=embed, view=view
@@ -350,16 +360,6 @@ class ClassHome(GoBack):
                 embed=discord.Embed(description=f"{BotEmojis.LOADING} setting webhook..."),
                 view=None
             )
-        
-        try:
-            await asyncio.to_thread(self.run_google, service=self._resource)
-        except HttpError:
-            e = discord.Embed(
-                description= \
-                    "you can't setup a webhook for a course owned by your own account." \
-                    "\ngoogle made it this way, there's literally nothing i can do about it lol"
-            )
-            return await edit_original(embed=e)
         
         try:
             assert isinstance(interaction.channel, discord.TextChannel)
