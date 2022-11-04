@@ -338,7 +338,7 @@ class ClassHome(GoBack):
         ).set_footer(
             text="note that due to a limitation imposed by google, you can't " \
                   "create a webhook for a course owned by your own account." \
-                  "\nwe're assuming you don't own this course, but if your webhook breaks, " \
+                  "\n\nwe're assuming you don't own this course, but if your webhook breaks, " \
                   "you'll know why."
         )
         await interaction.response.edit_message(
