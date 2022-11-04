@@ -251,7 +251,6 @@ class Eval(commands.Cog):
         if not hasattr(self.client, "db"):
             return await ctx.reply("you dont have a db connected lol")
 
-        gamer_strats: Coroutine[Any, Any, List[Record] | str]
         query = self.cleanup_code(query)
 
         gamer_strats = (
@@ -306,7 +305,7 @@ class Eval(commands.Cog):
             compiled = self.async_compile(code, "<debug>", "eval")
             result = eval(compiled, env)
         except Exception as e:
-            stuff = "".join(traceback.format_exception(e, e, e.__traceback__))
+            stuff = traceback.format_exc()
             view = SuppressTraceback(ctx=ctx)
             embed = discord.Embed(
                 title="FUCK!", description=f"```py\n{stuff}```", color=0x2E3135
@@ -436,7 +435,7 @@ class Eval(commands.Cog):
                     except SyntaxError as e:
                         embed = discord.Embed(
                             title="FUCK!",
-                            description=f"```py\n{''.join(traceback.format_exception(e, e, e.__traceback__))}```",
+                            description=f"```py\n{traceback.format_exc()}```",
                             color=0x2E3135,
                         )
                         await ctx.send(embed=embed)
@@ -448,9 +447,10 @@ class Eval(commands.Cog):
                 msg = ""
 
                 try:
+                    assert code
                     with redirect_stdout(stdout):
                         if executor is None:
-                            result = types.FunctionType(code, env)()
+                            result = types.FunctionType(code, env)() # type: ignore
                         else:
                             result = executor(code, env)
                         result = await self.maybe_await(result)
@@ -519,7 +519,7 @@ class Eval(commands.Cog):
                 except discord.Forbidden:
                     pass
                 except discord.HTTPException as e:
-                    await ctx.send("unexpected error: `{}`").format(e)
+                    await ctx.send("unexpected error: `{}`".format(e))
 
             except asyncio.TimeoutError:
                 await ctx.reply(
@@ -627,7 +627,7 @@ class Eval(commands.Cog):
             except SyntaxError as e:
                 embed = discord.Embed(
                     title="FUCK!",
-                    description=f"```py\n{''.join(traceback.format_exception(e, e, e.__traceback__))}```",
+                    description=f"```py\n{traceback.format_exc()}```",
                     color=0x2E3135,
                 )
                 view = SuppressTraceback(ctx=ctx)
@@ -650,7 +650,7 @@ class Eval(commands.Cog):
         try:
             with redirect_stdout(stdout):
                 if executor is None:
-                    result = types.FunctionType(code, env)()
+                    result = types.FunctionType(code, env)() # type: ignore
                 else:
                     result = executor(code, env)
                 result = await self.maybe_await(result)
@@ -719,8 +719,8 @@ class Eval(commands.Cog):
         except discord.Forbidden:
             pass
         except discord.HTTPException as e:
-            await ctx.send("unexpected error: `{}`").format(e)
+            await ctx.send("unexpected error: `{}`".format(e))
 
 
-async def setup(client: commands.Bot):
+async def setup(client: NotGDKID):
     await client.add_cog(Eval(client=client))
