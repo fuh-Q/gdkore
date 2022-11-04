@@ -57,7 +57,6 @@ if TYPE_CHECKING:
 with open("config/secrets.json", "r") as f:
     secrets: Dict[str, str] = json.load(f)
 
-CommandError = AppCommandError | CommandInvokeError
 start = time.monotonic()
 
 asyncio.BaseEventLoop.call_soon = new_call_soon
@@ -341,7 +340,7 @@ class GClass(commands.Bot):
             return False
         return True
     
-    async def on_app_command_error(self, interaction: Interaction, error: CommandError):
+    async def on_app_command_error(self, interaction: Interaction, error: AppCommandError | CommandInvokeError):
         if (responded := interaction.response.is_done()) and isinstance(error, CheckFailure):
             return
         else:
