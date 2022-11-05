@@ -83,7 +83,7 @@ class ExpiringDict(dict, Generic[KT, VT]):
     
     def __setitem__(self, k: KT, v: VT) -> None:
         self._clear_expired()
-        super().__setitem__(k, (v, time.monotonic()))
+        super().__setitem__(k, [v, time.monotonic()])
     
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({super().__repr__()})"
