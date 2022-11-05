@@ -49,26 +49,35 @@ VT = TypeVar("VT", bound=Iterable)
 HomeT = TypeVar("HomeT", bound=BasePages)
 
 class ExpiringDict(dict, Generic[KT, VT]):
-    def __init__(self, timeout: int):
-        self.timeout = timeout
+    def __init__(self, timeout: int, *, will_refresh: bool = True):
+        self.timeout: int = timeout
+        self._will_refresh: bool = will_refresh
     
     def get(self, k: KT, default: Any | None = None) -> VT | None:
         value = super().get(k, default)
         if value:
             return value[0]
     
-    def _clear_expired(self):
+    def _refresh_timeout(self, k: KT) -> None:
+        if self._will_refresh:
+            value = super().get(k, None)
+            if value:
+                value[1] = time.monotonic()
+    
+    def _clear_expired(self) -> None:
         now = time.monotonic()
-        expired = tuple(k for (k, (v, t)) in self.items() if now - t > self.timeout)
+        expired: Tuple[KT] = tuple(k for (k, (v, t)) in self.items() if now - t > self.timeout)
         for key in expired:
             del self[key]
     
-    def __contains__(self, o: object) -> bool:
+    def __contains__(self, key: KT) -> bool:
         self._clear_expired()
-        return super().__contains__(o)
+        self._refresh_timeout(key)
+        return super().__contains__(key)
     
     def __getitem__(self, key: KT) -> VT:
         self._clear_expired()
+        self._refresh_timeout(key)
         value = super().__getitem__(key)
         return value[0]
     
