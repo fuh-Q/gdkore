@@ -765,8 +765,10 @@ class Browser(commands.Cog):
         if not next_page:
             return # we don't need to worry about fetching the remaining data
         
-        course_chunks = GoogleChunker(self.client.loop, run_google_courses, next_page)
+        course_chunks: GoogleChunker[Course] = GoogleChunker(self.client.loop, run_google_courses, next_page)
         async for courses in course_chunks:
+            self.course_cache[interaction.user.id] += courses
+            
             last_embed_slots_remaining = menu.COURSES_PER_PAGE - len(menu.pages[-1].fields)
             for _ in range(last_embed_slots_remaining):
                 course = courses.pop(0)
