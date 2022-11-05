@@ -17,19 +17,20 @@ from discord import app_commands
 from discord.ext import commands
 from jishaku.codeblocks import Codeblock, codeblock_converter
 from jishaku.cog import OPTIONAL_FEATURES, STANDARD_FEATURES
+from jishaku.hljs import guess_file_traits
 from jishaku.features.baseclass import Feature
-from jishaku.features.filesystem import guess_file_traits
-from jishaku.features.python import (AsyncCodeExecutor, AsyncSender,
-                                     all_inspections, disassemble,
-                                     get_var_dict_from_ctx)
-from jishaku.features.shell import ReplResponseReactor
+from jishaku.functools import AsyncSender
+from jishaku.repl import AsyncCodeExecutor
+from jishaku.repl.disassembly import disassemble
+from jishaku.repl.inspections import all_inspections
+from jishaku.repl.repl_builtins import get_var_dict_from_ctx
+from jishaku.exception_handling import ReplResponseReactor
 from jishaku.flags import Flags
 from jishaku.hljs import get_language
 from jishaku.modules import package_version
 from jishaku.paginators import WrappedFilePaginator, WrappedPaginator
 from jishaku.shell import ShellReader as ShellReader
-from jishaku.shim.paginator_200 import \
-    PaginatorInterface as OGPaginatorInterface
+from jishaku.shim.paginator_200 import PaginatorInterface as OGPaginatorInterface
 
 from utils import *
 
@@ -83,7 +84,7 @@ class PaginatorInterFace(OGPaginatorInterface):
 
         for child in self.children:
             try:
-                child.emoji = None
+                child.emoji = None # type: ignore
             except Exception:
                 pass
 
@@ -113,6 +114,7 @@ class PaginatorInterFace(OGPaginatorInterface):
 
     async def interaction_check(self, interaction: discord.Interaction):
         """Check that determines whether this interaction should be honored"""
+        assert self.owner
         if interaction.user.id != self.owner.id:
             await interaction.response.send_message(
                 content=random.choice(CHOICES), ephemeral=True
@@ -152,7 +154,7 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
             f"Jishaku `v{package_version('jishaku')}`, discord.py `v{package_version('discord.py')}`, "
             f"`Python v{sys.version}` on `{sys.platform}`".replace("\n", ""),
             f"Bot was started <t:{self.bot.uptime.timestamp():.0f}:R>, "
-            f"cog was loaded <t:{self.start_time.timestamp():.0f}:R>.",
+            f"cog was loaded <t:{self.start_time.timestamp():.0f}:R>.", # type: ignore
             "",
         ]
 
@@ -191,7 +193,7 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
                 summary.append("")  # blank line
 
         summary += [
-            f"There are `{len(self.bot.app_commands)}` application commands and "
+            f"There are `{len(tuple(self.bot.tree.walk_commands()))}` application commands and "
             f"`{len(self.bot.commands)}` prefixed commands registered to this bot.",
             "",  # blank line
         ]
@@ -238,7 +240,7 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
                     f"This bot *{'can' if self.bot.intents.message_content else 'cannot'}* read message content."
                 )
         else:
-            guild_subscriptions = f"guild subscriptions are *{'enabled' if self.bot._connection.guild_subscriptions else 'disabled'}*"
+            guild_subscriptions = f"guild subscriptions are *{'enabled' if self.bot._connection.guild_subscriptions else 'disabled'}*" # type: ignore
 
             summary.append(f"{message_cache} and {guild_subscriptions}.")
 
@@ -267,11 +269,12 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
         If invoked without subcommand, relays current voice state.
         """
 
-        if await self.voice_check(ctx):
+        if await self.voice_check(ctx): # type: ignore
             return
 
         # give info about the current voice client if there is one
-        voice = ctx.guild.voice_client
+        assert ctx.guild
+        voice: discord.VoiceClient = ctx.guild.voice_client # type: ignore
 
         if not voice or not voice.is_connected():
             return await ctx.send("Not connected.")
@@ -287,7 +290,7 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
         name="shell",
         aliases=["bash", "sh", "powershell", "ps1", "ps", "cmd"],
     )
-    async def jsk_shell(self, ctx: commands.Context, *, argument: codeblock_converter):
+    async def jsk_shell(self, ctx: commands.Context, *, argument: codeblock_converter): # type: ignore
         """
         Executes statements in the system shell.
 
@@ -296,7 +299,7 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
         """
 
         async with ReplResponseReactor(ctx.message):
-            with self.submit(ctx):
+            with self.submit(ctx): # type: ignore
                 with ShellReader(argument.content) as reader:
                     prefix = "```" + reader.highlight
 
@@ -316,25 +319,25 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
                 await interface.add_line(f"\n[status] Return code {reader.close_code}")
 
     @Feature.Command(parent="", standalone_ok=True, name="git")
-    async def jsk_git(self, ctx: commands.Context, *, argument: codeblock_converter):
+    async def jsk_git(self, ctx: commands.Context, *, argument: codeblock_converter): # type: ignore
         """
         Shortcut for 'jsk sh git'. Invokes the system shell.
         """
 
         return await ctx.invoke(
-            self.jsk_shell,
-            argument=Codeblock(argument.language, "git " + argument.content),
+            self.jsk_shell, # type: ignore
+            argument=Codeblock(argument.language, "git " + argument.content), # type: ignore
         )
 
     @Feature.Command(parent="", standalone_ok=True, name="pip")
-    async def jsk_pip(self, ctx: commands.Context, *, argument: codeblock_converter):
+    async def jsk_pip(self, ctx: commands.Context, *, argument: codeblock_converter): # type: ignore
         """
         Shortcut for 'jsk sh pip'. Invokes the system shell.
         """
 
         return await ctx.invoke(
-            self.jsk_shell,
-            argument=Codeblock(argument.language, "pip " + argument.content),
+            self.jsk_shell, # type: ignore
+            argument=Codeblock(argument.language, "pip " + argument.content), # type: ignore
         )
 
     @Feature.Command(parent="", standalone_ok=True, name="source", aliases=["src"])
@@ -343,8 +346,6 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
         Displays the source code for a command.
         """
 
-        command: commands.Command | app_commands.Command
-
         if not (command := self.bot.get_command(command_name)):
             if not (command := self.bot.tree.get_command(command_name)):
                 if maybe_command := self.bot.tree.get_command(
@@ -352,13 +353,13 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
                 ):
                     # we got a group
 
-                    command = maybe_command.get_command(split[1])
+                    command = maybe_command.get_command(split[1]) # type: ignore
 
         if not command:
             return await ctx.send(f"Couldn't find command `{command_name}`.")
 
         try:
-            source_lines, _ = inspect.getsourcelines(command.callback)
+            source_lines, _ = inspect.getsourcelines(command.callback) # type: ignore
         except (TypeError, OSError):
             return await ctx.send(
                 f"Was unable to retrieve the source for `{command}` for some reason."
@@ -369,7 +370,7 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
         filename = "source.py"
 
         try:
-            filename = pathlib.Path(inspect.getfile(command.callback)).name
+            filename = pathlib.Path(inspect.getfile(command.callback)).name # type: ignore
         except (TypeError, OSError):
             pass
 
@@ -556,7 +557,7 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
 
     @Feature.Command(parent="", standalone_ok=True, name="dis", aliases=["disassemble"])
     async def jsk_disassemble(
-        self, ctx: commands.Context, *, argument: codeblock_converter
+        self, ctx: commands.Context, *, argument: codeblock_converter # type: ignore
     ):
         """
         Disassemble Python code into bytecode.
@@ -609,7 +610,7 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
                 await interface.send_to(ctx)
 
     @Feature.Command(parent="", standalone_ok=True, name="py", aliases=["python"])
-    async def jsk_python(self, ctx: commands.Context, *, argument: codeblock_converter):
+    async def jsk_python(self, ctx: commands.Context, *, argument: codeblock_converter): # type: ignore
         """
         Direct evaluation of Python code.
         """
@@ -623,15 +624,15 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
         arg_dict = get_var_dict_from_ctx(ctx, SCOPE_PREFIX)
         arg_dict["_"] = self.last_result
 
-        scope = self.scope
+        scope = self.scope # type: ignore
 
         try:
             async with ReplResponseReactor(ctx.message):
-                with self.submit(ctx):
+                with self.submit(ctx): # type: ignore
                     executor = AsyncCodeExecutor(
                         argument.content, scope, arg_dict=arg_dict
                     )
-                    async for send, result in AsyncSender(executor):
+                    async for send, result in AsyncSender(executor): # type: ignore
                         if result is None:
                             continue
 
@@ -652,6 +653,7 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
                                 if result.strip() == "":
                                     result = "\u200b"
 
+                                assert self.bot.http.token
                                 send(
                                     await ctx.send(
                                         result.replace(self.bot.http.token, "[TOKEN]")
@@ -721,7 +723,7 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
         aliases=["pyi", "python_inspect", "pythoninspect"],
     )
     async def jsk_python_inspect(
-        self, ctx: commands.Context, *, argument: codeblock_converter
+        self, ctx: commands.Context, *, argument: codeblock_converter # type: ignore
     ):  # pylint: disable=too-many-locals
         """
         Evaluation of Python code with inspect information.
@@ -730,17 +732,18 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
         arg_dict = get_var_dict_from_ctx(ctx, SCOPE_PREFIX)
         arg_dict["_"] = self.last_result
 
-        scope = self.scope
+        scope = self.scope # type: ignore
 
         try:
             async with ReplResponseReactor(ctx.message):
-                with self.submit(ctx):
+                with self.submit(ctx): # type: ignore
                     executor = AsyncCodeExecutor(
                         argument.content, scope, arg_dict=arg_dict
                     )
-                    async for send, result in AsyncSender(executor):
+                    async for send, result in AsyncSender(executor): # type: ignore
                         self.last_result = result
 
+                        assert self.bot.http.token
                         header = (
                             repr(result)
                             .replace("``", "`\u200b`")
@@ -759,7 +762,7 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
 
                         if (
                             len(text) < 50_000
-                            and not ctx.author.is_on_mobile()
+                            and not ctx.author.is_on_mobile() # type: ignore
                             and not JISHAKU_FORCE_PAGINATOR
                         ):  # File "full content" preview limit
                             send(
@@ -790,12 +793,12 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
         Shows the currently running jishaku tasks.
         """
 
-        if not self.tasks:
+        if not self.tasks: # type: ignore
             return await ctx.send("No currently running tasks.")
 
         paginator = commands.Paginator(max_size=1985)
 
-        for task in self.tasks:
+        for task in self.tasks: # type: ignore
             paginator.add_line(
                 f"{task.index}: `{task.ctx.command.qualified_name}`, invoked at "
                 f"{task.ctx.message.created_at.strftime('%Y-%m-%d %H:%M:%S')} UTC"
@@ -810,4 +813,4 @@ async def setup(bot: commands.Bot):
     The setup function defining the jishaku.cog and jishaku extensions.
     """
 
-    await bot.add_cog(Jishaku(bot=bot))
+    await bot.add_cog(Jishaku(bot=bot)) # type: ignore

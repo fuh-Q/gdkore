@@ -1,9 +1,16 @@
+from __future__ import annotations
+
 import discord
 from discord.ext import commands
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from helper_bot import NotGDKID
+
 
 class Dev(commands.Cog):
-    def __init__(self, client: commands.Bot):
+    def __init__(self, client: NotGDKID):
         self.client = client
         self.emoji = "<a:gdkid:868976838112841760>"
 
@@ -14,8 +21,8 @@ class Dev(commands.Cog):
     async def guilds(self, ctx: commands.Context):
         command = self.client.get_command("repl exec")
         await ctx.invoke(
-            command,
-            code='"".join(["\\n".join(["{0.name}: {1} members | {0.id}".format(g, len([m for m in g.members if not m.bot])) for g in client.guilds]), f"\\n\\n{len(client.guilds)} servers"])',
+            command, # type: ignore
+            code='"".join(["\\n".join(["{0.name}: {1} members | {0.id}".format(g, len([m for m in g.members if not m.bot])) for g in client.guilds]), f"\\n\\n{len(client.guilds)} servers"])', # type: ignore
         )
 
     @commands.command(hidden=True, brief="Shut down the bot")
@@ -40,5 +47,5 @@ class Dev(commands.Cog):
         await ctx.reply("hi")
 
 
-async def setup(client: commands.Bot):
+async def setup(client: NotGDKID):
     await client.add_cog(Dev(client=client))
