@@ -11,7 +11,7 @@ from discord import Webhook
 from discord.app_commands import checks, command
 from discord.ext import commands, tasks
 from discord.http import INTERNAL_API_VERSION
-from discord.ui import Button, Item, Select
+from discord.ui import Button, Select
 
 from google.auth.exceptions import RefreshError
 from google.oauth2.credentials import Credentials
@@ -30,6 +30,7 @@ from utils import (
 
 if TYPE_CHECKING:
     from discord import Interaction
+    from discord.ui import Item
     
     from bot import GClass
     from utils import (

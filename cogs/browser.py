@@ -13,7 +13,6 @@ from discord.ext import commands
 from discord.ui import (
     button,
     Button,
-    Item,
     Select,
 )
 
@@ -34,6 +33,7 @@ from utils import (
 
 if TYPE_CHECKING:
     from discord import Interaction
+    from discord.ui import Item
     
     from bot import GClass
     from utils import (
@@ -110,6 +110,7 @@ def get_due_date(assignment: CourseWork) -> datetime | None:
     
     return due_date
 
+
 class GoBack(View, Generic[HomeT]):
     def __init__(self, homepage: HomeT):
         self._home = homepage
@@ -141,55 +142,8 @@ class GoBack(View, Generic[HomeT]):
     @button(label="go back", style=discord.ButtonStyle.success)
     async def return_home(self, interaction: Interaction, button: Button):
         self._home._parent = False
-        await self._home.start(edit_existing=True, interaction=interaction)      
+        await self._home.start(edit_existing=True, interaction=interaction)
 
-class ClassPicker(Select):
-    _view: CoursePages
-    
-    @property
-    def view(self) -> CoursePages:
-        return self._view
-    
-    def __init__(self, view: CoursePages) -> None:
-        self._view = view
-        
-        super().__init__(
-            placeholder="view class assignments...",
-            min_values=1,
-            max_values=1,
-            options=self.view.select_options
-        )
-    
-    async def callback(self, interaction: Interaction) -> None:
-        await interaction.response.defer()
-        self.view._parent = True
-        
-        if from_cache := self.view.cache.get(self.values[0], None):
-            assignments, course = from_cache
-        else:
-            assignments = None
-            course = next(filter(
-                lambda i: i["id"] == self.values[0], chain.from_iterable(self.view._courses)
-            ))
-        
-        menu = ClassHome(
-            self.view,
-            interaction,
-            course,
-            self.view._resource,
-            assignments
-        )
-        menu.original_message = self.view.original_message
-        
-        e = discord.Embed(
-            title=course["name"],
-            description=f"{course.get('descriptionHeading', '')}\n\n{course.get('description', '')}"
-        )
-        await interaction.edit_original_response(
-            embed=e,
-            view=menu
-        )
-        
 
 class CoursePages(BasePages):
     COURSES_PER_PAGE = 12
@@ -271,8 +225,55 @@ class CoursePages(BasePages):
         
         return allowed
 
+class ClassPicker(Select[CoursePages]):
+    _view: CoursePages
+    
+    @property
+    def view(self) -> CoursePages:
+        return self._view
+    
+    def __init__(self, view: CoursePages) -> None:
+        self._view = view
+        
+        super().__init__(
+            placeholder="view class assignments...",
+            min_values=1,
+            max_values=1,
+            options=self.view.select_options
+        )
+    
+    async def callback(self, interaction: Interaction) -> None:
+        await interaction.response.defer()
+        self.view._parent = True
+        
+        if from_cache := self.view.cache.get(self.values[0], None):
+            assignments, course = from_cache
+        else:
+            assignments = None
+            course = next(filter(
+                lambda i: i["id"] == self.values[0], chain.from_iterable(self.view._courses)
+            ))
+        
+        menu = ClassHome(
+            self.view,
+            interaction,
+            course,
+            self.view._resource,
+            assignments
+        )
+        menu.original_message = self.view.original_message
+        
+        e = discord.Embed(
+            title=course["name"],
+            description=f"{course.get('descriptionHeading', '')}\n\n{course.get('description', '')}"
+        )
+        await interaction.edit_original_response(
+            embed=e,
+            view=menu
+        )
 
-class ClassHome(GoBack):
+
+class ClassHome(GoBack[CoursePages]):
     client: GClass
     
     def __init__(
@@ -464,60 +465,6 @@ class ClassHome(GoBack):
             for assignment in assignments:
                 menu._pages.append(await menu.make_embed(assignment))
 
-
-class AttachmentsView(GoBack):
-    def __init__(
-        self,
-        homepage: ClassMenu,
-        attachments: List[Attachment],
-        service: Resource,
-        content: str | None = None
-    ):
-        self._home = homepage
-        self._resource = service
-        
-        self._content = content
-        
-        super().__init__(homepage=homepage)
-        
-        self.weights.weights[0] = 5
-        self.add_attachments(attachments, self)
-    
-    @staticmethod
-    def add_attachments(attachments: List, view: View):
-        for attachment in attachments:
-            if (k := list(attachment.keys())[0]) == "form":
-                a = attachment[k]
-                url = a["formUrl"]
-            elif k == "link":
-                a = attachment[k]
-                url = a["url"]
-            elif k == "driveFile":
-                a = attachment[k][k]
-                url = a["alternateLink"]
-            else:
-                a = attachment[k]
-                url = a["alternateLink"]
-            
-            emojis = {
-                "driveFile": BotEmojis.DRIVE,
-                "form": BotEmojis.FORMS,
-                "link": BotEmojis.LINK,
-                "youtubeVideo": BotEmojis.YOUTUBE,
-            }
-
-            t = a.get("title", "Untitled")
-            view.add_item(Button(
-                label=t if len(t) < 80 else t[:77] + "...",
-                emoji=emojis[k],
-                style=discord.ButtonStyle.link,
-                url=url
-            ))
-    
-    async def after_callback(self, interaction: Interaction, item: Item):
-        self._home._home._refresh_timeout() # refresh CoursePages object
-        self._home._refresh_timeout() # refresh ClassMenu object
-
 class ClassMenu(BasePages):
     async def async_init(
         self,
@@ -527,9 +474,9 @@ class ClassMenu(BasePages):
         assignments: List[CourseWork],
         service: Resource,
     ):
-        self._home = homepage
-        self._resource = service
-        self._course = course
+        self._home: CoursePages = homepage
+        self._resource: Resource = service
+        self._course: Course = course
         
         self._pages = []
         self._current = 0
@@ -718,6 +665,59 @@ class ClassMenu(BasePages):
         )
         view.original_message = self.original_message
         await interaction.response.edit_message(view=view)
+
+class AttachmentsView(GoBack[ClassMenu]):
+    def __init__(
+        self,
+        homepage: ClassMenu,
+        attachments: List[Attachment],
+        service: Resource,
+        content: str | None = None
+    ):
+        self._home = homepage
+        self._resource = service
+        
+        self._content = content
+        
+        super().__init__(homepage=homepage)
+        
+        self.weights.weights[0] = 5
+        self.add_attachments(attachments, self)
+    
+    @staticmethod
+    def add_attachments(attachments: List, view: View):
+        for attachment in attachments:
+            if (k := list(attachment.keys())[0]) == "form":
+                a = attachment[k]
+                url = a["formUrl"]
+            elif k == "link":
+                a = attachment[k]
+                url = a["url"]
+            elif k == "driveFile":
+                a = attachment[k][k]
+                url = a["alternateLink"]
+            else:
+                a = attachment[k]
+                url = a["alternateLink"]
+            
+            emojis = {
+                "driveFile": BotEmojis.DRIVE,
+                "form": BotEmojis.FORMS,
+                "link": BotEmojis.LINK,
+                "youtubeVideo": BotEmojis.YOUTUBE,
+            }
+
+            t = a.get("title", "Untitled")
+            view.add_item(Button(
+                label=t if len(t) < 80 else t[:77] + "...",
+                emoji=emojis[k],
+                style=discord.ButtonStyle.link,
+                url=url
+            ))
+    
+    async def after_callback(self, interaction: Interaction, item: Item):
+        self._home._home._refresh_timeout() # refresh CoursePages object
+        self._home._refresh_timeout() # refresh ClassMenu object
 
 
 class Browser(commands.Cog):

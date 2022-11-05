@@ -38,7 +38,6 @@ from utils import (
     BotColours,
     BotEmojis,
     GClassLogging,
-    PostgresPool,
     PrintColours,
     db_init,
     mobile,
@@ -55,6 +54,7 @@ if TYPE_CHECKING:
     from topgg.webhook import WebhookManager
     
     from cogs.browser import Browser
+    from utils import PostgresPool
 
 with open("config/secrets.json", "r") as f:
     secrets: Dict[str, str] = json.load(f)
