@@ -111,9 +111,7 @@ def get_due_date(assignment: CourseWork) -> datetime | None:
     return due_date
 
 
-class GoBack(View, Generic[HomeT]):
-    __parameters__ = (0,)
-    
+class GoBack(Generic[HomeT], View):
     def __init__(self, homepage: HomeT):
         self._home = homepage
         
