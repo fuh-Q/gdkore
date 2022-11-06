@@ -5,21 +5,16 @@ from pytz import timezone as pytimezone
 
 from .types import Post
 
-def is_dst(*, timezone: str = "America/Toronto"):
+def is_dst():
     """
     Returns `True` if DST (daylight savings) is in effect
-
-    Arguments
-    ---------
-    timezone: `str`
-        The timezone to localize to. Defaults to `America/Toronto` (Eastern Daylight)
 
     Returns
     -------
     is_dst: `bool`
         Whether or not DST is currently being observed
     """
-    tz = pytimezone(timezone)
+    tz = pytimezone("UTC")
     aware = tz.localize(datetime.utcnow(), is_dst=None)
 
     return aware.tzinfo._dst.seconds != 0 # type: ignore
