@@ -375,7 +375,6 @@ class ClassHome(GoBack[CoursePages]):
             assert isinstance(interaction.channel, discord.TextChannel)
             wh = await interaction.channel.create_webhook(
                 name=self._course["name"],
-                avatar=self.client.avatar_bytes,
                 reason=f"{interaction.user.name} ({interaction.user.id}) configured webhook"
             )
         except discord.Forbidden:
@@ -749,13 +748,13 @@ class Browser(commands.Cog):
 
             return service.courses().list(**kwargs).execute()
 
-        await interaction.response.defer(ephemeral=True)
         data = interaction.extras["credentials"]
 
         next_page: str | None = None
         service = await asyncio.to_thread(run_google_service, data)
 
         if not (courses := self.course_cache.get(interaction.user.id, None)):
+            await interaction.response.defer(ephemeral=True)
             courses = await asyncio.to_thread(run_google_courses)
             next_page = courses.get("nextPageToken", None)
             courses = courses.get("courses", [])
