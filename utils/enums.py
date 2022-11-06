@@ -1,6 +1,3 @@
-from enum import Enum
-
-
 class PrintColours:
     """
     A group of formatting strings used to change the colour of the text in your terminal
