@@ -42,9 +42,9 @@ class Mod(commands.Cog):
             guild_ids=[self.client.AMAZE_GUILD_ID],
             callback=self.mute_user
         )
-        
+
         self.client.tree.add_command(self.mute_user)
-    
+
     def find_role(self, guild: discord.Guild, search: str) -> discord.Role:
         try:
             role: discord.Role | None = guild.get_role(int(search))
@@ -52,16 +52,16 @@ class Mod(commands.Cog):
                 raise ValueError
         except ValueError:
             role: discord.Role = match.extractOne(search, guild.roles)[0]
-        
+
         return role
-    
+
     @commands.Cog.listener()
     async def on_member_update(self, before: discord.Member, after: discord.Member):
         if not after.guild.id == self.client.AMAZE_GUILD_ID:
             return
-        
+
         muted_role = after.guild.get_role(self.client.MUTED_ROLE_ID)
-        
+
         if muted_role not in before.roles and muted_role in after.roles:
             q = """INSERT INTO stickyroles VALUES ($1, $2)
                     ON CONFLICT ON CONSTRAINT stickyroles_pkey
@@ -73,9 +73,9 @@ class Mod(commands.Cog):
                 """
         else:
             return
-        
+
         await self.client.db.execute(q, after.id, muted_role.id)
-    
+
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
         q = """SELECT role_id FROM stickyroles
@@ -84,16 +84,16 @@ class Mod(commands.Cog):
         roles: List[discord.Role] = map(
             lambda rec: member.guild.get_role(rec["role_id"]), await self.client.db.fetch(q, member.id)
         )
-        
+
         await member.add_roles(*roles, reason="sticky roles")
-    
+
     @commands.Cog.listener()
     async def on_guild_role_delete(self, role: discord.Role):
         q = """DELETE FROM stickyroles
                 WHERE role_id = $1
             """
         await self.client.db.execute(q, role.id)
-    
+
     @guild_only()
     async def mute_user(self, interaction: Interaction, target: discord.Member | discord.User):
         if interaction.user.id == target.id:
@@ -126,7 +126,7 @@ class Mod(commands.Cog):
                 f"L no perms {BotEmojis.HAHALOL}",
                 ephemeral=True,
             )
-    
+
     @commands.command(name="bind", aliases=["bindrole", "br"])
     @commands.is_owner()
     async def bind_role(self, ctx: commands.Context, target: discord.User | discord.Member, *, role_search: str):
@@ -136,12 +136,12 @@ class Mod(commands.Cog):
                 DO NOTHING
             """
         await self.client.db.execute(q, target.id, role.id)
-        
+
         if isinstance(target, discord.Member) and role not in target.roles:
             await target.add_roles(role)
-        
+
         await ctx.message.add_reaction(BotEmojis.YES)
-    
+
     @commands.command(name="unbind", aliases=["unbindrole", "ub"])
     @commands.is_owner()
     async def unbind_role(self, ctx: commands.Context, target: discord.User, *, role_search: str | None = None):
@@ -153,15 +153,15 @@ class Mod(commands.Cog):
             return await ctx.reply(
                 f"all sticky roles cleared for `{target.name}`", mention_author=True
             )
-        
+
         role = self.find_role(ctx.guild, role_search)
         q = """DELETE FROM stickyroles
                 WHERE user_id = $1 AND role_id = $2
             """
         await self.client.db.execute(q, target.id, role.id)
-        
+
         await ctx.message.add_reaction(BotEmojis.YES)
 
-    
+
 async def setup(client: NotGDKID):
     await client.add_cog(Mod(client=client))

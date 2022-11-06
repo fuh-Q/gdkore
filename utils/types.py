@@ -14,29 +14,29 @@ class PostgresPool(Protocol):
 
     async def fetchrow(self, query: str, *args: Any, timeout: float | None = None) -> Any | None:
         ...
-    
+
     async def fetchval(self, query: str, *args: Any, timeout: float | None = None) -> Any | None:
         ...
-    
+
     async def close(self) -> None:
         ...
 
 class Resource(Protocol):
     def courses(self) -> Resource:
         ...
-    
+
     def announcements(self) -> Resource:
         ...
-    
+
     def courseWorkMaterials(self) -> Resource:
         ...
-    
+
     def courseWork(self) -> Resource:
         ...
-    
+
     def studentSubmissions(self) -> Resource:
         ...
-    
+
     def list(self, **kwargs: str | int) -> HttpRequest:
         ...
 

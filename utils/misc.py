@@ -34,7 +34,7 @@ async def db_init(conn: asyncpg.Connection):
     """
     Sets up my personally preferred codecs for select types in our PostgreSQL connection
     """
-    
+
     await conn.set_type_codec(
         "json",
         encoder=json.dumps,

@@ -9,11 +9,11 @@ def is_logged_in():
     """
     Check to ensure the command-invoking user has in fact authenticated with GClass
     """
-    
+
     async def predicate(interaction: Interaction) -> bool:
         client: GClass = interaction.client # type: ignore
         user_id: int = interaction.user.id
-        
+
         q = """SELECT credentials FROM authorized
                 WHERE user_id = $1
             """

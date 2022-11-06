@@ -13,6 +13,6 @@ class Emojis(commands.Cog):
     def __init__(self, client: NotGDKID) -> None:
         self.client = client
 
-    
+
 async def setup(client: NotGDKID):
     await client.add_cog(Emojis(client=client))

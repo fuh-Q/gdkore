@@ -9,11 +9,11 @@ class GClassLogging(logging.Formatter):
     """
     Custom colour formatter for GClass's logging setup
     """
-    
+
     _ = "#" if sys.platform == "win32" else "-"
     FMT = f"%Y/%{_}m/%{_}d %{_}I:%M:%S %p"
     _fmt: str
-    
+
     COLOURS = {
         logging.DEBUG: PrintColours.WHITE,
         logging.INFO: PrintColours.BLUE,
@@ -21,13 +21,13 @@ class GClassLogging(logging.Formatter):
         logging.ERROR: PrintColours.RED,
         logging.CRITICAL: PrintColours.RED + PrintColours.BOLD
     }
-    
+
     def __init__(self):
         super().__init__(
             "|{levelname:<8}|",
             style="{"
         )
-    
+
     def format(self, record: logging.LogRecord) -> str:
         log_fmt = self.COLOURS[record.levelno]
         colour = PrintColours.WHITE if record.levelno < logging.ERROR else PrintColours.RED
@@ -36,11 +36,11 @@ class GClassLogging(logging.Formatter):
             datefmt=f"{PrintColours.YELLOW} [{datetime.now().strftime(self.FMT)}] ",
             style="{"
         )
-        
+
         if record.exc_info:
             text = formatter.formatException(record.exc_info)
             record.exc_text = f"{PrintColours.RED}{text}{PrintColours.WHITE}"
-        
+
         ret = formatter.format(record)
         record.exc_text = None
         return ret

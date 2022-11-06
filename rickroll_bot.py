@@ -44,7 +44,7 @@ class PaginatorInterface(OGPaginatorInterface):
         self.button_next.label = "❯"
         self.button_last.emoji = None
         self.button_last.label = "❯❯❯"
-        
+
         if not self.page_count > 1:
             self.button_goto.disabled = True
 

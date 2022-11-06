@@ -30,7 +30,7 @@ class Dev(commands.Cog):
     async def shutdown(self, ctx: commands.Context):
         e = discord.Embed(description="👋 cya")
         await ctx.reply(embed=e)
-        
+
         await self.client.close()
 
     @commands.command(hidden=True, brief="Restart the bot")

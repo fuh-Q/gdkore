@@ -20,7 +20,7 @@ from utils import GClassLogging, PrintColours, mobile, is_dst, new_call_soon
 
 if TYPE_CHECKING:
     from discord import Interaction
-    
+
     from utils import PostgresPool
 
 
@@ -57,14 +57,14 @@ class NotGDKID(commands.Bot):
     """
 
     __file__ = __file__
-    
+
     logger = logging.getLogger(__name__)
-    
+
     AMAZE_GUILD_ID = 996435988194791614
     ADMIN_ROLE_ID = 996437815619489922
     MEMBER_ROLE_ID = 1008572377703129119
     MUTED_ROLE_ID = 997376437390692373
-    
+
     WHITELISTED_GUILDS = [
         716684586129817651, # GDK1D's Discord
         749892811905564672, # Mod Mail Inbox
@@ -77,7 +77,7 @@ class NotGDKID(commands.Bot):
     token = secrets["helper_token"]
     testing_token = secrets["testing_token"]
     postgres_dns = secrets["postgres_dns"] + "notgdkid"
-    
+
     user: discord.ClientUser
     owner_ids: List[int]
     get_guild: Callable[[int], discord.Guild]
@@ -125,28 +125,28 @@ class NotGDKID(commands.Bot):
 
         self.tree.on_error = self.on_app_command_error
         self.add_commands()
-    
+
     @property
     def db(self) -> PostgresPool:
         return self._db # type: ignore
 
     async def load_extension(self, name: str) -> None:
         await super().load_extension(name)
-        
+
         self.logger.info(
             f"{PrintColours.GREEN}loaded{PrintColours.WHITE} {name}"
         )
-    
+
     async def unload_extension(self, name: str) -> None:
         await super().unload_extension(name)
-        
+
         self.logger.info(
             f"{PrintColours.RED}unloaded{PrintColours.WHITE} {name}"
         )
-    
+
     async def reload_extension(self, name: str) -> None:
         await super().reload_extension(name)
-        
+
         self.logger.info(
             f"{PrintColours.YELLOW}reloaded{PrintColours.WHITE} {name}"
         )
@@ -199,21 +199,21 @@ class NotGDKID(commands.Bot):
 
             except discord.HTTPException:
                 pass
-    
+
     async def on_guild_join(self, guild: discord.Guild):
         if guild.id not in self.WHITELISTED_GUILDS:
             await guild.leave()
-    
+
     async def on_app_command_error(self, interaction: Interaction, error: AppCommandError):
         tr = traceback.format_exc()
-        
+
         self.logger.error("\n" + tr)
-    
+
     def run(self) -> None:
         async def runner():
             async with self:
                 await self.start()
-        
+
         handler = logging.StreamHandler()
         formatter = GClassLogging()
         handler.setFormatter(formatter)
@@ -232,7 +232,7 @@ class NotGDKID(commands.Bot):
             return
         finally:
             self.logger.info(f"{PrintColours.PURPLE}successfully logged out :D")
-            
+
             if self._restart:
                 sys.exit(69)
 
@@ -241,7 +241,7 @@ class NotGDKID(commands.Bot):
 
     async def close(self, restart: bool = False):
         self._restart = restart
-        
+
         self.status_task.cancel()
         await self.db.close()
         await super().close()

@@ -47,12 +47,12 @@ from utils import (
 # <-- type checking -->
 if TYPE_CHECKING:
     from types import ModuleType
-    
+
     from discord import Interaction
     from discord.app_commands import AppCommandError, CommandInvokeError
-    
+
     from topgg.webhook import WebhookManager
-    
+
     from cogs.browser import Browser
     from utils import PostgresPool
 
@@ -73,7 +73,7 @@ class GClass(commands.Bot):
     """
 
     __file__ = __file__
-    
+
     SCOPES = [
         "https://www.googleapis.com/auth/userinfo.profile",
         "https://www.googleapis.com/auth/classroom.announcements.readonly",
@@ -81,7 +81,7 @@ class GClass(commands.Bot):
         "https://www.googleapis.com/auth/classroom.courseworkmaterials.readonly",
         "https://www.googleapis.com/auth/classroom.student-submissions.me.readonly"
     ]
-    
+
     logger = logging.getLogger(__name__)
 
     token = secrets["token"]
@@ -91,12 +91,12 @@ class GClass(commands.Bot):
     topgg_auth = secrets["topgg_auth"]
     topgg_wh: WebhookManager
     session: aiohttp.ClientSession
-    
+
     google_flow = Flow.from_client_secrets_file(
         "config/google-creds.json", scopes=SCOPES
     )
     google_flow.redirect_uri = "https://gclass.onrender.com"
-    
+
     user: discord.ClientUser
     owner_ids: List[int]
     get_guild: Callable[[int], discord.Guild]
@@ -144,30 +144,30 @@ class GClass(commands.Bot):
         self.uptime = datetime.utcnow().astimezone(timezone(timedelta(hours=-4)))
         self.guild_limit = []
         self._restart = False
-        
+
         self.tree.on_error = self.on_app_command_error
         self.tree.interaction_check = self.on_app_command
         self.add_commands()
-    
+
     async def remove_access(self, user_id: int):
         """
         Revokes a user's access on both the bot's end as well as Google's end.
-        
+
         Parameters
         ----------
         user_id: `int`
             The ID of the user to revoke.
-        
+
         Raises
         ------
         `RuntimeError`
             The user was not found.
         """
-        
+
         with suppress(KeyError):
             cog: Browser = self.get_cog("Browser") # type: ignore
             del cog.course_cache[user_id]
-        
+
         q = """DELETE FROM authorized
                 WHERE user_id = $1 RETURNING expiry, credentials
             """
@@ -177,7 +177,7 @@ class GClass(commands.Bot):
         else:
             creds = Credentials.from_authorized_user_info(data["credentials"])
             creds.expiry = data["expiry"]
-            
+
             names = self.table_names
             names.remove("authorized")
             for table in names:
@@ -185,7 +185,7 @@ class GClass(commands.Bot):
                         WHERE user_id = $1
                     """ % table
                 await self.db.execute(q, user_id)
-        
+
         if not creds.valid:
             await asyncio.to_thread(creds.refresh, Request())
         await self.session.post(
@@ -193,7 +193,7 @@ class GClass(commands.Bot):
             data={"token": creds.token},
             headers={"Content-Type": "application/x-www-form-urlencoded"},
         )
-    
+
     @property
     def db(self) -> PostgresPool:
         return self._db # type: ignore
@@ -203,26 +203,26 @@ class GClass(commands.Bot):
         """
         List[:class:`str`] A list of names of database tables used for various features
         """
-        
+
         return self._table_names.copy()
-    
+
     async def load_extension(self, name: str) -> None:
         await super().load_extension(name)
-        
+
         self.logger.info(
             f"{PrintColours.GREEN}loaded{PrintColours.WHITE} {name}"
         )
-    
+
     async def unload_extension(self, name: str) -> None:
         await super().unload_extension(name)
-        
+
         self.logger.info(
             f"{PrintColours.RED}unloaded{PrintColours.WHITE} {name}"
         )
-    
+
     async def reload_extension(self, name: str) -> None:
         await super().reload_extension(name)
-        
+
         self.logger.info(
             f"{PrintColours.YELLOW}reloaded{PrintColours.WHITE} {name}"
         )
@@ -244,7 +244,7 @@ class GClass(commands.Bot):
             lambda exc: self.logger.error(traceback.format_exc())
             if exc.exception() else None
         )
-        
+
         q = """SELECT tablename FROM pg_tables
                 WHERE tableowner = 'GDKID'
             """
@@ -271,9 +271,9 @@ class GClass(commands.Bot):
         end = time.monotonic()
         e = discord.Embed(description=f"❯❯  started up in ~`{round(end - start, 1)}s`")
         await owner.send(embed=e)
-        
+
         await self.db.execute("SELECT 1") # wake it up ig
-    
+
     async def on_guild_join(self, guild: discord.Guild):
         counter = 0
         for server in self.guilds:
@@ -325,33 +325,33 @@ class GClass(commands.Bot):
             e.set_thumbnail(url=guild.icon.url)
 
         await self.guild_logs.send(embed=e)
-    
+
     async def on_app_command(self, interaction: Interaction) -> bool:
         assert interaction.command
         if interaction.command.name == "vote":
             await interaction.response.send_message("https://top.gg/bot/988862592468521031/vote", ephemeral=True)
             return False
-        
+
         if interaction.user.id not in self.owner_ids:
             await interaction.response.send_message(embed=discord.Embed(
                 description="amaze is being permanently retired. we're working on something "
                             "entirely different though, so join [our server](https://discord.gg/gKEKpyXeEB) "
                             "to keep up with what's to come!"
             ), ephemeral=True)
-            
+
             return False
         return True
-    
+
     async def on_app_command_error(self, interaction: Interaction, error: AppCommandError | CommandInvokeError):
         if (responded := interaction.response.is_done()) and isinstance(error, CheckFailure):
             return
         else:
             method = interaction.response.send_message \
                     if not responded else interaction.followup.send
-        
+
         if hasattr(error, "original"):
             error = getattr(error, "original")
-        
+
         # <-- actual error checks -->
         if isinstance(error, errors.CommandOnCooldown):
             return await method(
@@ -363,13 +363,13 @@ class GClass(commands.Bot):
                     WHERE user_id = $1
                 """
             await self.db.execute(q, interaction.user.id)
-        
+
         if isinstance(error, (CheckFailure, RefreshError)):
             return await method(
                 "you need to be logged in, you can do so with </login:1022667405484359680>",
                 ephemeral=True
             )
-        
+
         # <-- send to error logs -->
         tr = traceback.format_exc()
         self.logger.error(f"\n{PrintColours.RED}{tr}")
@@ -380,11 +380,11 @@ class GClass(commands.Bot):
             f"```py\n{error}\n```",
             ephemeral=True
         )
-        
+
         location = f"guild {interaction.guild_id}" \
                     if interaction.guild \
                     else f"dms with <@!{interaction.user.id}>"
-        
+
         await self.error_logs.send(
             f"error in {location}",
             file=discord.File(
@@ -416,7 +416,7 @@ class GClass(commands.Bot):
         async def runner():
             async with self:
                 await self.start()
-        
+
         handler = logging.StreamHandler()
         formatter = GClassLogging()
         handler.setFormatter(formatter)
@@ -435,13 +435,13 @@ class GClass(commands.Bot):
             return
         finally:
             self.logger.info(f"{PrintColours.PURPLE}successfully logged out :D")
-            
+
             if self._restart:
                 sys.exit(69)
 
     async def start(self):
         self.session = aiohttp.ClientSession()
-        
+
         if sys.platform == "win32":
             await super().start(self.testing_token)
         else:
@@ -454,7 +454,7 @@ class GClass(commands.Bot):
         await self.db.close()
         await self.redis.close()
         await super().close()
-    
+
     def add_commands(self):
         @self.command(name="load", brief="Load cogs", hidden=True)
         @commands.is_owner()
@@ -462,7 +462,7 @@ class GClass(commands.Bot):
             the_match: Tuple[str, float] = match.extractOne(
                 extension, os.listdir("./cogs") + ["utils"]
             ) # type: ignore
-            
+
             if the_match[1] < 0.1:
                 return await ctx.reply(
                     content="Couldn't find a cog using the query given. Sorry",
@@ -491,7 +491,7 @@ class GClass(commands.Bot):
             the_match: Tuple[ModuleType, float] = match.extractOne(
                 extension, self.extensions
             ) # type: ignore
-            
+
             if the_match[1] < 0.1:
                 return await ctx.reply(
                     content="Couldn't find a cog using the query given. Sorry",
@@ -530,7 +530,7 @@ class GClass(commands.Bot):
             the_match: Tuple[ModuleType, float] = match.extractOne(
                 extension, self.extensions
             ) # type: ignore
-            
+
             if the_match[1] < 0.1:
                 return await ctx.reply(
                     content="Couldn't find a cog using the query given. Sorry",

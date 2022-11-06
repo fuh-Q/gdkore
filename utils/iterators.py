@@ -7,10 +7,10 @@ IT = TypeVar("IT")
 class GoogleChunker(Generic[IT]):
     """
     Async iterator to split the Google data fetch into multiple chunks.
-    
+
     This allows displaying a smaller chunk of data to the user while the rest
     loads in the background, for faster initial loading times.
-    
+
     Parameters
     ----------
     loop: `asyncio.AbstractEventLoop`
@@ -19,12 +19,12 @@ class GoogleChunker(Generic[IT]):
         The callback to execute that fetches data from Google.
     *args: `Tuple[Any]`
         Any extra arguments to pass onto the callback
-    
+
     Note
     ----
     The callback `MUST` take a `nextPageToken` parameter as its LAST argument. This can be set to `None` by default.
     """
-    
+
     def __init__(
         self,
         loop: asyncio.AbstractEventLoop,
@@ -35,22 +35,22 @@ class GoogleChunker(Generic[IT]):
         self.loop = loop
         self.func = google_func
         self.args = args
-        
+
         self.next_page = next_page
-        
+
         self._stop = False
-    
+
     def __aiter__(self):
         return self
-    
+
     async def __anext__(self) -> List[IT]:
         if self._stop:
             raise StopAsyncIteration
-        
+
         result = await self.loop.run_in_executor(
             None, self.func, *self.args, self.next_page
         )
-        
+
         if not (next_page := result.get("nextPageToken", "")):
             self._stop = True
 
