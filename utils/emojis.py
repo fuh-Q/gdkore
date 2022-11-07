@@ -4,7 +4,7 @@ from discord import PartialEmoji
 
 class NewEmote(PartialEmoji):
     """
-    A subclass of `PartialEmoji` that allows an instance to be created from a name
+    A subclass of `PartialEmoji` that allows an instance to be created from a name.
     """
 
     @classmethod
@@ -15,7 +15,7 @@ class NewEmote(PartialEmoji):
 
 class BotEmojis:
     """
-    Config class containing emojis
+    Config class containing emojis.
     """
 
     YES = "<:_:970213925637484546>"

@@ -21,6 +21,7 @@ from cogs.browser import AttachmentsView, get_due_date, ICONS
 from utils import (
     BasePages,
     BotColours,
+    CappedDict,
     Confirm,
     PrintColours,
     View,
@@ -44,25 +45,6 @@ DEL_QUERY = """DELETE FROM webhooks
                 WHERE user_id = $1
                 AND course_id = $2
                 AND channel_id = $3"""
-
-KT = TypeVar("KT")
-VT = TypeVar("VT")
-
-class CappedDict(dict, Generic[KT, VT]):
-    def __init__(self, cap: int):
-        self.cap = cap
-
-    def get(self, k: KT, default: Any | None = None) -> Any:
-        super().get(k, default)
-
-    def __setitem__(self, k: KT, v: VT) -> None:
-        super().__setitem__(k, v)
-
-        if len(self) > self.cap:
-            del self[tuple(self)[0]]
-
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__}({super().__repr__()})"
 
 @dataclass(init=False, slots=True)
 class EmbedWithPostData:

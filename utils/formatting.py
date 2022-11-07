@@ -7,7 +7,7 @@ from .enums import PrintColours
 
 class GClassLogging(logging.Formatter):
     """
-    Custom colour formatter for GClass's logging setup
+    Custom colour formatter for GClass's logging setup.
     """
 
     _ = "#" if sys.platform == "win32" else "-"
@@ -48,17 +48,17 @@ class GClassLogging(logging.Formatter):
 
 def all_casings(input_string: str) -> Generator[str, None, None]:
     """
-    A generator that yields every combination of lowercase and uppercase in a given string
+    A generator that yields every combination of lowercase and uppercase in a given string.
 
     Arguments
     ---------
     input_string: `str`
-        The string to iterate through
+        The string to iterate through.
 
     Returns
     -------
     all_casings: Generator[`str`]
-        A generator object yielding every combination of lowercase and uppercase
+        A generator object yielding every combination of lowercase and uppercase.
     """
     if not input_string:
         yield ""

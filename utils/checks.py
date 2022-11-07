@@ -7,7 +7,7 @@ if TYPE_CHECKING:
 
 def is_logged_in():
     """
-    Check to ensure the command-invoking user has in fact authenticated with GClass
+    Check to ensure the command-invoking user has in fact authenticated with GClass.
     """
 
     async def predicate(interaction: Interaction) -> bool:

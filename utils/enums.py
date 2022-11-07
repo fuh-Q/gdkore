@@ -1,6 +1,6 @@
 class PrintColours:
     """
-    A group of formatting strings used to change the colour of the text in your terminal
+    A group of formatting strings used to change the colour of the text in your terminal.
     """
 
     RED = "\x1b[31m"
@@ -16,7 +16,7 @@ class PrintColours:
 
 class BotColours:
     """
-    A group of commonly used colours (usually used on embeds)
+    A group of commonly used colours (usually used on embeds).
     """
 
     red = 0xC0382B

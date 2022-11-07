@@ -23,22 +23,22 @@ if TYPE_CHECKING:
 
 class Confirm(DPYView):
     """
-    Pre-defined `View` class used to prompt the user for a yes/no confirmation
+    Pre-defined `View` class used to prompt the user for a yes/no confirmation.
 
     Arguments
     ---------
     owner: `User`
-        The user being prompted. They will be the one in control of this menu
+        The user being prompted. They will be the one in control of this menu.
     default: `Optional[bool]`
-        The default choice in case the view times out (False by default)
+        The default choice in case the view times out (False by default).
     add_third: `Optional[bool]`
-        Whether to add a third option for whatever need that might be (False by default)
+        Whether to add a third option for whatever need that might be (False by default).
     yes_label: `Optional[str]`
-        Custom label for the accepting button
+        Custom label for the accepting button.
     no_label: `Optional[str]`
-        Custom label for the rejecting button
+        Custom label for the rejecting button.
     third_label: `Optional[str]`
-        Custom lavel for the third button, if any
+        Custom lavel for the third button, if any.
 
     Parameters
     ----------
@@ -122,7 +122,7 @@ class Confirm(DPYView):
 
 class View(DPYView):
     """
-    A subclass of `View` that reworks the timeout logic
+    A subclass of `View` that reworks the timeout logic.
     """
 
     TIMEOUT = 180
@@ -189,7 +189,7 @@ class View(DPYView):
         Raises
         ------
         `NotImplementedError`
-            This method was not configured
+            This method was not configured.
         """
 
         raise NotImplementedError
@@ -210,6 +210,10 @@ class View(DPYView):
 
 
 class BasePages(View):
+    """
+    ABC for paginators to inherit from.
+    """
+
     TIMEOUT = 180 # default timeout
 
     _pages: List[discord.Embed] # pages are comprised of embeds
@@ -246,7 +250,7 @@ class BasePages(View):
     @property
     def client(self) -> GClass:
         """
-        Returns the main bot object
+        Returns the main bot object.
         """
 
         return self._interaction.client # type: ignore
@@ -254,7 +258,7 @@ class BasePages(View):
     @property
     def pages(self) -> List[discord.Embed]:
         """
-        Returns a list of the pages of courses associated with the user
+        Returns a list of the pages of courses associated with the user.
         """
 
         return self._pages
@@ -262,7 +266,7 @@ class BasePages(View):
     @property
     def page_count(self) -> int:
         """
-        Returns the amount of pages
+        Returns the amount of pages.
         """
 
         return len(self._pages)
@@ -270,7 +274,7 @@ class BasePages(View):
     @property
     def current_page(self) -> int:
         """
-        Returns the index of the current page displayed
+        Returns the index of the current page displayed.
         """
 
         return self._current

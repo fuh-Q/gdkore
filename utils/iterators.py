@@ -18,7 +18,7 @@ class GoogleChunker(Generic[IT]):
     google_func: `Callable[[Any | None], Any]`
         The callback to execute that fetches data from Google.
     *args: `Tuple[Any]`
-        Any extra arguments to pass onto the callback
+        Any extra arguments to pass onto the callback.
 
     Note
     ----

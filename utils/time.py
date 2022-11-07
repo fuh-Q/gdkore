@@ -7,17 +7,17 @@ from .types import Post
 
 def is_dst(*, timezone: str = "America/Toronto") -> bool:
     """
-    Returns `True` if DST (daylight savings) is in effect
+    Returns `True` if DST (daylight savings) is in effect.
 
     Arguments
     ---------
     timezone: `str`
-        The timezone to localize to. Defaults to `America/Toronto` (Eastern Daylight)
+        The timezone to localize to. Defaults to `America/Toronto` (Eastern Daylight).
 
     Returns
     -------
     is_dst: `bool`
-        Whether or not DST is currently being observed
+        Whether or not DST is currently being observed.
     """
 
     dst = datetime.now(tz=pytimezone(timezone)).dst()
