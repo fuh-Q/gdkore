@@ -35,13 +35,14 @@ DiscordWebSocket.identify = mobile
 @tasks.loop(minutes=1)
 async def status_task(client: NotGDKID):
     _ = "#" if sys.platform == "win32" else "-"
-    now = datetime.now(timezone(timedelta(hours=-4 if is_dst() else -5)))
-    fmt = now.strftime(f"%{_}I:%M")
+    hours, name = (-4, "EDT") if is_dst() else (-5, "EST")
+    now = datetime.now(timezone(timedelta(hours=hours)))
+    fmt = now.strftime(f"%{_}I:%M %p")
 
     await client.change_presence(
         status=discord.Status.idle,
         activity=discord.Activity(
-            name=f"the time, its {fmt}",
+            name=f"{name} - {fmt}",
             type=discord.ActivityType.watching,
         ),
     )
