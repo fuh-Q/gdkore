@@ -80,15 +80,15 @@ class DirectoryView(BasePages):
         self.update_components()
 
         self.select_menu = DirectoryPicker(self)
+        self.add_item(self.select_menu)
+
         self.send_file = SendFile(self)
         self.send_file_ephemeral = SendFile(self, True)
-
-        self.add_item(self.select_menu)
-        self.update_file_buttons()
-
         self.load_file = ExtensionButton(self, ExtensionAction.LOAD)
         self.unload_file = ExtensionButton(self, ExtensionAction.UNLOAD)
         self.reload_file = ExtensionButton(self, ExtensionAction.RELOAD)
+
+        self.update_file_buttons()
 
     @property
     def slice_index(self) -> int:
