@@ -25,6 +25,7 @@ from utils import (
     Confirm,
     PrintColours,
     View,
+    cap,
     format_google_time,
     is_logged_in,
 )
@@ -98,12 +99,11 @@ async def fetch_posts(client: GClass):
         pages: List[EmbedWithPostData] = []
 
         for post in posts:
-            t = post.get("title", "")
             d = post.get("text", "") or post.get("description", "")
 
             page = discord.Embed(
-                title=t if len(t) <= 256 else t[:253] + "...",
-                description=d if len(d) <= 4096 else d[:4093] + "...",
+                title=f"{cap(post.get('title', '')):256}",
+                description=f"{cap(d):4096}",
                 timestamp=format_google_time(post),
                 url=post["alternateLink"]
             ).set_footer(
@@ -117,7 +117,7 @@ async def fetch_posts(client: GClass):
             if (due_date := get_due_date(post)): # type: ignore
                 page.add_field(
                     name="assignment due",
-                    value=f"<t:{int(due_date.timestamp())}:R>"
+                    value=f"<t:{due_date.timestamp():.0f}:R>"
                 )
 
             obj = EmbedWithPostData(page, post)
@@ -147,11 +147,11 @@ async def fetch_posts(client: GClass):
             pass # we tried
 
     async def post_data(pages: List[EmbedWithPostData]) -> None: # post embeds to the webhook's channel
-        last_posts = {
-            "announcement": datetime.now(timezone.utc),
-            "material": datetime.now(timezone.utc),
-            "assignment": datetime.now(timezone.utc)
-        }
+        last_posts = {n: datetime.now(tz=timezone.utc) for n in (
+            "announcement",
+            "material",
+            "assignment"
+        )}
 
         for page in pages:
             last_posts[page.type] = page.created_at
@@ -259,11 +259,10 @@ class WebhookPicker(Select):
         view = Confirm(interaction.user)
 
         wh: WebhookData = self.view._webhooks[self.view.current_page].pop(idx := int(self.values[0]))
-        n = wh["course_name"]
         embed = discord.Embed(
             title="confirm delete webhook",
             description=f"are you sure you want to delete the webhook for " \
-                        f"**{n if len(n) <= 256 else n[:253] + '...'}** created in <#{wh['channel_id']}>?",
+                        f"**{cap(wh['course_name']):256}** created in <#{wh['channel_id']}>?",
             colour=BotColours.red
         )
         msg = await interaction.followup.send(
@@ -307,7 +306,7 @@ class WebhookPicker(Select):
         await interaction.edit_original_response(**self.view.edit_kwargs)
 
 
-class WebhookPages(BasePages):
+class WebhookPages(BasePages, auto_defer=False): # type: ignore
     WEBHOOKS_PER_PAGE = 12
 
     def __init__(
@@ -328,9 +327,6 @@ class WebhookPages(BasePages):
 
         self.select_menu = WebhookPicker(self)
         self.add_item(self.select_menu)
-        for item in self.children:
-            if isinstance(item, Button) and item is not self.button_current:
-                item.callback = None # type: ignore
 
     def webhooks_to_pages(self, *, webhooks: List[WebhookData]):
         interaction = self._interaction
@@ -343,9 +339,8 @@ class WebhookPages(BasePages):
             )
             self._webhooks.append(bundle := webhooks[:self.WEBHOOKS_PER_PAGE])
             for webhook in bundle:
-                n = webhook["course_name"]
                 page.add_field(
-                    name=n if len(n) <= 256 else n[:253] + "...",
+                    name=f"{cap(webhook['course_name']):256}",
                     value= \
                         f"— created in <#{webhook['channel_id']}>\n" \
                         f"— in guild `{self.client.get_guild(webhook['guild_id']).name}`"
@@ -363,30 +358,15 @@ class WebhookPages(BasePages):
             for idx, w in enumerate(self._webhooks[self.current_page])
         ]
 
-    async def interaction_check(self, interaction: Interaction, item: Item) -> bool:
-        if (allowed := await super().interaction_check(interaction, item)):
-            if isinstance(item, Button) and item is not self.button_current:
-                if item is self.button_end:
-                    self._current = self.page_count - 1
-                elif item is self.button_next:
-                    self._current += 1
-                elif item is self.button_previous:
-                    self._current -= 1
-                else:
-                    self._current = 0
+    async def after_callback(self, interaction: Interaction, item: Item):
+        self.update_components()
+        if new_options := self.select_options:
+            self.select_menu.disabled = False
+            self.select_menu.options = new_options
+        else:
+            self.select_menu.disabled = True
 
-                self.select_menu.options = self.select_options
-
-                self.update_components()
-                await interaction.response.edit_message(**self.edit_kwargs)
-
-            if new_options := self.select_options:
-                self.select_menu.disabled = False
-                self.select_menu.options = new_options
-            else:
-                self.select_menu.disabled = True
-
-        return allowed
+        await interaction.response.edit_message(**self.edit_kwargs)
 
 
 class Webhooks(commands.Cog):

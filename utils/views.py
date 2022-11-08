@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import random
-from typing import List, TYPE_CHECKING
+from typing import Any, Dict, List, Tuple, TYPE_CHECKING
 
 from . import CHOICES
 
@@ -18,6 +18,8 @@ from discord.ui import (
 from google.auth.exceptions import RefreshError
 
 if TYPE_CHECKING:
+    from discord.ext.commands import Context
+
     from bot import GClass
 
 
@@ -120,7 +122,14 @@ class Confirm(DPYView):
         return self._callback(interaction, btn)
 
 
-class View(DPYView):
+class _ViewMeta(type):
+    def __new__(cls, *args, **kwargs):
+        name, bases, attrs = args
+        attrs["__discord_auto_defer__"] = kwargs.pop("auto_defer", True)
+
+        return super().__new__(cls, name, bases, attrs)
+
+class View(DPYView, metaclass=_ViewMeta):
     """
     A subclass of `View` that reworks the timeout logic.
     """
@@ -130,6 +139,7 @@ class View(DPYView):
     client: GClass
     original_message: discord.Message | discord.WebhookMessage | InteractionMessage
     children: List[Button | Select]
+    __discord_auto_defer__: bool
 
     @property
     def weights(self):
@@ -137,6 +147,13 @@ class View(DPYView):
         It's no longer private now >:D
         """
         return self.__weights
+
+    @property
+    def auto_defer(self) -> bool:
+        """
+        Whether we will defer interactions should they not complete in the dispatched item's callback.
+        """
+        return self.__discord_auto_defer__
 
     async def _scheduled_task(self, item: Item, interaction: Interaction):
         try:
@@ -149,12 +166,9 @@ class View(DPYView):
             if allow is not None:
                 self._refresh_timeout()
 
-            if item._provided_custom_id:
-                await interaction.response.defer()
-
             if item.callback is not None:
                 await item.callback(interaction)
-                if not interaction.response.is_done():
+                if not interaction.response.is_done() and self.auto_defer:
                     await interaction.response.defer()
 
             await self.after_callback(interaction, item)
@@ -216,15 +230,18 @@ class BasePages(View):
 
     TIMEOUT = 180 # default timeout
 
+    _current: int # current page
     _pages: List[discord.Embed] # pages are comprised of embeds
     _interaction: Interaction # typically the initial interaction from the user
-    _current: int # current page
+    _ctx: Context[GClass] | None = None # instance of context if this is being used in a prefixed command
 
     _home: BasePages # homepage
     _parent: bool # currently focused in a "sub-view"
 
     async def interaction_check(self, interaction: Interaction, item: Item) -> bool:
-        if interaction.user.id != self._interaction.user.id:
+        uid = self._ctx.author.id if self._ctx else self._interaction.user.id
+
+        if interaction.user.id != uid:
             await interaction.response.send_message(
                 content=random.choice(CHOICES), ephemeral=True
             )
@@ -235,8 +252,10 @@ class BasePages(View):
         if not self._parent:
             self.disable_all(exclude_urls=True)
 
+            method = self.original_message.edit if self._ctx else self._interaction.edit_original_response
+
             try:
-                await self._interaction.edit_original_response(view=self)
+                await method(view=self)
             except discord.HTTPException:
                 pass # we tried
 
@@ -252,6 +271,9 @@ class BasePages(View):
         """
         Returns the main bot object.
         """
+
+        if self._ctx:
+            return self._ctx.bot
 
         return self._interaction.client # type: ignore
 
@@ -302,6 +324,9 @@ class BasePages(View):
         interaction: Interaction | None = None,
         content: str | None = None
     ):
+        if not interaction and not hasattr(self, "_interaction"):
+            raise TypeError("Interaction must be set")
+
         interaction = interaction or self._interaction
 
         self.update_components()
@@ -325,30 +350,22 @@ class BasePages(View):
 
         self.original_message = await self._interaction.original_response()
 
-    @button(label="❮❮❮", disabled=True)
+    @button(label="❮❮❮", disabled=True, row=0)
     async def button_start(self, interaction: Interaction, button: Button):
         self._current = 0
-        self.update_components()
-        await interaction.response.edit_message(**self.edit_kwargs)
 
-    @button(label="❮", disabled=True)
+    @button(label="❮", disabled=True, row=0)
     async def button_previous(self, interaction: Interaction, button: Button):
         self._current -= 1
-        self.update_components()
-        await interaction.response.edit_message(**self.edit_kwargs)
 
-    @button(disabled=True)
+    @button(disabled=True, row=0)
     async def button_current(self, interaction: Interaction, button: Button):
         await interaction.response.defer()
 
-    @button(label="❯", disabled=True)
+    @button(label="❯", disabled=True, row=0)
     async def button_next(self, interaction: Interaction, button: Button):
         self._current += 1
-        self.update_components()
-        await interaction.response.edit_message(**self.edit_kwargs)
 
-    @button(label="❯❯❯", disabled=True)
+    @button(label="❯❯❯", disabled=True, row=0)
     async def button_end(self, interaction: Interaction, button: Button):
         self._current = self.page_count - 1
-        self.update_components()
-        await interaction.response.edit_message(**self.edit_kwargs)

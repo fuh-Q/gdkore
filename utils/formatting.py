@@ -46,6 +46,29 @@ class GClassLogging(logging.Formatter):
         return ret
 
 
+class cap:
+    """
+    Cap a string at a given size, appends an ellipsis to the end
+
+    Usage
+    -----
+    ```
+    really_long = "1234567890"
+    print(f"{cap(really_long):5}") # 12...
+    ```
+    """
+
+    def __init__(self, string: str) -> None:
+        self.string = string
+
+    def __format__(self, format_spec: str) -> str:
+        size = int(format_spec)
+        if len(self.string) <= size:
+            return self.string
+
+        return self.string[:-3] + "..."
+
+
 def all_casings(input_string: str) -> Generator[str, None, None]:
     """
     A generator that yields every combination of lowercase and uppercase in a given string.

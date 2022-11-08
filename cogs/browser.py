@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 import asyncio
-import time
 from datetime import datetime, timezone
 from functools import partial
 from itertools import chain
-from typing import Any, Dict, Generic, List, Iterable, Tuple, TypeVar, TYPE_CHECKING
+from typing import Dict, Generic, List, Iterable, Tuple, TypeVar, TYPE_CHECKING
 
 import discord
 from discord.app_commands import checks, command
@@ -28,6 +27,7 @@ from utils import (
     ExpiringDict,
     GoogleChunker,
     View,
+    cap,
     format_google_time,
     is_logged_in,
 )
@@ -106,7 +106,7 @@ class GoBack(Generic[HomeT], View):
         await self._home.start(edit_existing=True, interaction=interaction)
 
 
-class CoursePages(BasePages):
+class CoursePages(BasePages, auto_defer=False): # type: ignore
     COURSES_PER_PAGE = 12
     credentials: Credentials
 
@@ -135,9 +135,6 @@ class CoursePages(BasePages):
 
         self.select_menu = ClassPicker(self)
         self.add_item(self.select_menu)
-        for item in self.children:
-            if isinstance(item, Button) and item is not self.button_current:
-                item.callback = None # type: ignore
 
     def courses_to_pages(self, *, courses: List[Course]) -> None:
         interaction = self._interaction
@@ -167,24 +164,10 @@ class CoursePages(BasePages):
             for c in self._courses[self.current_page]
         ]
 
-    async def interaction_check(self, interaction: Interaction, item: Item) -> bool:
-        if (allowed := await super().interaction_check(interaction, item)):
-            if isinstance(item, Button) and item is not self.button_current:
-                if item is self.button_end:
-                    self._current = self.page_count - 1
-                elif item is self.button_next:
-                    self._current += 1
-                elif item is self.button_previous:
-                    self._current -= 1
-                else:
-                    self._current = 0
-
-                self.select_menu.options = self.select_options
-
-                self.update_components()
-                await interaction.response.edit_message(**self.edit_kwargs)
-
-        return allowed
+    async def after_callback(self, interaction: Interaction, item: Item):
+        self.select_menu.options = self.select_options
+        self.update_components()
+        await interaction.response.edit_message(**self.edit_kwargs)
 
 class ClassPicker(Select[CoursePages]):
     _view: CoursePages
@@ -360,9 +343,7 @@ class ClassHome(GoBack[CoursePages]):
             wh.url,
             *(datetime.now(tz=timezone.utc),) * 4
         )
-        n = self._course["name"]
-        n = n if len(n) <= 256 else n[:253] + "..."
-        desc = f"successfully created a webhook for **{n}** " \
+        desc = f"successfully created a webhook for **{cap(self._course['name']):256}** " \
                f"in <#{interaction.channel.id}>!"
 
         await edit_original(embed=discord.Embed(description=desc))
@@ -425,7 +406,7 @@ class ClassHome(GoBack[CoursePages]):
             for assignment in assignments:
                 menu._pages.append(await menu.make_embed(assignment))
 
-class ClassMenu(BasePages):
+class ClassMenu(BasePages, auto_defer=False): # type: ignore
     async def async_init(
         self,
         homepage: CoursePages,
@@ -485,19 +466,16 @@ class ClassMenu(BasePages):
         timestamp = format_google_time(assignment)
 
         assignment_response = assignment["workType"].lower().replace("_", " ")
-        t = assignment.get("title", "")
-        d = assignment.get("description", "")
-        n = self._course["name"]
         page = discord.Embed(
-            title=t if len(t) <= 256 else t[:253] + "...",
-            description=d if len(d) <= 4096 else d[:4093] + "...",
+            title=f"{cap(assignment.get('title', '')):256}",
+            description=f"{cap(assignment.get('description', '')):4096}",
             timestamp=timestamp,
             url=assignment["alternateLink"]
         ).set_footer(
             text="posted at",
             icon_url=ICONS["posted"]
         ).set_author(
-            name=n if len(n) <= 256 else n[:253] + "...",
+            name=f"{cap(self._course['name']):256}",
             icon_url=ICONS[assignment_response],
             url=assignment["alternateLink"]
         )
@@ -511,7 +489,7 @@ class ClassMenu(BasePages):
             worktype = submission["courseWorkType"]
             if not_turned_in := state not in ("TURNED_IN", "RETURNED"):
                 name = "assignment due"
-                value = f"<t:{int(due_date.timestamp())}:R>"
+                value = f"<t:{due_date.timestamp():.0f}:R>"
             else:
                 if worktype == "ASSIGNMENT":
                     name = "you handed in"
@@ -523,7 +501,7 @@ class ClassMenu(BasePages):
                         v = submission["shortAnswerSubmission"]["answer"]
 
                     name = "you answered"
-                    value = v if len(v) <= 69 else v[:69] + "..."
+                    value = f"{cap(v):69}"
 
             if not_turned_in:
                 now_utc = datetime.utcnow()
@@ -565,6 +543,9 @@ class ClassMenu(BasePages):
         return allowed
 
     async def after_callback(self, interaction: Interaction, item: Item):
+        self.update_components()
+        await interaction.response.edit_message(**self.edit_kwargs)
+
         self._home._refresh_timeout() # refresh CoursePages object
 
     def update_components(self):
@@ -667,9 +648,8 @@ class AttachmentsView(GoBack[ClassMenu]):
                 "youtubeVideo": BotEmojis.YOUTUBE,
             }
 
-            t = a.get("title", "Untitled")
             view.add_item(Button(
-                label=t if len(t) < 80 else t[:77] + "...",
+                label=f"{cap(a.get('title', 'Untitled')):80}",
                 emoji=emojis[k],
                 style=discord.ButtonStyle.link,
                 url=url
