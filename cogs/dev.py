@@ -8,11 +8,11 @@ from datetime import datetime, timezone
 from enum import Enum
 from functools import partial
 from itertools import chain
-from typing import Any, Generator, List, Tuple, TYPE_CHECKING
+from typing import Generator, List, Tuple, TYPE_CHECKING
 
 import discord
 from discord.ext import commands
-from discord.ui import Button, Select
+from discord.ui import Button, Select, button
 
 from utils import (
     BasePages,
@@ -84,8 +84,7 @@ class DirectoryView(BasePages):
         self.send_file_ephemeral = SendFile(self, True)
 
         self.add_item(self.select_menu)
-        self.add_item(self.send_file)
-        self.add_item(self.send_file_ephemeral)
+        self.update_file_buttons()
 
         self.load_file = ExtensionButton(self, ExtensionAction.LOAD)
         self.unload_file = ExtensionButton(self, ExtensionAction.UNLOAD)
@@ -147,6 +146,7 @@ class DirectoryView(BasePages):
     def update_file_buttons(self) -> None:
         self.remove_item(self.send_file)
         self.remove_item(self.send_file_ephemeral)
+        self.remove_item(self.remove_file)
         self.remove_item(self.load_file)
         self.remove_item(self.unload_file)
         self.remove_item(self.reload_file)
@@ -167,6 +167,7 @@ class DirectoryView(BasePages):
         if self.pages[self.current_page].title:
             self.add_item(self.send_file)
             self.add_item(self.send_file_ephemeral)
+            self.add_item(self.remove_file)
 
     async def after_callback(self, interaction: Interaction, item: Item):
         if item.row != 0:
@@ -192,6 +193,12 @@ class DirectoryView(BasePages):
 
         self.update_components()
         await interaction.edit_original_response(**self.edit_kwargs)
+
+    @button(label="remove file", style=discord.ButtonStyle.danger, row=2)
+    async def remove_file(self, interaction: Interaction, button: Button):
+        self._actual_files[self.current_page].unlink(missing_ok=True)
+
+        await interaction.response.send_message("file removed", ephemeral=True)
 
 class SendFile(Button[DirectoryView]):
     _view: DirectoryView
@@ -302,7 +309,6 @@ class DirectoryPicker(Select[DirectoryView]):
             em = discord.Embed(title="FUCK!", description=f"```py\n{e}\n```")
             return await interaction.response.send_message(embed=em, ephemeral=True)
 
-        view.update_file_buttons()
         await interaction.response.edit_message(
             embed=view.pages[0],
             view=view

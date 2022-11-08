@@ -180,6 +180,10 @@ class View(DPYView, metaclass=_ViewMeta):
             if exclude_urls and not getattr(c, "url", False):
                 c.disabled = True
 
+    def reposition(self, item: Item) -> None:
+        self.remove_item(item)
+        self.add_item(item)
+
     def fill_gaps(self) -> None:
         for index, weight in enumerate(self.__weights.weights):
             if weight and weight < 5:
@@ -315,7 +319,6 @@ class BasePages(View):
         self.button_next.disabled = (self._current == self.page_count - 1)
 
         self.button_current.label = f"{self.current_page + 1} / {self.page_count}"
-
 
     async def start(
         self,
