@@ -179,7 +179,7 @@ class DirectoryView(BasePages):
         self.select_menu.options = self.get_select_options()
         self.update_file_buttons()
 
-        if (nslices := self.slice_index) == self.current_page:
+        if self.slice_index == self.current_page:
             page = self.current_page
         else:
             page = len(self._directory_slices) - 1
