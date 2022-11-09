@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from functools import partial
 from itertools import chain
-from typing import Generator, List, Tuple, TYPE_CHECKING
+from typing import Any, Coroutine, Generator, List, Tuple, TYPE_CHECKING
 
 import discord
 from discord.ext import commands
@@ -236,6 +236,8 @@ class SendFile(Button[DirectoryView]):
             raise e
 
 class ExtensionAction(Enum):
+    value: Tuple[str, Coroutine[Any, Any, None]]
+
     LOAD = ("load as extension", commands.Bot.load_extension)
     UNLOAD = ("unload extension", commands.Bot.unload_extension)
     RELOAD = ("reload extension", commands.Bot.reload_extension)
@@ -256,7 +258,7 @@ class ExtensionButton(Button[DirectoryView]):
             style=discord.ButtonStyle.success,
             row=3
         )
-        self.method = partial(method, view.client)
+        self.method: partial[Coroutine[Any, Any, None]] = partial(method, view.client) # type: ignore
 
     async def callback(self, interaction: Interaction) -> None:
         folder, name = self.view._actual_files[self.view.current_page].resolve().parts[-2:]
