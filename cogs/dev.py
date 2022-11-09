@@ -113,7 +113,7 @@ class DirectoryView(BasePages):
         if not self._pages:
             self._pages.append(discord.Embed(
                 description="no files to display"
-            ))
+            ).set_author(name=f"{cap(str(self.directory.resolve())):256}"))
 
         if len(directories) > 25:
             self._directory_slices = [s for s in self.slice_directories(directories)]
@@ -122,7 +122,9 @@ class DirectoryView(BasePages):
 
         if (slices := len(self._directory_slices)) > self.page_count:
             diff = slices - self.page_count
-            self._pages += [discord.Embed(description="no files to display") for _ in range(diff)]
+            self._pages += [discord.Embed(
+                description="no files to display"
+            ).set_author(name=f"{cap(str(self.directory.resolve())):256}") for _ in range(diff)]
 
 
     def slice_directories(self, directories: Tuple[pathlib.Path]) -> Slicer:
