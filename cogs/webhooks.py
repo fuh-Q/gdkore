@@ -247,20 +247,23 @@ class WebhookPicker(Select):
     def __init__(self, view: WebhookPages) -> None:
         self._view = view
 
-        slices = self.view._webhooks
-        total = len(tuple(chain.from_iterable(slices))) + len(slices)
-        if total > self.view.WEBHOOKS_PER_PAGE:
-            start = self.view.WEBHOOKS_PER_PAGE * self.view.current_page + 1
-            stop = start + len(self.view._webhooks[self.view.slice_index])
-        else:
-            start = 1
-            stop = total
         super().__init__(
-            placeholder=f"{cap(f'remove a webhook... [{start}-{stop} of {total}]'):150}",
+            placeholder=self.get_placeholder(),
             min_values=1,
             max_values=1,
             options=self.view.select_options
         )
+
+    def get_placeholder(self) -> str:
+        total = len(tuple(chain.from_iterable(self.view._webhooks)))
+        if total > self.view.WEBHOOKS_PER_PAGE:
+            start = self.view.WEBHOOKS_PER_PAGE * self.view.current_page + 1
+            stop = start + len(self.view._webhooks[self.view.slice_index]) - 1
+        else:
+            start = 1
+            stop = total
+
+        return f"{cap(f'remove a webhook... [{start}-{stop} of {total}]'):150}"
 
     async def callback(self, interaction: Interaction) -> None:
         await interaction.response.defer()
@@ -306,10 +309,11 @@ class WebhookPicker(Select):
         )
 
         self.view._pages[self.view.current_page].remove_field(idx)
+        self.placeholder = self.get_placeholder()
         if new_options := self.view.select_options:
-            self.view.select_menu.options = new_options
+            self.options = new_options
         else:
-            self.view.select_menu.disabled = True
+            self.disabled = True
 
         await interaction.edit_original_response(**self.view.edit_kwargs)
 
@@ -377,25 +381,13 @@ class WebhookPages(BasePages, auto_defer=False): # type: ignore
             self.select_menu.disabled = False
             self.select_menu.options = new_options
 
-            slices = self._webhooks
-            total = len(tuple(chain.from_iterable(slices))) + len(slices)
-            if total > self.WEBHOOKS_PER_PAGE:
-                if (nslices := self.slice_index) == self.current_page:
-                    page = self.current_page
-                else:
-                    page = len(self._webhooks) - 1
-
-                start = self.WEBHOOKS_PER_PAGE * page + 1
-                stop = start + len(self._webhooks[nslices])
-            else:
-                start = 1
-                stop = total
-            self.select_menu.placeholder = f"{cap(f'remove a webhook... [{start}-{stop} of {total}]'):150}"
+            self.select_menu.placeholder = self.select_menu.get_placeholder()
         else:
             self.select_menu.placeholder = f"remove a webhook... [0-0 of 0]"
             self.select_menu.disabled = True
 
-        await interaction.response.edit_message(**self.edit_kwargs)
+        if item is not self.select_menu:
+            await interaction.response.edit_message(**self.edit_kwargs)
 
 
 class Webhooks(commands.Cog):

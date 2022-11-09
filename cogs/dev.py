@@ -176,20 +176,11 @@ class DirectoryView(BasePages):
         self.select_menu.options = self.get_select_options()
         self.update_file_buttons()
 
-        slices = self._directory_slices
-        total = len(tuple(chain.from_iterable(slices))) + len(slices)
-        if total > 25:
-            if (nslices := self.slice_index) == self.current_page:
-                page = self.current_page
-            else:
-                page = len(self._directory_slices) - 1
-
-            start = 25 * page + 1
-            stop = start + len(self._directory_slices[nslices])
+        if (nslices := self.slice_index) == self.current_page:
+            page = self.current_page
         else:
-            start = 1
-            stop = total
-        self.select_menu.placeholder = f"{cap(f'change directories... [{start}-{stop} of {total}]'):150}"
+            page = len(self._directory_slices) - 1
+        self.select_menu.placeholder = self.select_menu.get_placeholder(page)
 
         self.update_components()
         await interaction.edit_original_response(**self.edit_kwargs)
@@ -283,16 +274,8 @@ class DirectoryPicker(Select[DirectoryView]):
     def __init__(self, view: DirectoryView):
         self._view = view
 
-        slices = self.view._directory_slices
-        total = len(tuple(chain.from_iterable(slices))) + len(slices)
-        if total > 25:
-            start = 25 * self.view.current_page + 1
-            stop = start + len(self.view._directory_slices[self.view.slice_index])
-        else:
-            start = 1
-            stop = total
         super().__init__(
-            placeholder=f"{cap(f'change directories... [{start}-{stop} of {total}]'):150}",
+            placeholder=self.get_placeholder(self.view.current_page),
             min_values=1,
             max_values=1,
             options=self.view.get_select_options()
@@ -301,6 +284,18 @@ class DirectoryPicker(Select[DirectoryView]):
         if not self.options:
             self.options = [discord.SelectOption(label="sadge")]
             self.disabled = True
+
+    def get_placeholder(self, page: int) -> str:
+        slices = self.view._directory_slices
+        total = len(tuple(chain.from_iterable(slices))) + len(slices)
+        if total > 25:
+            start = 25 * page + 1
+            stop = start + len(self.view._directory_slices[self.view.slice_index])
+        else:
+            start = 1
+            stop = total
+
+        return f"{cap(f'change directories... [{start}-{stop} of {total}]'):150}"
 
     async def callback(self, interaction: Interaction) -> None:
         try:
