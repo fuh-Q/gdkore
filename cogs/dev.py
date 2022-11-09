@@ -217,15 +217,21 @@ class SendFile(Button[DirectoryView]):
     async def callback(self, interaction: Interaction) -> None:
         try:
             path = self.view._actual_files[self.view.current_page].resolve()
-            file = discord.File(
-                str(path), filename=path.name
-            )
+            file = discord.File(str(path), filename=path.name)
         except FileNotFoundError as e:
             return await interaction.response.send_message(
                 embed=discord.Embed(description=f"```py\n{e}\n```"), ephemeral=True
             )
 
-        await interaction.response.send_message(file=file, ephemeral=self.send_ephemeral)
+        try:
+            await interaction.response.send_message(file=file, ephemeral=self.send_ephemeral)
+        except discord.HTTPException as e:
+            if e.status == 413:
+                return await interaction.response.send_message(
+                    "file size exceeds upload limit", ephemeral=True
+                )
+
+            raise e
 
 class ExtensionAction(Enum):
     LOAD = ("load as extension", commands.Bot.load_extension)
