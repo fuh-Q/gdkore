@@ -215,6 +215,8 @@ class SendFile(Button[DirectoryView]):
             self.label += " (ephemeral)"
 
     async def callback(self, interaction: Interaction) -> None:
+        await interaction.response.defer()
+
         try:
             path = self.view._actual_files[self.view.current_page].resolve()
             file = discord.File(str(path), filename=path.name)
@@ -224,10 +226,10 @@ class SendFile(Button[DirectoryView]):
             )
 
         try:
-            await interaction.response.send_message(file=file, ephemeral=self.send_ephemeral)
+            await interaction.followup.send(file=file, ephemeral=self.send_ephemeral)
         except discord.HTTPException as e:
             if e.status == 413:
-                return await interaction.response.send_message(
+                return await interaction.followup.send(
                     "file size exceeds upload limit", ephemeral=True
                 )
 
