@@ -26,6 +26,7 @@ if TYPE_CHECKING:
     from helper_bot import NotGDKID
 
 
+ExtCoro = Coroutine[Any, Any, None]
 Slicer = Generator[Tuple[pathlib.Path], None, None]
 
 S = "\\" if sys.platform == "win32" else "/"
@@ -236,7 +237,7 @@ class SendFile(Button[DirectoryView]):
             raise e
 
 class ExtensionAction(Enum):
-    value: Tuple[str, Coroutine[Any, Any, None]]
+    value: Tuple[str, ExtCoro]
 
     LOAD = ("load as extension", commands.Bot.load_extension)
     UNLOAD = ("unload extension", commands.Bot.unload_extension)
@@ -258,7 +259,7 @@ class ExtensionButton(Button[DirectoryView]):
             style=discord.ButtonStyle.success,
             row=3
         )
-        self.method: partial[Coroutine[Any, Any, None]] = partial(method, view.client) # type: ignore
+        self.method: partial[ExtCoro] = partial(method, view.client) # type: ignore
 
     async def callback(self, interaction: Interaction) -> None:
         folder, name = self.view._actual_files[self.view.current_page].resolve().parts[-2:]
