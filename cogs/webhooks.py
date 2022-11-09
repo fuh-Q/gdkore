@@ -247,8 +247,16 @@ class WebhookPicker(Select):
     def __init__(self, view: WebhookPages) -> None:
         self._view = view
 
+        slices = self.view._webhooks
+        total = len(tuple(chain.from_iterable(slices))) + len(slices)
+        if total > self.view.WEBHOOKS_PER_PAGE:
+            start = self.view.WEBHOOKS_PER_PAGE * self.view.current_page + 1
+            stop = start + len(self.view._webhooks[self.view.slice_index])
+        else:
+            start = 1
+            stop = total
         super().__init__(
-            placeholder="remove a webhook...",
+            placeholder=f"{cap(f'remove a webhook... [{start}-{stop} of {total}]'):150}",
             min_values=1,
             max_values=1,
             options=self.view.select_options
@@ -328,6 +336,11 @@ class WebhookPages(BasePages, auto_defer=False): # type: ignore
         self.select_menu = WebhookPicker(self)
         self.add_item(self.select_menu)
 
+    @property
+    def slice_index(self) -> int:
+        nslices = len(self._webhooks)
+        return self.current_page if self.current_page <= nslices - 1 else nslices - 1
+
     def webhooks_to_pages(self, *, webhooks: List[WebhookData]):
         interaction = self._interaction
 
@@ -363,7 +376,23 @@ class WebhookPages(BasePages, auto_defer=False): # type: ignore
         if new_options := self.select_options:
             self.select_menu.disabled = False
             self.select_menu.options = new_options
+
+            slices = self._webhooks
+            total = len(tuple(chain.from_iterable(slices))) + len(slices)
+            if total > self.WEBHOOKS_PER_PAGE:
+                if (nslices := self.slice_index) == self.current_page:
+                    page = self.current_page
+                else:
+                    page = len(self._webhooks) - 1
+
+                start = self.WEBHOOKS_PER_PAGE * page + 1
+                stop = start + len(self._webhooks[nslices])
+            else:
+                start = 1
+                stop = total
+            self.select_menu.placeholder = f"{cap(f'remove a webhook... [{start}-{stop} of {total}]'):150}"
         else:
+            self.select_menu.placeholder = f"remove a webhook... [0-0 of 0]"
             self.select_menu.disabled = True
 
         await interaction.response.edit_message(**self.edit_kwargs)

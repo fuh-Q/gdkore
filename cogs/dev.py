@@ -179,17 +179,17 @@ class DirectoryView(BasePages):
         slices = self._directory_slices
         total = len(tuple(chain.from_iterable(slices))) + len(slices)
         if total > 25:
-            if (slices := self.slice_index) == self.current_page:
+            if (nslices := self.slice_index) == self.current_page:
                 page = self.current_page
             else:
                 page = len(self._directory_slices) - 1
 
             start = 25 * page + 1
-            stop = start + len(self._directory_slices[slices])
+            stop = start + len(self._directory_slices[nslices])
         else:
             start = 1
             stop = total
-        self.select_menu.placeholder = f"change directories... [{start}-{stop} of {total}]"
+        self.select_menu.placeholder = f"{cap(f'change directories... [{start}-{stop} of {total}]'):150}"
 
         self.update_components()
         await interaction.edit_original_response(**self.edit_kwargs)
@@ -292,7 +292,7 @@ class DirectoryPicker(Select[DirectoryView]):
             start = 1
             stop = total
         super().__init__(
-            placeholder=f"change directories... [{start}-{stop} of {total}]",
+            placeholder=f"{cap(f'change directories... [{start}-{stop} of {total}]'):150}",
             min_values=1,
             max_values=1,
             options=self.view.get_select_options()

@@ -136,6 +136,11 @@ class CoursePages(BasePages, auto_defer=False): # type: ignore
         self.select_menu = ClassPicker(self)
         self.add_item(self.select_menu)
 
+    @property
+    def slice_index(self) -> int:
+        nslices = len(self._courses)
+        return self.current_page if self.current_page <= nslices - 1 else nslices - 1
+
     def courses_to_pages(self, *, courses: List[Course]) -> None:
         interaction = self._interaction
 
@@ -166,6 +171,22 @@ class CoursePages(BasePages, auto_defer=False): # type: ignore
 
     async def after_callback(self, interaction: Interaction, item: Item):
         self.select_menu.options = self.select_options
+
+        slices = self._courses
+        total = len(tuple(chain.from_iterable(slices))) + len(slices)
+        if total > self.COURSES_PER_PAGE:
+            if (nslices := self.slice_index) == self.current_page:
+                page = self.current_page
+            else:
+                page = len(self._courses) - 1
+
+            start = self.COURSES_PER_PAGE * page + 1
+            stop = start + len(self._courses[nslices])
+        else:
+            start = 1
+            stop = total
+        self.select_menu.placeholder = f"{cap(f'choose a class... [{start}-{stop} of {total}]'):150}"
+
         self.update_components()
         await interaction.response.edit_message(**self.edit_kwargs)
 
@@ -179,8 +200,16 @@ class ClassPicker(Select[CoursePages]):
     def __init__(self, view: CoursePages) -> None:
         self._view = view
 
+        slices = self.view._courses
+        total = len(tuple(chain.from_iterable(slices))) + len(slices)
+        if total > self.view.COURSES_PER_PAGE:
+            start = self.view.COURSES_PER_PAGE * self.view.current_page + 1
+            stop = start + len(self.view._courses[self.view.slice_index])
+        else:
+            start = 1
+            stop = total
         super().__init__(
-            placeholder="view class assignments...",
+            placeholder=f"{cap(f'choose a class... [{start}-{stop} of {total}]'):150}",
             min_values=1,
             max_values=1,
             options=self.view.select_options
