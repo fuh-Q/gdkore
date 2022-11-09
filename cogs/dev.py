@@ -221,7 +221,7 @@ class SendFile(Button[DirectoryView]):
             path = self.view._actual_files[self.view.current_page].resolve()
             file = discord.File(str(path), filename=path.name)
         except FileNotFoundError as e:
-            return await interaction.response.send_message(
+            return await interaction.followup.send(
                 embed=discord.Embed(description=f"```py\n{e}\n```"), ephemeral=True
             )
 
