@@ -314,9 +314,8 @@ class ClassHome(GoBack[CoursePages]):
                 embed=discord.Embed(description="phew, dodged a bullet there"),
                 view=GoBack(self._home)
             )
-        else:
-            await view.interaction.response.defer()
 
+        await view.interaction.response.defer()
         try:
             q = "INSERT INTO webhooks VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)"
             await self.client.db.execute(q,
