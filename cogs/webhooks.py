@@ -130,21 +130,22 @@ async def fetch_posts(client: GClass):
 
         return pages
 
-    async def delete_webhook() -> None: # delete the current webhook
+    async def delete_webhook(*, is_deleted: bool = False) -> None: # delete the current webhook
         await client.db.execute(DEL_QUERY,
             webhook["user_id"],
             webhook["course_id"],
             webhook["channel_id"]
         )
 
-        try:
-            wh = Webhook.from_url(webhook["url"], session=client.session, bot_token=client.token)
-            await wh.send(embed=discord.Embed(
-                description="course not found, deleting this webhook..."
-            ))
-            await wh.delete(reason=f"associated course could not be found")
-        except discord.HTTPException:
-            pass # we tried
+        if not is_deleted:
+            try:
+                wh = Webhook.from_url(webhook["url"], session=client.session, bot_token=client.token)
+                await wh.send(embed=discord.Embed(
+                    description="course not found, deleting this webhook..."
+                ))
+                await wh.delete(reason=f"associated course could not be found")
+            except discord.HTTPException:
+                pass # we tried
 
     async def post_data(pages: List[EmbedWithPostData]) -> None: # post embeds to the webhook's channel
         last_posts = {n: datetime.now(tz=timezone.utc) for n in (
@@ -165,6 +166,32 @@ async def fetch_posts(client: GClass):
             ))
             view.weights.weights[0] = 5
             AttachmentsView.add_attachments(page.materials, view)
+
+            if not webhook["url"]:
+                channel = client.get_channel(webhook["channel_id"])
+                assert isinstance(channel, discord.TextChannel)
+                try:
+                    wh = await channel.create_webhook(
+                        name=webhook["course_name"],
+                        reason=f"created webhook for course {webhook['course_name']}"
+                    )
+                except discord.Forbidden:
+                    await delete_webhook(is_deleted=True)
+                else:
+                    webhook["url"] = wh.url
+
+                q = """UPDATE webhooks SET
+                        url = $1
+                        WHERE user_id = $2
+                        AND course_id = $3
+                        AND channel_id = $4
+                    """
+                await client.db.execute(q,
+                    webhook["url"],
+                    webhook["user_id"],
+                    webhook["course_id"],
+                    webhook["channel_id"]
+                )
 
             wh = Webhook.from_url(webhook["url"], session=client.session)
             async with client.session.post(
@@ -195,9 +222,11 @@ async def fetch_posts(client: GClass):
             *last_posts.values()
         )
 
-    webhooks: List[WebhookData] = await client.db.fetch("SELECT * FROM webhooks")
     resource_cache: CappedDict[int, Resource] = CappedDict(50)
     post_cache: CappedDict[int, Tuple[Post]] = CappedDict(100)
+    webhooks: Tuple[WebhookData] = tuple(map( # type: ignore
+        lambda r: dict(r), await client.db.fetch("SELECT * FROM webhooks")
+    ))
 
     client.logger.info(
         PrintColours.BLUE + "running loop for "
@@ -206,11 +235,12 @@ async def fetch_posts(client: GClass):
 
     for webhook in webhooks:
         await asyncio.sleep(0.1)
-        q = """SELECT credentials FROM authorized
-                WHERE user_id = $1
-            """
-        creds = Credentials.from_authorized_user_info(await client.db.fetchval(q, webhook["user_id"]))
+
         if not (service := resource_cache.get(webhook["user_id"], None)):
+            q = """SELECT credentials FROM authorized
+                    WHERE user_id = $1
+                """
+            creds = Credentials.from_authorized_user_info(await client.db.fetchval(q, webhook["user_id"]))
             service: Resource = build("classroom", "v1", credentials=creds)
             resource_cache[webhook["user_id"]] = service
 

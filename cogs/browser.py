@@ -6,6 +6,8 @@ from functools import partial
 from itertools import chain
 from typing import Dict, Generic, List, Iterable, Tuple, TypeVar, TYPE_CHECKING
 
+from asyncpg.exceptions import UniqueViolationError
+
 import discord
 from discord.app_commands import checks, command
 from discord.ext import commands
@@ -287,16 +289,18 @@ class ClassHome(GoBack[CoursePages]):
                 description="you need the `manage channels` permission in order to perform this operation"
             ))
 
-        q = """SELECT 1 FROM webhooks
-                WHERE user_id = $1
-                AND course_id = $2
-                AND channel_id = $3
-            """
-        if await self.client.db.fetchval(q,
-            self._interaction.user.id,
-            int(self._course["id"]),
-            interaction.channel_id
-        ):
+        try:
+            q = "INSERT INTO webhooks VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)"
+            await self.client.db.execute(q,
+                self._interaction.user.id,
+                int(self._course["id"]),
+                self._interaction.guild_id,
+                self._interaction.channel_id,
+                self._course["name"],
+                None,
+                *(datetime.now(tz=timezone.utc),) * 4
+            )
+        except UniqueViolationError:
             return await edit(embed=discord.Embed(description="this webhook already exists"))
 
         view = Confirm(interaction.user)
@@ -324,44 +328,11 @@ class ClassHome(GoBack[CoursePages]):
                 embed=discord.Embed(description="phew, dodged a bullet there"),
                 view=GoBack(self._home)
             )
-        else:
-            await view.interaction.response.edit_message(
-                embed=discord.Embed(description=f"{BotEmojis.LOADING} setting webhook..."),
-                view=None
-            )
 
-        try:
-            assert isinstance(interaction.channel, discord.TextChannel)
-            wh = await interaction.channel.create_webhook(
-                name=self._course["name"],
-                reason=f"{interaction.user.name} ({interaction.user.id}) configured webhook"
-            )
-        except discord.Forbidden:
-            e = discord.Embed(
-                description="failed to create the webhook, make sure i have `manage webhook` permissions"
-            )
-            return await edit_original(embed=e)
-        except Exception as err:
-            e = discord.Embed(title="error creating webhook", description=f"```py\n{err}\n```")
-            return await edit_original(embed=e)
-
-        q = """INSERT INTO webhooks VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-                ON CONFLICT ON CONSTRAINT webhooks_pkey
-                DO NOTHING
-            """
-        await self.client.db.execute(q,
-            self._interaction.user.id,
-            int(self._course["id"]),
-            self._interaction.guild_id,
-            self._interaction.channel_id,
-            self._course["name"],
-            wh.url,
-            *(datetime.now(tz=timezone.utc),) * 4
-        )
-        desc = f"successfully created a webhook for **{cap(self._course['name']):256}** " \
-               f"in <#{interaction.channel.id}>!"
-
-        await edit_original(embed=discord.Embed(description=desc))
+        await edit_original(embed=discord.Embed(
+            description=f"successfully created a webhook for **{cap(self._course['name']):256}** " \
+                        f"in <#{interaction.channel.id}>!"
+        ))
 
     @button(label="view assignments", style=discord.ButtonStyle.primary)
     async def view_attachments(self, interaction: Interaction, button: Button):
