@@ -289,20 +289,6 @@ class ClassHome(GoBack[CoursePages]):
                 description="you need the `manage channels` permission in order to perform this operation"
             ))
 
-        try:
-            q = "INSERT INTO webhooks VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)"
-            await self.client.db.execute(q,
-                self._interaction.user.id,
-                int(self._course["id"]),
-                self._interaction.guild_id,
-                self._interaction.channel_id,
-                self._course["name"],
-                None,
-                *(datetime.now(tz=timezone.utc),) * 4
-            )
-        except UniqueViolationError:
-            return await edit(embed=discord.Embed(description="this webhook already exists"))
-
         view = Confirm(interaction.user)
         embed = discord.Embed(
             title="create a webhook",
@@ -328,6 +314,22 @@ class ClassHome(GoBack[CoursePages]):
                 embed=discord.Embed(description="phew, dodged a bullet there"),
                 view=GoBack(self._home)
             )
+        else:
+            await view.interaction.response.defer()
+
+        try:
+            q = "INSERT INTO webhooks VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)"
+            await self.client.db.execute(q,
+                self._interaction.user.id,
+                int(self._course["id"]),
+                self._interaction.guild_id,
+                self._interaction.channel_id,
+                self._course["name"],
+                None,
+                *(datetime.now(tz=timezone.utc),) * 4
+            )
+        except UniqueViolationError:
+            return await edit(embed=discord.Embed(description="this webhook already exists"))
 
         await edit_original(embed=discord.Embed(
             description=f"successfully created a webhook for **{cap(self._course['name']):256}** " \
