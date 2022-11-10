@@ -3,7 +3,23 @@ from __future__ import annotations
 from googleapiclient.discovery import HttpRequest
 
 from datetime import datetime
-from typing import Any, Dict, List, Literal, Protocol, TypedDict
+from typing import Any, Dict, List, Literal, Protocol, Type, TypedDict, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from asyncpg import Connection
+    from types import TracebackType
+
+class ConnectionContextManager(Protocol):
+    async def __aenter__(self) -> Connection:
+        ...
+
+    async def __aexit__(
+        self,
+        exc_type: Type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
+        ...
 
 class PostgresPool(Protocol):
     async def execute(self, query: str, *args: Any, timeout: float | None = None) -> str:
@@ -19,6 +35,12 @@ class PostgresPool(Protocol):
         ...
 
     async def close(self) -> None:
+        ...
+
+    def acquire(self, *, timeout: float | None = None) -> ConnectionContextManager:
+        ...
+
+    def release(self, connection: Connection) -> None:
         ...
 
 class Resource(Protocol):
