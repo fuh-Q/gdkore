@@ -42,7 +42,8 @@ class Authorization(commands.Cog):
         if await self.client.db.fetchrow(q, interaction.user.id):
             return await interaction.followup.send(
                 f"hey, it looks like you've already authorized. " \
-                "if you want to logout, just use </logout:1022734919388119080>", ephemeral=True
+                f"if you want to logout, just use </logout:{self.client.LOGOUT_CMD_ID}>",
+                ephemeral=True
             )
 
         MESSAGE = "\N{WAVING HAND SIGN} hey! please go to [this link](%s) " \

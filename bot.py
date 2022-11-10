@@ -73,6 +73,8 @@ class GClass(commands.Bot):
 
     __file__ = __file__
 
+    LOGIN_CMD_ID = 1034690162585763840
+    LOGOUT_CMD_ID = 1034690162585763841
     SCOPES = [
         "https://www.googleapis.com/auth/userinfo.profile",
         "https://www.googleapis.com/auth/classroom.announcements.readonly",
@@ -367,7 +369,7 @@ class GClass(commands.Bot):
 
         if isinstance(error, (CheckFailure, RefreshError)):
             return await method(
-                "you need to be logged in, you can do so with </login:1022667405484359680>",
+                f"you need to be logged in, you can do so with </login:{self.LOGIN_CMD_ID}>",
                 ephemeral=True
             )
 
