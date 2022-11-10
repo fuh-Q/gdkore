@@ -389,9 +389,7 @@ async def on_voice_state_update(
         ):
             return
 
-        with contextlib.suppress(
-            (AttributeError, TypeError, RuntimeError, RuntimeWarning)
-        ):
+        try:
             if not vc:
                 vc = await client.get_channel(831692952489033758).connect()
 
@@ -488,6 +486,8 @@ async def on_voice_state_update(
                     vc.stop()
 
                 on_safe_timer = False
+        except (AttributeError, TypeError, RuntimeError, RuntimeWarning):
+            pass
 
 
 async def _eval(interaction: discord.Interaction, code: str):

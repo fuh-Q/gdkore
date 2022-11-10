@@ -9,7 +9,6 @@ import os
 import sys
 import time
 import traceback
-from contextlib import suppress
 from datetime import datetime, timedelta, timezone
 from typing import Callable, Dict, List, Tuple, TYPE_CHECKING
 
@@ -164,9 +163,11 @@ class GClass(commands.Bot):
             The user was not found.
         """
 
-        with suppress(KeyError):
+        try:
             cog: Browser = self.get_cog("Browser") # type: ignore
             del cog.course_cache[user_id]
+        except KeyError:
+            pass
 
         q = """DELETE FROM authorized
                 WHERE user_id = $1 RETURNING expiry, credentials
