@@ -323,14 +323,15 @@ class WebhookPicker(Select):
             )
             return
 
-        try:
-            await Webhook.from_url(
-                wh["url"],
-                session=self.view.client.session,
-                bot_token=self.view.client.token
-            ).delete(reason=f"{interaction.user.name} ({interaction.user.id}) deleted webhook")
-        except discord.HTTPException:
-            pass # meh their problem now
+        if wh["url"]:
+            try:
+                await Webhook.from_url(
+                    wh["url"],
+                    session=self.view.client.session,
+                    bot_token=self.view.client.token
+                ).delete(reason=f"{interaction.user.name} ({interaction.user.id}) deleted webhook")
+            except discord.NotFound:
+                pass # meh their problem now
 
         await self.view.client.db.execute(DEL_QUERY,
             wh["user_id"],
