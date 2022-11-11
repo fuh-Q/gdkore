@@ -286,6 +286,9 @@ class WebhookPicker(Select):
 
     def get_placeholder(self) -> str:
         total = len(tuple(chain.from_iterable(self.view._webhooks)))
+        if not total:
+            return f"remove a webhook... [0-0 of 0]"
+
         if total > self.view.WEBHOOKS_PER_PAGE:
             start = self.view.WEBHOOKS_PER_PAGE * self.view.current_page + 1
             stop = start + len(self.view._webhooks[self.view.slice_index]) - 1
