@@ -122,7 +122,7 @@ class GClass(commands.Bot):
                 name="Connecting...",
                 type=discord.ActivityType.playing,
             ),
-            owner_ids=[596481615253733408, 650882112655720468, 397231254602252289],
+            owner_ids=[596481615253733408, 650882112655720468],
         )
 
         os.environ["JISHAKU_HIDE"] = "True"
@@ -147,7 +147,6 @@ class GClass(commands.Bot):
         self._restart = False
 
         self.tree.on_error = self.on_app_command_error
-        self.tree.interaction_check = self.on_app_command
         self.add_commands()
 
     async def remove_access(self, user_id: int):
@@ -328,22 +327,6 @@ class GClass(commands.Bot):
             e.set_thumbnail(url=guild.icon.url)
 
         await self.guild_logs.send(embed=e)
-
-    async def on_app_command(self, interaction: Interaction) -> bool:
-        assert interaction.command
-        if interaction.command.name == "vote":
-            await interaction.response.send_message("https://top.gg/bot/988862592468521031/vote", ephemeral=True)
-            return False
-
-        if interaction.user.id not in self.owner_ids:
-            await interaction.response.send_message(embed=discord.Embed(
-                description="amaze is being permanently retired. we're working on something "
-                            "entirely different though, so join [our server](https://discord.gg/gKEKpyXeEB) "
-                            "to keep up with what's to come!"
-            ), ephemeral=True)
-
-            return False
-        return True
 
     async def on_app_command_error(self, interaction: Interaction, error: AppCommandError | CommandInvokeError):
         if (responded := interaction.response.is_done()) and isinstance(error, CheckFailure):
