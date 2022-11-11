@@ -449,10 +449,9 @@ class Webhooks(commands.Cog):
             """
         webhooks: List[WebhookData] = await self.client.db.fetch(q, interaction.user.id)
         if not webhooks:
-            return await interaction.response.send_message(
-                embed=discord.Embed(description="no webhooks to display"),
-                ephemeral=True
-            )
+            return await interaction.edit_original_response(embed=discord.Embed(
+                description="no webhooks to display"
+            ))
 
         await WebhookPages(interaction, webhooks).start(edit_existing=True)
 
