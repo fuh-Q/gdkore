@@ -49,7 +49,7 @@ class Authorization(commands.Cog):
         MESSAGE = "\N{WAVING HAND SIGN} hey! please go to [this link](%s) " \
                  f"to authorize with google, the link will expire " \
                  f"**<t:{int(time.time() + self.LINK_EXPIRY)}:R>**" \
-                 "\n\nnote that you can only have one google account linked to one " \
+                 "\n\nnote that you can only have your google account linked to **one** " \
                  "discord account, and things will break if you try signing in on an " \
                  "alt account"
 

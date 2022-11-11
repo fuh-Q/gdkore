@@ -439,6 +439,8 @@ class Webhooks(commands.Cog):
         view your configured webhooks
         """
 
+        await interaction.response.defer()
+
         q = """SELECT * FROM webhooks
                 WHERE user_id = $1
             """
@@ -449,7 +451,7 @@ class Webhooks(commands.Cog):
                 ephemeral=True
             )
 
-        await WebhookPages(interaction, webhooks).start()
+        await WebhookPages(interaction, webhooks).start(edit_existing=True)
 
 
 async def setup(client: GClass):
