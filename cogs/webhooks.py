@@ -439,7 +439,7 @@ class Webhooks(commands.Cog):
         view your configured webhooks
         """
 
-        await interaction.response.defer()
+        await interaction.response.defer(ephemeral=True)
 
         q = """SELECT * FROM webhooks
                 WHERE user_id = $1
