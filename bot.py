@@ -76,7 +76,6 @@ class GClass(commands.Bot):
     LOGIN_CMD_ID = 1034690162585763840
     LOGOUT_CMD_ID = 1034690162585763841
     SCOPES = [
-        "https://www.googleapis.com/auth/userinfo.profile",
         "https://www.googleapis.com/auth/classroom.announcements.readonly",
         "https://www.googleapis.com/auth/classroom.courses.readonly",
         "https://www.googleapis.com/auth/classroom.courseworkmaterials.readonly",
