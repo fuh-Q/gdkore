@@ -148,11 +148,38 @@ async def fetch_posts(client: GClass):
                 pass # we tried
 
     async def post_data(pages: List[EmbedWithPostData]) -> None: # post embeds to the webhook's channel
+        wh: discord.Webhook
+
         last_posts = {n: datetime.now(tz=timezone.utc) for n in (
             "announcement",
             "material",
             "assignment"
         )}
+
+        if not webhook["url"]:
+            channel = client.get_channel(webhook["channel_id"])
+            assert isinstance(channel, discord.TextChannel)
+            try:
+                wh = await channel.create_webhook(
+                    name=webhook["course_name"],
+                    reason=f"created webhook for course {webhook['course_name']}"
+                )
+            except discord.Forbidden:
+                return await delete_webhook(is_deleted=True)
+
+            q = """UPDATE webhooks SET url = $1
+                    WHERE user_id = $2
+                    AND course_id = $3
+                    AND channel_id = $4
+                """
+            await client.db.execute(q,
+                wh.url,
+                webhook["user_id"],
+                webhook["course_id"],
+                webhook["channel_id"]
+            )
+        else:
+            wh = Webhook.from_url(webhook["url"], session=client.session)
 
         for page in pages:
             last_posts[page.type] = page.created_at
@@ -167,33 +194,6 @@ async def fetch_posts(client: GClass):
             view.weights.weights[0] = 5
             AttachmentsView.add_attachments(page.materials, view)
 
-            if not webhook["url"]:
-                channel = client.get_channel(webhook["channel_id"])
-                assert isinstance(channel, discord.TextChannel)
-                try:
-                    wh = await channel.create_webhook(
-                        name=webhook["course_name"],
-                        reason=f"created webhook for course {webhook['course_name']}"
-                    )
-                except discord.Forbidden:
-                    await delete_webhook(is_deleted=True)
-                else:
-                    webhook["url"] = wh.url
-
-                q = """UPDATE webhooks SET
-                        url = $1
-                        WHERE user_id = $2
-                        AND course_id = $3
-                        AND channel_id = $4
-                    """
-                await client.db.execute(q,
-                    webhook["url"],
-                    webhook["user_id"],
-                    webhook["course_id"],
-                    webhook["channel_id"]
-                )
-
-            wh = Webhook.from_url(webhook["url"], session=client.session)
             async with client.session.post(
                 url=f"https://discord.com/api/v{INTERNAL_API_VERSION}/webhooks/{wh.id}/{wh.token}",
                 json={
@@ -224,9 +224,7 @@ async def fetch_posts(client: GClass):
 
     resource_cache: CappedDict[int, Resource] = CappedDict(50)
     post_cache: CappedDict[int, Tuple[Post]] = CappedDict(100)
-    webhooks: Tuple[WebhookData] = tuple(map( # type: ignore
-        lambda r: dict(r), await client.db.fetch("SELECT * FROM webhooks")
-    ))
+    webhooks: List[WebhookData] = await client.db.fetch("SELECT * FROM webhooks")
 
     client.logger.info(
         PrintColours.BLUE + "running loop for "
