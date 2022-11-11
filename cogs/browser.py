@@ -530,10 +530,11 @@ class ClassMenu(BasePages, auto_defer=False): # type: ignore
         return allowed
 
     async def after_callback(self, interaction: Interaction, item: Item):
-        self.update_components()
-        await interaction.response.edit_message(**self.edit_kwargs)
+        if item is not self.return_home:
+            self.update_components()
+            await interaction.response.edit_message(**self.edit_kwargs)
 
-        self._home._refresh_timeout() # refresh CoursePages object
+            self._home._refresh_timeout() # refresh CoursePages object
 
     def update_components(self):
         self.button_next.disabled = (self._current == self.page_count - 1)
