@@ -328,7 +328,7 @@ class ClassHome(GoBack[CoursePages]):
                 *(datetime.now(tz=timezone.utc),) * 4
             )
         except UniqueViolationError:
-            return await edit(embed=discord.Embed(description="this webhook already exists"))
+            return await edit_original(embed=discord.Embed(description="this webhook already exists"))
 
         await edit_original(embed=discord.Embed(
             description=f"successfully created a webhook for **{cap(self._course['name']):256}** " \
@@ -394,6 +394,10 @@ class ClassHome(GoBack[CoursePages]):
                 menu._pages.append(await menu.make_embed(assignment))
 
 class ClassMenu(BasePages, auto_defer=False): # type: ignore
+    _home: CoursePages
+    _resource: Resource
+    _course: Course
+
     async def async_init(
         self,
         homepage: CoursePages,
@@ -402,9 +406,9 @@ class ClassMenu(BasePages, auto_defer=False): # type: ignore
         assignments: List[CourseWork],
         service: Resource,
     ):
-        self._home: CoursePages = homepage
-        self._resource: Resource = service
-        self._course: Course = course
+        self._home = homepage
+        self._resource = service
+        self._course = course
 
         self._pages = []
         self._current = 0
@@ -530,7 +534,7 @@ class ClassMenu(BasePages, auto_defer=False): # type: ignore
         return allowed
 
     async def after_callback(self, interaction: Interaction, item: Item):
-        if item is not self.return_home:
+        if item not in (self.return_home, self.view_attachments):
             self.update_components()
             await interaction.response.edit_message(**self.edit_kwargs)
 
@@ -581,7 +585,7 @@ class ClassMenu(BasePages, auto_defer=False): # type: ignore
     @button(label="go back", style=discord.ButtonStyle.success, row=1)
     async def return_home(self, interaction: Interaction, button: Button):
         self._home._parent = False
-        await self._home.start(edit_existing=True)
+        await self._home.start(interaction=interaction, edit_existing=True)
         self.stop()
 
     @button(label="view assignment materials", style=discord.ButtonStyle.primary, row=1)
