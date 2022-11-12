@@ -214,7 +214,11 @@ class NotGDKID(commands.Bot):
         if member.id not in self.owner_ids:
             return
 
-        if member.voice and not member.guild.voice_client:
+        if (
+            member.voice
+            and member.voice.mute
+            and not member.guild.voice_client
+        ):
             assert member.voice and member.voice.channel
             await member.voice.channel.connect()
 
