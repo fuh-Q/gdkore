@@ -210,13 +210,18 @@ class NotGDKID(commands.Bot):
         if guild.id not in self.WHITELISTED_GUILDS:
             await guild.leave()
 
-    async def on_voice_state_update(self, member: discord.Member, *args):
+    async def on_voice_state_update(
+        self,
+        member: discord.Member,
+        before: discord.VoiceState,
+        after: discord.VoiceState
+    ):
         if member.id not in self.owner_ids:
             return
 
         if (
-            member.voice
-            and member.voice.mute
+            after.channel
+            and after.mute
             and not member.guild.voice_client
         ):
             assert member.voice and member.voice.channel
