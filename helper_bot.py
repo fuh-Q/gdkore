@@ -182,6 +182,11 @@ class NotGDKID(commands.Bot):
         e = discord.Embed(description=f"❯❯  started up in ~`{round(end - start, 1)}s`")
         await owner.send(embed=e)
 
+    async def on_app_command_error(self, interaction: Interaction, error: AppCommandError):
+        tr = traceback.format_exc()
+
+        self.logger.error("\n" + tr)
+
     async def on_message(self, message: discord.Message):
         if message.content in [f"<@!{self.user.id}>", f"<@{self.user.id}>"]:
             await message.reply(content=message.author.mention)
@@ -205,10 +210,16 @@ class NotGDKID(commands.Bot):
         if guild.id not in self.WHITELISTED_GUILDS:
             await guild.leave()
 
-    async def on_app_command_error(self, interaction: Interaction, error: AppCommandError):
-        tr = traceback.format_exc()
+    async def on_voice_state_update(self, member: discord.Member, *args):
+        if member.id not in self.owner_ids:
+            return
 
-        self.logger.error("\n" + tr)
+        if member.voice and not member.guild.voice_client:
+            assert member.voice and member.voice.channel
+            await member.voice.channel.connect()
+
+        elif not member.voice and member.guild.voice_client:
+            await member.guild.voice_client.disconnect(force=True)
 
     def run(self) -> None:
         async def runner():

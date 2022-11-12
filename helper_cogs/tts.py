@@ -19,13 +19,20 @@ class TTS(commands.Cog):
     @describe(text="what i'll say")
     async def tts(self, interaction: Interaction, text: str):
         """say something"""
-        if interaction.user.id != 596481615253733408:
+        if (
+            interaction.user.id not in self.client.owner_ids
+            or not interaction.guild
+            or not interaction.guild.voice_client
+        ):
             return await interaction.response.send_message(
                 "no", ephemeral=True
             )
 
         await interaction.response.defer(ephemeral=True)
-        vc: discord.VoiceClient = interaction.guild.voice_client
+
+        vc = interaction.guild.voice_client
+        assert isinstance(vc, discord.VoiceClient)
+
         if vc and not vc.is_playing():
             try:
                 gTTS(text=text, lang="en", slow=False).save(fp := f"tts.mp3")
@@ -43,6 +50,8 @@ class TTS(commands.Cog):
                 else r"d:\thingyy\ffmpeg.exe",
             )
             vc.play(src, after=lambda _: os.remove("tts.mp3"))
+
+        await interaction.delete_original_response()
 
 
 async def setup(client: NotGDKID):
