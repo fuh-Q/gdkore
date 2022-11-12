@@ -37,13 +37,16 @@ this message is also able to be seen by the entire server, because it really is 
 class Mod(commands.Cog):
     def __init__(self, client: NotGDKID) -> None:
         self.client = client
-        self.mute_user = ContextMenu(
+        self.mute_user_cmd = ContextMenu(
             name="shut the fuck up",
             guild_ids=[self.client.AMAZE_GUILD_ID],
             callback=self.mute_user
         )
 
-        self.client.tree.add_command(self.mute_user)
+        self.client.tree.add_command(self.mute_user_cmd)
+
+    async def cog_unload(self) -> None:
+        self.client.tree.remove_command("shut the fuck up")
 
     def find_role(self, guild: discord.Guild, search: str) -> discord.Role:
         try:
