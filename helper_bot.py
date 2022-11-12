@@ -217,12 +217,16 @@ class NotGDKID(commands.Bot):
         if (
             member.voice
             and member.voice.self_mute
+            and not member.voice.self_deaf
             and not member.guild.voice_client
         ):
             assert member.voice and member.voice.channel
             await member.voice.channel.connect()
 
-        elif not member.voice and member.guild.voice_client:
+        elif (
+            member.guild.voice_client
+            and (not member.voice or member.voice.self_deaf)
+        ):
             await member.guild.voice_client.disconnect(force=True)
 
     def run(self) -> None:
