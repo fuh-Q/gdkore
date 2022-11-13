@@ -120,9 +120,11 @@ class NotGDKID(commands.Bot):
             "utils",
         ]
 
-        self.description = self.__doc__ or ""
-        self.uptime = datetime.utcnow().astimezone(timezone(timedelta(hours=-4)))
         self._restart = False
+        self.description = self.__doc__ or ""
+        self.uptime = datetime.now(tz=timezone(timedelta(
+            -4 if is_dst() else -5
+        )))
 
         self.tree.on_error = self.on_app_command_error
         self.add_commands()
