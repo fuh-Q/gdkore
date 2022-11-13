@@ -145,7 +145,7 @@ class GClass(commands.Bot):
         self.description = self.__doc__ or ""
         self.guild_limit = []
         self.uptime = datetime.now(tz=timezone(timedelta(
-            -4 if is_dst() else -5
+            hours=-4 if is_dst() else -5
         )))
 
         self.tree.on_error = self.on_app_command_error
