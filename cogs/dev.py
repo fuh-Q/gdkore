@@ -84,7 +84,7 @@ class DirectoryView(BasePages):
         self.add_item(self.select_menu)
 
         self.send_file = SendFile(self)
-        self.send_file_ephemeral = SendFile(self, True)
+        self.send_file_ephemeral = SendFile(self, send_ephemeral=True)
         self.load_file = ExtensionButton(self, ExtensionAction.LOAD)
         self.unload_file = ExtensionButton(self, ExtensionAction.UNLOAD)
         self.reload_file = ExtensionButton(self, ExtensionAction.RELOAD)
@@ -201,7 +201,7 @@ class SendFile(Button[DirectoryView]):
     def view(self) -> DirectoryView:
         return self._view
 
-    def __init__(self, view: DirectoryView, send_ephemeral: bool = False):
+    def __init__(self, view: DirectoryView, *, send_ephemeral: bool = False):
         self._view = view
         self.send_ephemeral = send_ephemeral
 
