@@ -27,7 +27,7 @@ from google.auth.transport.requests import Request
 # <-- database imports -->
 import asyncpg
 import aiohttp
-import aioredis
+from redis import asyncio as aioredis
 
 # <-- other imports -->
 from fuzzy_match import match
