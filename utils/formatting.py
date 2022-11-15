@@ -1,7 +1,7 @@
 import logging
 import sys
 from datetime import datetime
-from typing import Generator, List
+from typing import Callable, Generator, List
 
 from discord.embeds import (
     Embed as DPYEmbed,
@@ -28,14 +28,8 @@ class Embed(DPYEmbed):
             The total number of characters displayed on the embed
         """
 
-        def count_proxy(count: int, obj: DPYEmbedProxy):
-            for k, v in obj.__dict__.items():
-                if not k.startswith("_") and isinstance(v, str) and not "url" in k:
-                    count += len(v)
-
-            return count
-
-        will_count: map[EmbedProperty] = map(lambda n: getattr(self, n, None), ( # type: ignore
+        will_count: map[EmbedProperty] = map(
+            lambda n: getattr(self, n, None), ( # type: ignore
             "author",
             "fields",
             "footer",
@@ -43,24 +37,19 @@ class Embed(DPYEmbed):
             "title"
         ))
 
-        count = 0
-        for item in will_count:
-            if item is None:
-                continue
+        count_proxy: Callable[[DPYEmbedProxy], int] = lambda obj: sum([
+            len(v) if not k.startswith("_")
+            and isinstance(v, str)
+            and not "url" in k else 0
+            for k, v in obj.__dict__.items()
+        ])
 
-            if isinstance(item, str):
-                count += len(item)
-                continue
-
-            if isinstance(item, DPYEmbedProxy):
-                count = count_proxy(count, item)
-                continue
-
-            if isinstance(item, list):
-                for proxy in item:
-                    count = count_proxy(count, proxy)
-
-        return count
+        return sum([
+            len(i) if isinstance(i, str)
+            else count_proxy(i) if isinstance(i, DPYEmbedProxy)
+            else sum([count_proxy(p) for p in i])
+            for i in will_count if i is not None
+        ])
 
 class GClassLogging(logging.Formatter):
     """
