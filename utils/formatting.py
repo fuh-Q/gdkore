@@ -37,19 +37,19 @@ class Embed(DPYEmbed):
             "title"
         ))
 
-        count_proxy: Callable[[DPYEmbedProxy], int] = lambda obj: sum([
+        count_proxy: Callable[[DPYEmbedProxy], int] = lambda obj: sum(
             len(v) if not k.startswith("_")
             and isinstance(v, str)
             and not "url" in k else 0
             for k, v in obj.__dict__.items()
-        ])
+        )
 
-        return sum([
+        return sum(
             len(i) if isinstance(i, str)
             else count_proxy(i) if isinstance(i, DPYEmbedProxy)
             else sum([count_proxy(p) for p in i])
             for i in will_count if i is not None
-        ])
+        )
 
 class GClassLogging(logging.Formatter):
     """
