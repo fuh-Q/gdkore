@@ -57,9 +57,19 @@ if TYPE_CHECKING:
     from cogs.browser import Browser
     from utils import PostgresPool
 
+# <-- uvloop -->
+try:
+    import uvloop
+except (ModuleNotFoundError, ImportError):
+    pass
+else:
+    uvloop.install()
+
+# <-- load secrets file -->
 with open("config/secrets.json", "r") as f:
     secrets: Dict[str, str] = json.load(f)
 
+# <-- misc (too little to each deserve a section) -->
 start = time.monotonic()
 
 asyncio.BaseEventLoop.call_soon = new_call_soon

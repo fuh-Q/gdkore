@@ -1,12 +1,11 @@
 # Compiled python files (Binary)
 __pycache__/
 
-# VSCode config
+# Config
 .vscode/
+.mypy_cache
+.pytest_cache
+pyproject.toml
 
 # Private stuff
 config/secrets.json
-
-# Irrelevant
-.mypy_cache
-.pytest_cache
