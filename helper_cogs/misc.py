@@ -1,14 +1,11 @@
 from __future__ import annotations
 
-import asyncio
-from io import BytesIO
 from typing import TYPE_CHECKING
 
 from PIL import Image
 
-import discord
 from discord import Interaction
-from discord.app_commands import ContextMenu, command, guild_only
+from discord.app_commands import command
 from discord.ext import commands
 
 if TYPE_CHECKING:
