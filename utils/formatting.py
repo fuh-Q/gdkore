@@ -1,9 +1,66 @@
 import logging
 import sys
 from datetime import datetime
-from typing import Generator
+from typing import Generator, List
+
+from discord.embeds import (
+    Embed as DPYEmbed,
+    EmbedProxy as DPYEmbedProxy
+)
 
 from .enums import PrintColours
+
+EmbedProperty = str | DPYEmbedProxy | List[DPYEmbedProxy]
+
+class Embed(DPYEmbed):
+    def character_count(self) -> int:
+        """
+        Gets the combined character count of the following embed properties:
+        - Author (`name`)
+        - Fields (`name` + `value`)
+        - Footer (`text`)
+        - Description
+        - Title
+
+        Returns
+        -------
+        character_count: `int`
+            The total number of characters displayed on the embed
+        """
+
+        def count_proxy(count: int, obj: DPYEmbedProxy):
+            for k, v in obj.__dict__.items():
+                if not k.startswith("_") and isinstance(v, str) and not "url" in k:
+                    count += len(v)
+
+            return count
+
+        will_count: map[EmbedProperty] = map(lambda n: getattr(self, n, None), ( # type: ignore
+            "author",
+            "fields",
+            "footer",
+            "description",
+            "title"
+        ))
+
+        count = 0
+        for item in will_count:
+            if item is None:
+                continue
+
+            if isinstance(item, str):
+                count += len(item)
+                continue
+
+            if isinstance(item, DPYEmbedProxy):
+                count = count_proxy(count, item)
+                continue
+
+            if isinstance(item, list):
+                for proxy in item:
+                    count = count_proxy(count, proxy)
+
+        return count
 
 class GClassLogging(logging.Formatter):
     """
@@ -60,6 +117,12 @@ class cap:
 
     def __init__(self, string: str) -> None:
         self.string = string
+
+    def __str__(self) -> str:
+        return self.string
+
+    def __repr__(self) -> str:
+        return self.string
 
     def __format__(self, format_spec: str) -> str:
         size = int(format_spec)

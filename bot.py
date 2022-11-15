@@ -36,6 +36,7 @@ from fuzzy_match import match
 from utils import (
     BotColours,
     BotEmojis,
+    Embed,
     GClassLogging,
     PrintColours,
     db_init,
@@ -273,7 +274,7 @@ class GClass(commands.Bot):
         self.error_logs = await self.fetch_webhook(996132218936238172)
 
         end = time.monotonic()
-        e = discord.Embed(description=f"❯❯  started up in ~`{round(end - start, 1)}s`")
+        e = Embed(description=f"❯❯  started up in ~`{round(end - start, 1)}s`")
         await owner.send(embed=e)
 
         await self.db.execute("SELECT 1") # wake it up ig
@@ -292,7 +293,7 @@ class GClass(commands.Bot):
             self.guild_limit.append(guild.id)
             return await guild.leave()
 
-        e = discord.Embed(colour=BotColours.green)
+        e = Embed(colour=BotColours.green)
         e.set_author(
             name=f"Guild Joined ({len(self.guilds)} servers)",
             icon_url="https://cdn.discordapp.com/emojis/816263605686894612.png?size=160",
@@ -317,7 +318,7 @@ class GClass(commands.Bot):
         else:
             return
 
-        e = discord.Embed(colour=BotColours.red)
+        e = Embed(colour=BotColours.red)
         e.set_author(
             name=f"Guild Left ({len(self.guilds)} servers)",
             icon_url="https://cdn.discordapp.com/emojis/816263605837103164.png?size=160",

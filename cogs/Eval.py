@@ -10,15 +10,14 @@ import time
 import traceback
 import types
 from contextlib import redirect_stdout
-from typing import Any, Coroutine, Dict, List, Literal, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 import aiohttp
 import discord
-from asyncpg import Record
 from discord.ext import commands
 from helper_bot import NotGDKID
 
-from utils import BotEmojis, CHOICES, NewEmote
+from utils import BotEmojis, CHOICES, Embed, NewEmote
 
 quote = r'"'
 wraps = r"\(\)\[\]\{\}"
@@ -307,7 +306,7 @@ class Eval(commands.Cog):
         except Exception as e:
             stuff = traceback.format_exc()
             view = SuppressTraceback(ctx=ctx)
-            embed = discord.Embed(
+            embed = Embed(
                 title="FUCK!", description=f"```py\n{stuff}```", color=0x2E3135
             )
             message = await ctx.reply(embed=embed, mention_author=True, view=view)
@@ -321,16 +320,16 @@ class Eval(commands.Cog):
 
             return
         paginated_result: list[str] = self.paginate(result)
-        list_of_embeds: list[discord.Embed] = []
+        list_of_embeds: list[Embed] = []
         for page in paginated_result:
             if page == paginated_result[-1]:
-                embed = discord.Embed(
+                embed = Embed(
                     description=f"```py\n{page}\n```",
                     color=0x2E3135,
                 )
                 list_of_embeds.append(embed)
                 break
-            embed = discord.Embed(description=f"```py\n{page}\n```", color=0x2E3135)
+            embed = Embed(description=f"```py\n{page}\n```", color=0x2E3135)
             list_of_embeds.append(embed)
             if len(list_of_embeds) == 3:
                 if len(paginated_result) == 3:
@@ -433,7 +432,7 @@ class Eval(commands.Cog):
                     try:
                         code = self.async_compile(cleaned, "<repl session>", "exec")
                     except SyntaxError as e:
-                        embed = discord.Embed(
+                        embed = Embed(
                             title="FUCK!",
                             description=f"```py\n{traceback.format_exc()}```",
                             color=0x2E3135,
@@ -477,15 +476,15 @@ class Eval(commands.Cog):
 
                 __input = self.simulate_repl(cleaned)
 
-                embed = discord.Embed(
+                embed = Embed(
                     description=f"```py\n{__input}\n\n{msg}```", color=0x2E3135
                 )
 
                 try:
                     if len(msg) > 1000:
-                        list_of_embeds: list[discord.Embed] = []
+                        list_of_embeds: list[Embed] = []
                         paginated_text: list[str] = self.paginate(msg, max_text=1000)
-                        first_embed = discord.Embed(
+                        first_embed = Embed(
                             description=f"```py\n{__input}\n\n{paginated_text[0]}```",
                             colour=0x2E3135,
                         )
@@ -493,13 +492,13 @@ class Eval(commands.Cog):
                         await ctx.send(embed=first_embed)
                         for page in paginated_text:
                             if page == paginated_text[-1]:
-                                embed = discord.Embed(
+                                embed = Embed(
                                     description=f"```py\n{page}\n```",
                                     color=0x2E3135,
                                 )
                                 list_of_embeds.append(embed)
                                 break
-                            embed = discord.Embed(
+                            embed = Embed(
                                 description=f"```py\n{page}\n```", color=0x2E3135
                             )
                             list_of_embeds.append(embed)
@@ -544,7 +543,7 @@ class Eval(commands.Cog):
         try:
             exec(to_compile, env)
         except Exception as e:
-            embed = discord.Embed(
+            embed = Embed(
                 title="FUCK!",
                 description=f"```py\n{e.__class__.__name__}: {e}\n```",
                 color=color,
@@ -557,7 +556,7 @@ class Eval(commands.Cog):
                 ret = await func()
         except Exception:
             value = stdout.getvalue()
-            embed = discord.Embed(
+            embed = Embed(
                 title="FUCK!",
                 description=f"```py\n{value}{traceback.format_exc()}\n```",
                 color=color,
@@ -568,7 +567,7 @@ class Eval(commands.Cog):
             if ret is None:
                 if value:
                     try:
-                        embed = discord.Embed(
+                        embed = Embed(
                             description=f"```py\n{value}\n```", color=color
                         )
                         await ctx.send(embed=embed)
@@ -576,18 +575,18 @@ class Eval(commands.Cog):
                         paginated_text = Eval.paginate(value)
                         for page in paginated_text:
                             if page == paginated_text[-1]:
-                                embed = discord.Embed(
+                                embed = Embed(
                                     description=f"```py\n{page}\n```", color=color
                                 )
                                 await ctx.send(embed=embed)
                                 break
-                            embed = discord.Embed(
+                            embed = Embed(
                                 description=f"```py\n{page}\n```", color=color
                             )
                             await ctx.send(embed=embed)
             else:
                 try:
-                    embed = discord.Embed(
+                    embed = Embed(
                         description=f"```py\n{value}{ret}\n```", color=color
                     )
                     await ctx.send(embed=embed)
@@ -595,12 +594,12 @@ class Eval(commands.Cog):
                     paginated_text = Eval.paginate(f"{value}{ret}")
                     for page in paginated_text:
                         if page == paginated_text[-1]:
-                            embed = discord.Embed(
+                            embed = Embed(
                                 description=f"```py\n{page}\n```", color=color
                             )
                             await ctx.send(embed=embed)
                             break
-                        embed = discord.Embed(
+                        embed = Embed(
                             description=f"```py\n{page}\n```", color=color
                         )
                         await ctx.send(embed=embed)
@@ -625,7 +624,7 @@ class Eval(commands.Cog):
             try:
                 code = self.async_compile(cleaned, "<repl exec>", "exec")
             except SyntaxError as e:
-                embed = discord.Embed(
+                embed = Embed(
                     title="FUCK!",
                     description=f"```py\n{traceback.format_exc()}```",
                     color=0x2E3135,
@@ -677,15 +676,15 @@ class Eval(commands.Cog):
 
         __input = self.simulate_repl(cleaned)
 
-        embed = discord.Embed(
+        embed = Embed(
             description=f"```py\n{__input}\n\n{msg}```", color=0x2E3135
         )
 
         try:
             if len(msg) > 1000:
-                list_of_embeds: list[discord.Embed] = []
+                list_of_embeds: list[Embed] = []
                 paginated_text: list[str] = self.paginate(msg, max_text=1000)
-                first_embed = discord.Embed(
+                first_embed = Embed(
                     description=f"```py\n{__input}\n\n{paginated_text[0]}```",
                     colour=0x2E3135,
                 )
@@ -693,13 +692,13 @@ class Eval(commands.Cog):
                 await ctx.send(embed=first_embed)
                 for page in paginated_text:
                     if page == paginated_text[-1]:
-                        embed = discord.Embed(
+                        embed = Embed(
                             description=f"```py\n{page}\n```",
                             color=0x2E3135,
                         )
                         list_of_embeds.append(embed)
                         break
-                    embed = discord.Embed(
+                    embed = Embed(
                         description=f"```py\n{page}\n```", color=0x2E3135
                     )
                     list_of_embeds.append(embed)

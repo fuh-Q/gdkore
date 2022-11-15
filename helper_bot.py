@@ -16,7 +16,7 @@ from discord.app_commands import AppCommandError
 from discord.gateway import DiscordWebSocket
 from discord.ext import commands, tasks
 
-from utils import GClassLogging, PrintColours, mobile, is_dst, new_call_soon
+from utils import Embed, GClassLogging, PrintColours, mobile, is_dst, new_call_soon
 
 if TYPE_CHECKING:
     from discord import Interaction
@@ -181,7 +181,7 @@ class NotGDKID(commands.Bot):
         self.owner = owner
 
         end = time.monotonic()
-        e = discord.Embed(description=f"❯❯  started up in ~`{round(end - start, 1)}s`")
+        e = Embed(description=f"❯❯  started up in ~`{round(end - start, 1)}s`")
         await owner.send(embed=e)
 
     async def on_app_command_error(self, interaction: Interaction, error: AppCommandError):

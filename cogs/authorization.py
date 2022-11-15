@@ -4,11 +4,10 @@ import asyncio
 import time
 from typing import TYPE_CHECKING
 
-import discord
 from discord.ext import commands
 from discord.app_commands import command
 
-from utils import BotColours, Confirm, is_logged_in
+from utils import BotColours, Confirm, Embed, is_logged_in
 
 if TYPE_CHECKING:
     from bot import GClass
@@ -67,7 +66,7 @@ class Authorization(commands.Cog):
         """logout of gclass"""
 
         view = Confirm(interaction.user)
-        embed = discord.Embed(
+        embed = Embed(
             title="confirm logout",
             description="you will no longer be able to use our commands " \
                         "while signed out. proceed?" \

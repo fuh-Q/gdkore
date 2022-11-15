@@ -26,6 +26,7 @@ from utils import (
     BotEmojis,
     BotColours,
     Confirm,
+    Embed,
     ExpiringDict,
     GoogleChunker,
     View,
@@ -142,7 +143,7 @@ class CoursePages(BasePages, auto_defer=False): # type: ignore
         interaction = self._interaction
 
         while courses != []:
-            page = discord.Embed()
+            page = Embed()
             page.set_author(
                 name=f"{interaction.user.name}#{interaction.user.discriminator}'s courses",
                 icon_url=interaction.user.display_avatar.url
@@ -224,7 +225,7 @@ class ClassPicker(Select[CoursePages]):
         )
         menu.original_message = self.view.original_message
 
-        e = discord.Embed(
+        e = Embed(
             title=course["name"],
             description=f"{course.get('descriptionHeading', '')}\n\n{course.get('description', '')}"
         )
@@ -276,7 +277,7 @@ class ClassHome(GoBack[CoursePages]):
     async def setup_webhook(self, interaction: Interaction, button: Button):
         if not interaction.guild:
             return await interaction.response.edit_message(
-                embed=discord.Embed(description="you can't set a webhook in dms"),
+                embed=Embed(description="you can't set a webhook in dms"),
                 view=GoBack(self._home)
             )
 
@@ -285,12 +286,12 @@ class ClassHome(GoBack[CoursePages]):
 
         assert interaction.channel and isinstance(interaction.user, discord.Member)
         if not interaction.channel.permissions_for(interaction.user).manage_channels:
-            return await edit(embed=discord.Embed(
+            return await edit(embed=Embed(
                 description="you need the `manage channels` permission in order to perform this operation"
             ))
 
         view = Confirm(interaction.user)
-        embed = discord.Embed(
+        embed = Embed(
             title="create a webhook",
             description=f"confirm you want to receive notifications from **{self._course['name']}** " \
                         f"in <#{interaction.channel.id}>?"
@@ -311,7 +312,7 @@ class ClassHome(GoBack[CoursePages]):
 
         if not view.choice:
             return await view.interaction.response.edit_message(
-                embed=discord.Embed(description="phew, dodged a bullet there"),
+                embed=Embed(description="phew, dodged a bullet there"),
                 view=GoBack(self._home)
             )
 
@@ -328,9 +329,9 @@ class ClassHome(GoBack[CoursePages]):
                 *(datetime.now(tz=timezone.utc),) * 4
             )
         except UniqueViolationError:
-            return await edit_original(embed=discord.Embed(description="this webhook already exists"))
+            return await edit_original(embed=Embed(description="this webhook already exists"))
 
-        await edit_original(embed=discord.Embed(
+        await edit_original(embed=Embed(
             description=f"successfully created a webhook for **{cap(self._course['name']):256}** " \
                         f"in <#{interaction.channel.id}>!"
         ))
@@ -341,14 +342,14 @@ class ClassHome(GoBack[CoursePages]):
         next_page: str | None = None
 
         if (assignments := self._assignments) is None:
-            e = discord.Embed(
+            e = Embed(
                 description=f"{BotEmojis.LOADING} fetching data..."
             )
             await interaction.edit_original_response(embed=e, view=None)
             try:
                 assignments = await asyncio.to_thread(self.run_google, service=self._resource)
             except HttpError:
-                e = discord.Embed(
+                e = Embed(
                     description= \
                         "you can't view assignments from a course owned by your own account." \
                         "\ngoogle made it this way, there's literally nothing i can do about it lol"
@@ -364,7 +365,7 @@ class ClassHome(GoBack[CoursePages]):
             if not self._home.cache.get(self._course["id"], None):
                 self._home.cache[self._course["id"]] = [], self._course
 
-            e = discord.Embed(description="no course work to display")
+            e = Embed(description="no course work to display")
             return await interaction.edit_original_response(
                 embed=e, view=GoBack(self._home)
             )
@@ -443,7 +444,7 @@ class ClassMenu(BasePages, auto_defer=False): # type: ignore
 
         return self
 
-    async def make_embed(self, assignment: CourseWork) -> discord.Embed:
+    async def make_embed(self, assignment: CourseWork) -> Embed:
         def run_google(assignmentId): # all google libs are sync
             submissions = service.courses().courseWork().studentSubmissions().list(
                 courseId=self._course["id"],
@@ -457,7 +458,7 @@ class ClassMenu(BasePages, auto_defer=False): # type: ignore
         timestamp = format_google_time(assignment)
 
         assignment_response = assignment["workType"].lower().replace("_", " ")
-        page = discord.Embed(
+        page = Embed(
             title=f"{cap(assignment.get('title', '')):256}",
             description=f"{cap(assignment.get('description', '')):4096}",
             timestamp=timestamp,
@@ -513,6 +514,13 @@ class ClassMenu(BasePages, auto_defer=False): # type: ignore
             page.add_field(
                 name="obtainable points",
                 value=points
+            )
+
+        assert page.description
+        char_count = page.character_count()
+        if char_count > 6000:
+            page.description = format(
+                cap(page.description), str(4096 - (char_count - 6000))
             )
 
         return page
@@ -696,7 +704,7 @@ class Browser(commands.Cog):
 
         if not courses:
             return await interaction.response.send_message(
-                embed=discord.Embed(description="no courses to display"),
+                embed=Embed(description="no courses to display"),
                 ephemeral=True
             )
 

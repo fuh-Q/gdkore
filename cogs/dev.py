@@ -12,10 +12,12 @@ from typing import Any, Coroutine, Generator, List, Tuple, TYPE_CHECKING
 
 import discord
 from discord.ext import commands
-from discord.ui import Button, Select, button
+from discord.ui import Button, Modal, Select, TextInput, button
 
 from utils import (
     BasePages,
+    Confirm,
+    Embed,
     cap
 )
 
@@ -55,7 +57,7 @@ class DirectoryView(BasePages):
     items: List[pathlib.Path]
     directory: pathlib.Path
     _directory_slices: List[Tuple[pathlib.Path]]
-    _actual_files: Tuple[pathlib.Path]
+    _actual_files: List[pathlib.Path]
 
     def __init__(
         self,
@@ -97,12 +99,12 @@ class DirectoryView(BasePages):
         return self.current_page if self.current_page <= nslices - 1 else nslices - 1
 
     def make_pages(self) -> None:
-        files = tuple(filter(lambda i: not i.is_dir(), self.items))
+        files = list(filter(lambda i: not i.is_dir(), self.items))
         directories = tuple(i for i in self.items if i not in files and
                             not i.name.startswith(".") and not i.name in ("venv", "__pycache__")
                             and len(str(i.resolve())) <= 100)
         self._actual_files = files
-        self._pages = [discord.Embed(
+        self._pages = [Embed(
             title=f"{cap(discord.utils.escape_markdown(f.name, as_needed=True)):256}",
             description= \
                 f"file size - `{size(os.path.getsize(resolved := f.resolve()))}`\n" \
@@ -112,7 +114,7 @@ class DirectoryView(BasePages):
         ).set_author(name=f"{cap(str(f.resolve())):256}") for f in files]
 
         if not self._pages:
-            self._pages.append(discord.Embed(
+            self._pages.append(Embed(
                 description="no files to display"
             ).set_author(name=f"{cap(str(self.directory.resolve())):256}"))
 
@@ -123,7 +125,7 @@ class DirectoryView(BasePages):
 
         if (slices := len(self._directory_slices)) > self.page_count:
             diff = slices - self.page_count
-            self._pages += [discord.Embed(
+            self._pages += [Embed(
                 description="no files to display"
             ).set_author(name=f"{cap(str(self.directory.resolve())):256}") for _ in range(diff)]
 
@@ -149,6 +151,7 @@ class DirectoryView(BasePages):
     def update_file_buttons(self) -> None:
         self.remove_item(self.send_file)
         self.remove_item(self.send_file_ephemeral)
+        self.remove_item(self.rename_file)
         self.remove_item(self.remove_file)
         self.remove_item(self.load_file)
         self.remove_item(self.unload_file)
@@ -170,6 +173,7 @@ class DirectoryView(BasePages):
         if self.pages[self.current_page].title:
             self.add_item(self.send_file)
             self.add_item(self.send_file_ephemeral)
+            self.add_item(self.rename_file)
             self.add_item(self.remove_file)
 
     async def after_callback(self, interaction: Interaction, item: Item):
@@ -188,11 +192,46 @@ class DirectoryView(BasePages):
         self.update_components()
         await interaction.edit_original_response(**self.edit_kwargs)
 
+    @button(label="rename file", style=discord.ButtonStyle.secondary, row=2)
+    async def rename_file(self, interaction: Interaction, button: Button):
+        await interaction.response.send_modal(RenameFile(self))
+
     @button(label="remove file", style=discord.ButtonStyle.danger, row=2)
     async def remove_file(self, interaction: Interaction, button: Button):
-        self._actual_files[self.current_page].unlink(missing_ok=True)
+        await interaction.response.defer(ephemeral=True)
+        view = Confirm(interaction.user)
 
-        await interaction.response.send_message("file removed", ephemeral=True)
+        filename = self._actual_files[self.current_page].name
+        embed = Embed(
+            description=f"confirm that you want to delete `{cap(filename):4000}`?"
+        )
+        msg = await interaction.followup.send(
+            embed=embed, view=view, ephemeral=True, wait=True
+        )
+        view.original_message = msg
+
+        expired = await view.wait()
+        if expired:
+            await view.original_message.edit(view=view)
+            return
+
+        await view.interaction.response.defer()
+        await interaction.followup.delete_message(msg.id)
+        if not view.choice:
+            return
+
+        self.pages.pop(self.current_page)
+        self._actual_files.pop(self.current_page).unlink(missing_ok=True)
+        if self.current_page > 0:
+            self._current -= 1
+
+        if not self._actual_files:
+            return await interaction.response.edit_message(
+                embed=Embed(description="no files to display"), view=self
+            )
+
+        self.update_components()
+        await interaction.edit_original_response(**self.edit_kwargs)
 
 class SendFile(Button[DirectoryView]):
     _view: DirectoryView
@@ -223,7 +262,7 @@ class SendFile(Button[DirectoryView]):
             file = discord.File(str(path), filename=path.name)
         except FileNotFoundError as e:
             return await interaction.followup.send(
-                embed=discord.Embed(description=f"```py\n{e}\n```"), ephemeral=True
+                embed=Embed(description=f"```py\n{e}\n```"), ephemeral=True
             )
 
         try:
@@ -235,6 +274,32 @@ class SendFile(Button[DirectoryView]):
                 )
 
             raise e
+
+class RenameFile(Modal):
+    name = TextInput(
+        label="new name",
+        placeholder="example.txt",
+        max_length=100
+    )
+
+    def __init__(self, view: DirectoryView) -> None:
+        self._view = view
+        self._file = view._actual_files[view.current_page]
+        self._page = view.pages[view.current_page]
+
+        self.name.default = self._file.name
+        super().__init__(title="rename file")
+
+    async def on_submit(self, interaction: Interaction) -> None:
+        self._file = self._file.rename(
+            f"{self._file.parts[0]}{S.join(self._file.parts[1:-1])}{S}{self.name.value}"
+        )
+
+        self._view._actual_files[self._view.current_page] = self._file
+
+        title = cap(discord.utils.escape_markdown(self._file.name, as_needed=True))
+        self._page.set_author(name=f"{title:256}").title = f"{title:256}"
+        await interaction.response.edit_message(embed=self._page)
 
 class ExtensionAction(Enum):
     value: Tuple[str, ExtCoro]
@@ -267,7 +332,7 @@ class ExtensionButton(Button[DirectoryView]):
         try:
             await self.method(f"{folder}.{name[:-3]}")
         except commands.ExtensionError as e:
-            em = discord.Embed(title="FUCK!", description=f"```py\n{e}\n```")
+            em = Embed(title="FUCK!", description=f"```py\n{e}\n```")
             return await interaction.response.send_message(embed=em, ephemeral=True)
         else:
             assert self.label
@@ -314,7 +379,7 @@ class DirectoryPicker(Select[DirectoryView]):
         try:
             view = DirectoryView(pathlib.Path(self.values[0]), interaction=interaction)
         except (FileNotFoundError, PermissionError) as e:
-            em = discord.Embed(title="FUCK!", description=f"```py\n{e}\n```")
+            em = Embed(title="FUCK!", description=f"```py\n{e}\n```")
             return await interaction.response.send_message(embed=em, ephemeral=True)
 
         await interaction.response.edit_message(
@@ -352,7 +417,7 @@ class Dev(commands.Cog):
     @commands.command(name="shutdown", hidden=True, brief="Shut down the bot")
     @commands.is_owner()
     async def shutdown(self, ctx: commands.Context):
-        e = discord.Embed(description="👋 cya")
+        e = Embed(description="👋 cya")
         await ctx.reply(embed=e)
 
         await self.client.close()
@@ -360,7 +425,7 @@ class Dev(commands.Cog):
     @commands.command(name="restart", hidden=True, brief="Restart the bot")
     @commands.is_owner()
     async def restart(self, ctx: commands.Context):
-        e = discord.Embed(description="👋 Aight brb")
+        e = Embed(description="👋 Aight brb")
         await ctx.reply(embed=e)
 
         await self.client.close(restart=True)

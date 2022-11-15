@@ -4,7 +4,7 @@ import asyncio
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from itertools import chain
-from typing import Any, Callable, Dict, Generic, List, Tuple, TypeVar, TYPE_CHECKING
+from typing import Callable, Dict, List, Tuple, TYPE_CHECKING
 
 import discord
 from discord import Webhook
@@ -23,6 +23,7 @@ from utils import (
     BotColours,
     CappedDict,
     Confirm,
+    Embed,
     PrintColours,
     View,
     cap,
@@ -50,13 +51,13 @@ DEL_QUERY = """DELETE FROM webhooks
 @dataclass(init=False, slots=True)
 class EmbedWithPostData:
     assignment_response: str | None
-    embed: discord.Embed
+    embed: Embed
     created_at: datetime
     materials: List[Attachment]
     type: str
     url: str
 
-    def __init__(self, embed: discord.Embed, post: Post):
+    def __init__(self, embed: Embed, post: Post):
         self.embed = embed
         self.created_at = format_google_time(post)
         self.materials = post.get("materials", [])
@@ -101,7 +102,7 @@ async def fetch_posts(client: GClass):
         for post in posts:
             d = post.get("text", "") or post.get("description", "")
 
-            page = discord.Embed(
+            page = Embed(
                 title=f"{cap(post.get('title', '')):256}",
                 description=f"{cap(d):4096}",
                 timestamp=format_google_time(post),
@@ -118,6 +119,13 @@ async def fetch_posts(client: GClass):
                 page.add_field(
                     name="assignment due",
                     value=f"<t:{due_date.timestamp():.0f}:R>"
+                )
+
+            assert page.description
+            char_count = page.character_count()
+            if char_count > 6000:
+                page.description = format(
+                    cap(page.description), str(4096 - (char_count - 6000))
                 )
 
             obj = EmbedWithPostData(page, post)
@@ -140,7 +148,7 @@ async def fetch_posts(client: GClass):
         if not is_deleted:
             try:
                 wh = Webhook.from_url(webhook["url"], session=client.session, bot_token=client.token)
-                await wh.send(embed=discord.Embed(
+                await wh.send(embed=Embed(
                     description="course not found, deleting this webhook..."
                 ))
                 await wh.delete(reason=f"associated course could not be found")
@@ -297,11 +305,11 @@ class WebhookPicker(Select):
         return f"{cap(f'remove a webhook... [{start}-{stop} of {total}]'):150}"
 
     async def callback(self, interaction: Interaction) -> None:
-        await interaction.response.defer()
+        await interaction.response.defer(ephemeral=True)
         view = Confirm(interaction.user)
 
         wh: WebhookData = self.view._webhooks[self.view.current_page].pop(idx := int(self.values[0]))
-        embed = discord.Embed(
+        embed = Embed(
             title="confirm delete webhook",
             description=f"are you sure you want to delete the webhook for " \
                         f"**{cap(wh['course_name']):256}** created in <#{wh['channel_id']}>?",
@@ -317,11 +325,9 @@ class WebhookPicker(Select):
             await view.original_message.edit(view=view)
             return
 
-        await view.interaction.response.edit_message(view=view)
+        await view.interaction.response.defer()
+        await interaction.followup.delete_message(msg.id)
         if not view.choice:
-            await interaction.followup.send(
-                "phew, dodged a bullet there", ephemeral=True
-            )
             return
 
         if wh["url"]:
@@ -381,7 +387,7 @@ class WebhookPages(BasePages, auto_defer=False): # type: ignore
         interaction = self._interaction
 
         while webhooks != []:
-            page = discord.Embed()
+            page = Embed()
             page.set_author(
                 name=f"{interaction.user.name}#{interaction.user.discriminator}'s webhooks",
                 icon_url=interaction.user.display_avatar.url
@@ -447,7 +453,7 @@ class Webhooks(commands.Cog):
             """
         webhooks: List[WebhookData] = await self.client.db.fetch(q, interaction.user.id)
         if not webhooks:
-            return await interaction.edit_original_response(embed=discord.Embed(
+            return await interaction.edit_original_response(embed=Embed(
                 description="no webhooks to display"
             ))
 
