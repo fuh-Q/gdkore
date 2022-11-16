@@ -73,12 +73,13 @@ class NotGDKID(commands.Bot):
     MUTED_ROLE_ID = 997376437390692373
 
     WHITELISTED_GUILDS = [
-        716684586129817651, # GDK1D's Discord
-        749892811905564672, # Mod Mail Inbox
-        956041825129496586, # not gdkid
-        764592577575911434, # Vector Development
-        890355226517860433, # Stupidly Decent
-        996435988194791614, # Amaze Discord
+        716684586129817651,  # GDK1D's Discord
+        749892811905564672,  # Mod Mail Inbox
+        956041825129496586,  # not gdkid
+        764592577575911434,  # Vector Development
+        890355226517860433,  # Stupidly Decent
+        996435988194791614,  # Amaze Discord
+        1030777910103117885, # TechyBrich
     ]
 
     token = secrets["helper_token"]
