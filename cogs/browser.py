@@ -66,9 +66,9 @@ def get_due_date(assignment: CourseWork) -> datetime | None:
         return
 
     due_date = datetime(due["year"], due["month"], due["day"], tzinfo=timezone.utc)
-    if time := assignment.get("dueTime", None):
+    if (time := assignment.get("dueTime", None)):
         kwargs = {"hour": time.get("hours", 0)}
-        if m := time.get("minutes", None):
+        if (m := time.get("minutes", None)):
             kwargs["minute"] = m
         due_date = due_date.replace(**kwargs)
 
@@ -208,7 +208,7 @@ class ClassPicker(Select[CoursePages]):
         await interaction.response.defer()
         self.view._parent = True
 
-        if from_cache := self.view.cache.get(self.values[0], None):
+        if (from_cache := self.view.cache.get(self.values[0], None)):
             assignments, course = from_cache
         else:
             assignments = None
@@ -416,11 +416,10 @@ class ClassMenu(BasePages, auto_defer=False): # type: ignore
         self._parent = False
         self._interaction = interaction
 
+        self._assignments = assignments
         for assignment in assignments:
             page = await self.make_embed(assignment)
             self._pages.append(page)
-
-        self._assignments = assignments
 
         if not self._home.cache.get(course["id"], None):
             self._home.cache[course["id"]] = assignments, course
@@ -479,9 +478,15 @@ class ClassMenu(BasePages, auto_defer=False): # type: ignore
 
             state = submission["state"]
             worktype = submission["courseWorkType"]
-            if not_turned_in := state not in ("TURNED_IN", "RETURNED"):
+            if state not in ("TURNED_IN", "RETURNED"):
                 name = "assignment due"
                 value = f"<t:{due_date.timestamp():.0f}:R>"
+
+                now_utc = datetime.utcnow()
+                if now_utc.timestamp() >= due_date.timestamp():
+                    page.colour = BotColours.red
+                elif due_date.timestamp() - now_utc.timestamp() <= 172800: # 2 days away
+                    page.colour = BotColours.yellow
             else:
                 if worktype == "ASSIGNMENT":
                     name = "you handed in"
@@ -494,13 +499,6 @@ class ClassMenu(BasePages, auto_defer=False): # type: ignore
 
                     name = "you answered"
                     value = f"{cap(v):69}"
-
-            if not_turned_in:
-                now_utc = datetime.utcnow()
-                if now_utc.timestamp() >= due_date.timestamp():
-                    page.colour = BotColours.red
-                elif due_date.timestamp() - now_utc.timestamp() <= 172800: # 2 days away
-                    page.colour = BotColours.yellow
 
             if not assignment.get("studentSubmissions", None):
                 assignment["studentSubmissions"] = submission
@@ -560,7 +558,6 @@ class ClassMenu(BasePages, auto_defer=False): # type: ignore
             return ""
 
         time_int = int(due.timestamp())
-
         now_utc = datetime.utcnow()
         if now_utc.timestamp() >= due.timestamp():
             return f"{BotEmojis.RED_WARNING}" + \
