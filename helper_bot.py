@@ -23,6 +23,12 @@ if TYPE_CHECKING:
 
     from utils import PostgresPool
 
+try:
+    import uvloop
+except (ModuleNotFoundError, ImportError):
+    pass
+else:
+    uvloop.install()
 
 with open("config/secrets.json", "r") as f:
     secrets: Dict[str, str] = json.load(f)

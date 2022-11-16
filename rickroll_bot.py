@@ -22,6 +22,13 @@ from jishaku.shim.paginator_200 import \
 
 from utils import BotColours
 
+try:
+    import uvloop
+except (ModuleNotFoundError, ImportError):
+    pass
+else:
+    uvloop.install()
+
 logging.basicConfig(level=logging.INFO)
 
 with open("./config/secrets.json", "r") as f:
