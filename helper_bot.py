@@ -124,12 +124,15 @@ class NotGDKID(commands.Bot):
             "cogs.Eval",
             "helper_cogs.autorole",
             "helper_cogs.bcancer",
+            "helper_cogs.checkers",
             "helper_cogs.emojis",
             "helper_cogs.misc",
             "helper_cogs.mod",
             "helper_cogs.tts",
             "utils",
         ]
+
+        self._checkers_games = []
 
         self._restart = False
         self.description = self.__doc__ or ""

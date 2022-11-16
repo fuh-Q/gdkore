@@ -1,7 +1,9 @@
 import json
-import asyncpg
-from discord.ext import commands
 
+import asyncpg
+
+from discord.ext import commands
+from discord.app_commands import CheckFailure
 
 CHOICES = [
     "no",
@@ -13,6 +15,17 @@ CHOICES = [
     "can i see your non-existent proof that you have control over this paginator?",
 ]
 
+class MaxConcurrencyReached(CheckFailure):
+    """
+    An error subclass typically for game commands
+    Attributes
+    ---------
+    jump_url: `str`
+        The jump url to the ongoing game's message
+    """
+
+    def __init__(self, jump_url: str) -> None:
+        self.jump_url = jump_url
 
 def get_member_count(client: commands.Bot) -> int:
     """

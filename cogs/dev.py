@@ -290,6 +290,10 @@ class RenameFile(Modal):
         self.name.default = self._file.name
         super().__init__(title="rename file")
 
+    async def on_error(self, interaction: Interaction, error: Exception) -> None:
+        embed = Embed(title="FUCK!", description=f"```py\n{error}\n```")
+        await interaction.response.send_message(embed=embed)
+
     async def on_submit(self, interaction: Interaction) -> None:
         self._file = self._file.rename(
             f"{self._file.parts[0]}{S.join(self._file.parts[1:-1])}{S}{self.name.value}"

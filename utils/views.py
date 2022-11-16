@@ -177,7 +177,10 @@ class View(DPYView, metaclass=_ViewMeta):
 
     def disable_all(self, *, exclude_urls = False) -> None:
         for c in self.children:
-            if exclude_urls and not getattr(c, "url", False):
+            if (
+                exclude_urls and not getattr(c, "url", None)
+                or not exclude_urls
+            ):
                 c.disabled = True
 
     def reposition(self, item: Item) -> None:
