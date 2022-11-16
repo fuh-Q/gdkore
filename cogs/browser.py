@@ -308,7 +308,7 @@ class ClassHome(GoBack[CoursePages]):
 
         expired = await view.wait()
         if expired:
-            return await interaction.edit_original_response(view=view)
+            return
 
         if not view.choice:
             return await view.interaction.response.edit_message(

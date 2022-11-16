@@ -51,7 +51,7 @@ class Confirm(DPYView):
     """
 
     interaction: Interaction
-    original_message: discord.WebhookMessage | InteractionMessage
+    original_message: discord.WebhookMessage | InteractionMessage | discord.Message
     children: List[Button | Select]
 
     def __init__(
@@ -78,7 +78,7 @@ class Confirm(DPYView):
         else:
             self.remove_item(self.third)
 
-    async def interaction_check(self, interaction: Interaction) -> bool:
+    async def interaction_check(self, interaction: Interaction, /) -> bool:
         if interaction.user != self.owner:
             await interaction.response.send_message(
                 content=random.choice(CHOICES), ephemeral=True

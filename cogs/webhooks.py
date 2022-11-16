@@ -322,7 +322,6 @@ class WebhookPicker(Select):
 
         expired = await view.wait()
         if expired:
-            await view.original_message.edit(view=view)
             return
 
         await view.interaction.response.defer()

@@ -8,15 +8,24 @@ import sys
 import time
 import traceback
 from datetime import datetime, timedelta, timezone
-from typing import Callable, Dict, List, TYPE_CHECKING
+from typing import Callable, Dict, List, Set, TYPE_CHECKING
 
 import asyncpg
+
 import discord
 from discord.app_commands import AppCommandError
 from discord.gateway import DiscordWebSocket
 from discord.ext import commands, tasks
 
-from utils import Embed, GClassLogging, PrintColours, mobile, is_dst, new_call_soon
+from utils import (
+    Confirm,
+    Embed,
+    GClassLogging,
+    PrintColours,
+    mobile,
+    is_dst,
+    new_call_soon
+)
 
 if TYPE_CHECKING:
     from discord import Interaction
@@ -32,6 +41,9 @@ else:
 
 with open("config/secrets.json", "r") as f:
     secrets: Dict[str, str] = json.load(f)
+
+with open("config/whitelisted.json", "r") as f:
+    whitelisted: Set[int] = set(json.load(f).values())
 
 start = time.monotonic()
 asyncio.BaseEventLoop.call_soon = new_call_soon
@@ -72,15 +84,7 @@ class NotGDKID(commands.Bot):
     MEMBER_ROLE_ID = 1008572377703129119
     MUTED_ROLE_ID = 997376437390692373
 
-    WHITELISTED_GUILDS = [
-        716684586129817651,  # GDK1D's Discord
-        749892811905564672,  # Mod Mail Inbox
-        956041825129496586,  # not gdkid
-        764592577575911434,  # Vector Development
-        890355226517860433,  # Stupidly Decent
-        996435988194791614,  # Amaze Discord
-        1030777910103117885, # TechyBrich
-    ]
+    whitelisted_guilds = whitelisted
 
     token = secrets["helper_token"]
     testing_token = secrets["testing_token"]
@@ -184,12 +188,11 @@ class NotGDKID(commands.Bot):
 
         await self.change_presence(status=discord.Status.idle, activity=None)
 
-        owner = await self.fetch_user(596481615253733408)
-        self.owner = owner
+        self.owner = await self.fetch_user(596481615253733408)
 
         end = time.monotonic()
         e = Embed(description=f"❯❯  started up in ~`{round(end - start, 1)}s`")
-        await owner.send(embed=e)
+        await self.owner.send(embed=e)
 
     async def on_app_command_error(self, interaction: Interaction, error: AppCommandError):
         tr = traceback.format_exc()
@@ -216,8 +219,35 @@ class NotGDKID(commands.Bot):
                 pass
 
     async def on_guild_join(self, guild: discord.Guild):
-        if guild.id not in self.WHITELISTED_GUILDS:
-            await guild.leave()
+        get_json = lambda: {(g if (g := self.get_guild(id)) else guild).name: id for id in self.whitelisted_guilds}
+
+        if guild.id in self.whitelisted_guilds:
+            with open("config/whitelisted.json", "w") as f:
+                return json.dump(get_json(), f, indent=2)
+
+        if not guild.get_member(self.owner.id):
+            return await guild.leave()
+
+        embed = Embed(
+            title=f"guild joined (id - {guild.id})",
+            description=f"guild name: `{guild.name}`\n\nwhitelist guild?",
+            timestamp=datetime.now(tz=timezone.utc)
+        )
+
+        view = Confirm(self.owner)
+        view.original_message = await self.owner.send(embed=embed, view=view)
+
+        expired = await view.wait()
+        if expired:
+            return await guild.leave()
+
+        await view.interaction.response.edit_message(view=view)
+        if not view.choice:
+            return await guild.leave()
+
+        self.whitelisted_guilds.add(guild.id)
+        with open("config/whitelisted.json", "w") as f:
+            json.dump(get_json(), f, indent=2)
 
     async def on_voice_state_update(self, member: discord.Member, *args):
         if member.id not in self.owner_ids:
