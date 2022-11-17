@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from functools import partial
 from itertools import cycle
 from typing import Dict, List, Tuple, TYPE_CHECKING
 
 import discord
-from discord.app_commands import command, describe, errors
+from discord.app_commands import errors, command, describe, guild_only
 from discord.ext import commands
 from discord.ui import Button, Select, button
 
@@ -595,6 +594,7 @@ class CheckersGame(commands.Cog):
 
     @command(name="checkers")
     @describe(opponent="the person you wanna play against")
+    @guild_only()
     async def checkers(self, interaction: Interaction, opponent: discord.User):
         """play checkers with someone"""
 
