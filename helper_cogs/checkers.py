@@ -605,7 +605,7 @@ class CheckersGame(commands.Cog):
 
         if opponent.id == interaction.user.id or opponent.bot:
             return await interaction.response.send_message(
-                "aw hell nah", ephemeral=True
+                "you can't play against yourself, or bots", ephemeral=True
             )
 
         view = Confirm(opponent)
