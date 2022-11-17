@@ -258,6 +258,7 @@ class NotGDKID(commands.Bot):
 
         if (
             member.voice
+            and not args[0].channel # before.channel
             and member.voice.self_mute
             and not member.voice.self_deaf
             and not member.guild.voice_client
