@@ -110,7 +110,7 @@ class GoBack(Generic[HomeT], View):
 
 
 class CoursePages(BasePages, auto_defer=False): # type: ignore
-    COURSES_PER_PAGE = 12
+    COURSES_PER_PAGE = 7
     credentials: Credentials
 
     cache: Dict[str, Tuple[List[CourseWork], Course]]
@@ -679,7 +679,7 @@ class Browser(commands.Cog):
 
         def run_google_courses(nextPageToken = None) -> Dict: # all of the google libs are sync
             kwargs = {
-                "pageSize": 50
+                "pageSize": 8
             }
             if nextPageToken is not None:
                 kwargs["pageToken"] = nextPageToken
@@ -713,6 +713,9 @@ class Browser(commands.Cog):
 
         course_chunks: GoogleChunker[Course] = GoogleChunker(self.client.loop, run_google_courses, next_page)
         async for courses in course_chunks:
+            if not courses:
+                break # shouldn't happen but with google, you never know
+
             self.course_cache[interaction.user.id] += courses
 
             last_embed_slots_remaining = menu.COURSES_PER_PAGE - len(menu.pages[-1].fields)
