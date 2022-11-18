@@ -166,6 +166,9 @@ async def fetch_posts(client: GClass):
 
         if not webhook["url"]:
             channel = client.get_channel(webhook["channel_id"])
+            if not channel:
+                return await delete_webhook(is_deleted=True)
+
             assert isinstance(channel, discord.TextChannel)
             try:
                 wh = await channel.create_webhook(
