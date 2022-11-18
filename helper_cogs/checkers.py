@@ -602,8 +602,8 @@ class CheckersGame(commands.Cog):
                 raise MaxConcurrencyReached(game.original_message.jump_url) # type: ignore
 
         if opponent.id == interaction.user.id or opponent.bot:
-            return await interaction.response.send_message(
-                "you can't play against yourself, or bots", ephemeral=True
+            return await interaction.followup.send(
+                "you can't play against yourself, or bots"
             )
 
         view = Confirm(opponent)
