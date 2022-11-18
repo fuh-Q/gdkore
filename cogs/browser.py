@@ -110,7 +110,7 @@ class GoBack(Generic[HomeT], View):
 
 
 class CoursePages(BasePages, auto_defer=False): # type: ignore
-    COURSES_PER_PAGE = 7
+    COURSES_PER_PAGE = 12
     credentials: Credentials
 
     cache: Dict[str, Tuple[List[CourseWork], Course]]
@@ -679,7 +679,7 @@ class Browser(commands.Cog):
 
         def run_google_courses(nextPageToken = None) -> Dict: # all of the google libs are sync
             kwargs = {
-                "pageSize": 8
+                "pageSize": 50
             }
             if nextPageToken is not None:
                 kwargs["pageToken"] = nextPageToken
