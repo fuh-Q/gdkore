@@ -1,3 +1,4 @@
+import asyncio
 import os
 import sys
 
@@ -35,7 +36,7 @@ class TTS(commands.Cog):
 
         if vc and not vc.is_playing():
             try:
-                gTTS(text=text, lang="en", slow=False).save(fp := f"tts.mp3")
+                await asyncio.to_thread(gTTS(text=text, slow=False).save, fp := "tts.mp3")
 
             except Exception as e:
                 print(e)
