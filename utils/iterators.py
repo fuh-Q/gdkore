@@ -53,6 +53,8 @@ class GoogleChunker(Generic[IT]):
 
         if not (next_page := result.get("nextPageToken", "")):
             self._stop = True
+        else:
+            self.next_page = next_page
+            del result["nextPageToken"]
 
-        self.next_page = next_page
         return result[tuple(result)[-1]]
