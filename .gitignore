@@ -8,4 +8,4 @@ __pycache__/
 pyproject.toml
 
 # Private stuff
-config/secrets.json
+config/

@@ -275,9 +275,9 @@ class ClassHome(GoBack[CoursePages]):
 
     @button(label="setup webhook", style=discord.ButtonStyle.primary)
     async def setup_webhook(self, interaction: Interaction, button: Button):
-        if not interaction.guild:
+        if not interaction.guild or not isinstance(interaction.channel, discord.TextChannel):
             return await interaction.response.edit_message(
-                embed=Embed(description="you can't set a webhook in dms"),
+                embed=Embed(description="webhook channel must be a text channel in a guild"),
                 view=GoBack(self._home)
             )
 
