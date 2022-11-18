@@ -301,8 +301,9 @@ class RenameFile(Modal):
 
         self._view._actual_files[self._view.current_page] = self._file
 
+        fp = cap(str(self._file.resolve()))
         title = cap(discord.utils.escape_markdown(self._file.name, as_needed=True))
-        self._page.set_author(name=f"{title:256}").title = f"{title:256}"
+        self._page.set_author(name=f"{fp:256}").title = f"{title:256}"
         await interaction.response.edit_message(embed=self._page)
 
 class ExtensionAction(Enum):
