@@ -93,7 +93,7 @@ class Mod(commands.Cog):
                 base = "" if i == 1 else "OR"
                 q += f"{base} user_id = ${i} AND role_id = ${i + 1} "
             args: Tuple[int, ...] = tuple(chain.from_iterable((after.id, r.id) for r in removed))
-            await self.client.db.execute(q, *args)
+            await self.client.db.execute(q.strip(), *args)
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):

@@ -4,7 +4,7 @@ import sys
 
 import discord
 from discord import Interaction
-from discord.app_commands import command, describe
+from discord.app_commands import command, default_permissions, describe, guild_only
 from discord.ext import commands
 
 from gtts import gTTS
@@ -16,8 +16,9 @@ class TTS(commands.Cog):
     def __init__(self, client: NotGDKID) -> None:
         self.client = client
 
-    @command()
+    @command(name="tts")
     @describe(text="what i'll say")
+    @guild_only()
     async def tts(self, interaction: Interaction, text: str):
         """say something"""
         if (
