@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import json
-from typing import TYPE_CHECKING
+import os
+from typing import List, TYPE_CHECKING
 
 import discord
 from discord import Interaction
@@ -12,40 +12,32 @@ from utils import BotEmojis
 
 if TYPE_CHECKING:
     from helper_bot import NotGDKID
+    from utils import NGKContext
 
 
 class Misc(commands.Cog):
     def __init__(self, client: NotGDKID) -> None:
         self.client = client
 
-    async def update_whitelisted_file(self, ctx: commands.Context):
-        data = {self.client.get_guild(id).name: id for id in self.client.whitelisted_guilds}
-        with open("config/whitelisted.json", "w") as f:
-            json.dump(data, f, indent=2)
-
-        try:
-            await ctx.message.add_reaction(BotEmojis.YES)
-        except discord.Forbidden:
-            pass
-
     @commands.command(name="whitelist", aliases=["wl"], hidden=True)
     @commands.is_owner()
-    async def wl(self, ctx: commands.Context, guild_id: int):
-        self.client.whitelisted_guilds.add(guild_id)
+    async def wl(self, ctx: NGKContext, guild_id: int):
+        await self.client.whitelist.put(guild_id, None)
 
-        try:
-            await ctx.message.add_reaction(BotEmojis.YES)
-        except discord.Forbidden:
-            pass
+        await ctx.try_react(emoji=BotEmojis.YES)
 
     @commands.command(name="unwhitelist", aliases=["uwl"], hidden=True)
     @commands.is_owner()
-    async def uwl(self, ctx: commands.Context, guild_id: int):
-        self.client.whitelisted_guilds.remove(guild_id)
-        await self.update_whitelisted_file(ctx)
+    async def uwl(self, ctx: NGKContext, guild_id: int):
+        try:
+            await self.client.whitelist.remove(guild_id)
+        except KeyError:
+            return await ctx.try_react(emoji=BotEmojis.NO)
 
-        if (guild := self.client.get_guild(guild_id)):
+        if (guild := self.client.get_guild(guild_id)) is not None:
             await guild.leave()
+
+        await ctx.try_react(emoji=BotEmojis.YES)
 
     @command(name="shoppingcart")
     async def _shoppingcart(self, interaction: Interaction):

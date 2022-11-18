@@ -15,6 +15,7 @@ from utils import BotEmojis, Confirm
 
 if TYPE_CHECKING:
     from helper_bot import NotGDKID
+    from utils import NGKContext
 
 
 class BCancer(commands.Cog):
@@ -30,6 +31,9 @@ class BCancer(commands.Cog):
 
     def __init__(self, client: NotGDKID) -> None:
         self.client = client
+
+    async def cog_check(self, ctx: NGKContext):
+        return ctx.guild and ctx.guild.id == self.client.AMAZE_GUILD_ID
 
     def make_nick(self, text: str):
         if "b" in text.lower():
@@ -85,24 +89,27 @@ class BCancer(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
-        if (not self.is_bcancered(member)
-            and member.guild.id == self.client.AMAZE_GUILD_ID
-        ):
+        if not member.guild.id == self.client.AMAZE_GUILD_ID:
+            return
+
+        if not self.is_bcancered(member):
             nick = self.make_nick(member.display_name)
             await member.edit(nick=nick, reason="member auto-🅱️-cancer'd")
 
     @commands.Cog.listener()
     async def on_member_update(self, before: discord.Member, after: discord.Member):
-        if (before.display_name != after.display_name
-            and after.guild.id == self.client.AMAZE_GUILD_ID
-        ):
+        if not after.guild.id == self.client.AMAZE_GUILD_ID:
+            return
+
+        if (before.display_name != after.display_name):
             if not self.is_bcancered(after):
                 nick = self.make_nick(after.display_name)
                 await after.edit(nick=nick, reason="member auto-🅱️-cancer'd")
 
     @commands.command(name="bcancer")
     @commands.is_owner()
-    async def bcancer(self, ctx: commands.Context, member: discord.Member):
+    @commands.guild_only()
+    async def bcancer(self, ctx: NGKContext, member: discord.Member):
         nick = self.make_nick(member.name)
 
         await member.edit(
@@ -114,7 +121,9 @@ class BCancer(commands.Cog):
 
     @commands.command(name="bhoist")
     @commands.is_owner()
-    async def bhoist(self, ctx: commands.Context):
+    @commands.guild_only()
+    async def bhoist(self, ctx: NGKContext):
+        assert ctx.guild is not None
         to_bcancer = [m for m in ctx.guild.members
                       if not self.is_bcancered(m)
                       and m.id not in self.WHITELIST]

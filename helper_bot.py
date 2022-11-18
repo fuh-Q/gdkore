@@ -18,9 +18,11 @@ from discord.gateway import DiscordWebSocket
 from discord.ext import commands, tasks
 
 from utils import (
+    Config,
     Confirm,
     Embed,
     GClassLogging,
+    NGKContext,
     PrintColours,
     mobile,
     is_dst,
@@ -30,6 +32,7 @@ from utils import (
 if TYPE_CHECKING:
     from discord import Interaction
 
+    from helper_cogs.checkers import Game
     from utils import PostgresPool
 
 try:
@@ -41,9 +44,6 @@ else:
 
 with open("config/secrets.json", "r") as f:
     secrets: Dict[str, str] = json.load(f)
-
-with open("config/whitelisted.json", "r") as f:
-    whitelisted: Set[int] = set(json.load(f).values())
 
 start = time.monotonic()
 asyncio.BaseEventLoop.call_soon = new_call_soon
@@ -84,8 +84,6 @@ class NotGDKID(commands.Bot):
     MEMBER_ROLE_ID = 1008572377703129119
     MUTED_ROLE_ID = 997376437390692373
 
-    whitelisted_guilds = whitelisted
-
     token = secrets["helper_token"]
     testing_token = secrets["testing_token"]
     postgres_dns = secrets["postgres_dns"] + "notgdkid"
@@ -122,7 +120,6 @@ class NotGDKID(commands.Bot):
             "cogs.debug",
             "cogs.dev",
             "cogs.Eval",
-            "helper_cogs.autorole",
             "helper_cogs.bcancer",
             "helper_cogs.checkers",
             "helper_cogs.emojis",
@@ -132,7 +129,9 @@ class NotGDKID(commands.Bot):
             "utils",
         ]
 
-        self._checkers_games = []
+        self._checkers_games: Set[Game] = set()
+
+        self._pending_verification: Set[int] = set()
 
         self._restart = False
         self.description = self.__doc__ or ""
@@ -140,6 +139,7 @@ class NotGDKID(commands.Bot):
             hours=-4 if is_dst() else -5
         )))
 
+        self.tree.interaction_check = self.on_app_command
         self.tree.on_error = self.on_app_command_error
         self.add_commands()
 
@@ -170,6 +170,7 @@ class NotGDKID(commands.Bot):
 
     async def setup_hook(self) -> None:
         self._db = await asyncpg.create_pool(self.postgres_dns)
+        self.whitelist: Config[str] = Config("config/whitelisted.json")
         self.logger.info(f"{PrintColours.GREEN}database connected")
 
         self.status_task = status_task.start(self)
@@ -189,13 +190,38 @@ class NotGDKID(commands.Bot):
             f"logged in as: {self.user.name}#{self.user.discriminator} : {self.user.id}"
         )
 
-        await self.change_presence(status=discord.Status.idle, activity=None)
+        for guild in self.guilds:
+            if guild.id not in self.whitelist:
+                await asyncio.sleep(0.2)
+                await guild.leave()
 
+        await self.change_presence(status=discord.Status.idle, activity=None)
         self.owner = await self.fetch_user(596481615253733408)
 
         end = time.monotonic()
         e = Embed(description=f"❯❯  started up in ~`{round(end - start, 1)}s`")
         await self.owner.send(embed=e)
+
+    async def process_commands(self, message: discord.Message) -> None:
+        ctx = await self.get_context(message, cls=NGKContext)
+
+        if message.author.bot:
+            return
+
+        assert message.guild is not None
+        if (g := message.guild) and g.id in self._pending_verification:
+            return
+
+        await self.invoke(ctx)
+
+    async def on_app_command(self, interaction: Interaction) -> bool:
+        if (g := interaction.guild) and g.id in self._pending_verification:
+            await interaction.response.send_message(
+                "server is not whitelisted", ephemeral=True
+            )
+
+            return False
+        return True # i only really care about servers here
 
     async def on_app_command_error(self, interaction: Interaction, error: AppCommandError):
         tr = traceback.format_exc()
@@ -222,14 +248,15 @@ class NotGDKID(commands.Bot):
                 pass
 
     async def on_guild_join(self, guild: discord.Guild):
-        get_json = lambda: {(g if (g := self.get_guild(id)) else guild).name: id for id in self.whitelisted_guilds}
-
-        if guild.id in self.whitelisted_guilds:
-            with open("config/whitelisted.json", "w") as f:
-                return json.dump(get_json(), f, indent=2)
+        if not (name := self.whitelist.get(guild.id, 0)):
+            if name is None:
+                return await self.whitelist.put(guild.id, guild.name)
 
         if not guild.get_member(self.owner.id):
+            await self.whitelist.remove(guild.id, missing_ok=True)
             return await guild.leave()
+
+        self._pending_verification.add(guild.id)
 
         embed = Embed(
             title=f"guild joined (id - {guild.id})",
@@ -248,9 +275,8 @@ class NotGDKID(commands.Bot):
         if not view.choice:
             return await guild.leave()
 
-        self.whitelisted_guilds.add(guild.id)
-        with open("config/whitelisted.json", "w") as f:
-            json.dump(get_json(), f, indent=2)
+        await self.whitelist.put(guild.id, guild.name)
+        self._pending_verification.remove(guild.id)
 
     async def on_voice_state_update(self, member: discord.Member, *args):
         if member.id not in self.owner_ids:

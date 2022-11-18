@@ -30,9 +30,7 @@ MOVEMENTS: List[str] = ["NORTHWEST", "NORTHEAST", "SOUTHWEST", "SOUTHEAST"]
 
 def directional_button(view: Game, direction: str) -> Button[Game]:
     class cls(Button):
-        @property
-        def view(self) -> Game:
-            return self._view # type: ignore
+        view: Game
 
         def __init__(self, view: Game) -> None:
             self._view = view
@@ -329,7 +327,7 @@ class Game(View):
         self.timed_out: bool = False
         self.turn = next(self.logic.turns)
 
-        self.client._checkers_games.append(self)
+        self.client._checkers_games.add(self)
 
         super().__init__(timeout=120)
         self.clear_items()
@@ -350,7 +348,7 @@ class Game(View):
     def _generate_select_options(self) -> List[discord.SelectOption]:
         ALPHABET = ["A", "B", "C", "D", "E", "F", "G", "H"]
 
-        options: List[discord.SelectOption] = sorted([
+        options: List[discord.SelectOption] = sorted((
             discord.SelectOption(
                 label=f"{ALPHABET[p.x]}{p.y + 1}",
                 emoji=(
@@ -368,7 +366,7 @@ class Game(View):
                 ),
                 value=f"{p.x}{p.y}",
             ) for p in self.logic.pieces
-            if p.owner is self.turn and p is not self.selected],
+            if p.owner is self.turn and p is not self.selected),
             key=lambda k: k.value[1],
             reverse=True if self.turn is self.logic.opponent else False,
         )
@@ -560,9 +558,7 @@ class Game(View):
 
 
 class PieceSelector(Select):
-    @property
-    def view(self) -> Game:
-        return self._view # type: ignore
+    view: Game
 
     def __init__(self, view: Game) -> None:
         self._view = view
@@ -598,10 +594,12 @@ class CheckersGame(commands.Cog):
     async def checkers(self, interaction: Interaction, opponent: discord.User):
         """play checkers with someone"""
 
+        await interaction.response.defer()
+
         for game in self.client._checkers_games:
             game: Game
             if interaction.user in game.logic.users:
-                raise MaxConcurrencyReached(game.original_message.jump_url)
+                raise MaxConcurrencyReached(game.original_message.jump_url) # type: ignore
 
         if opponent.id == interaction.user.id or opponent.bot:
             return await interaction.response.send_message(
@@ -615,18 +613,17 @@ class CheckersGame(commands.Cog):
             colour=0x09DFFF,
         )
 
-        await interaction.response.send_message(
-            opponent.mention, embed=embed, view=view
+        msg = await interaction.followup.send(
+            opponent.mention, embed=embed, view=view, wait=True
         )
 
         assert isinstance(interaction.channel, discord.TextChannel)
-        view.original_message = (
-            msg := await interaction.channel.fetch_message(
-                (await interaction.original_response()).id
-            )
-        )
+        view.original_message = msg
 
-        await view.wait()
+        expired = await view.wait()
+        if expired:
+            return
+
         await view.interaction.response.defer()
 
         if not view.choice:
@@ -649,7 +646,8 @@ class CheckersGame(commands.Cog):
                 await msg.edit(embed=embed, view=view)
                 return
 
-        view = Game(interaction, [interaction.user, opponent]) # type: ignore
+        assert isinstance(interaction.user, discord.User)
+        view = Game(interaction, [interaction.user, opponent])
 
         header = f"{view.turn.mention} your turn! you have `2 minutes` to make a move"
         board = view.generate_board()
