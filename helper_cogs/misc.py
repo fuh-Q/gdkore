@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-import os
-from typing import List, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
-import discord
 from discord import Interaction
 from discord.app_commands import command
 from discord.ext import commands
@@ -41,6 +39,7 @@ class Misc(commands.Cog):
 
     @command(name="shoppingcart")
     async def _shoppingcart(self, interaction: Interaction):
+        """the shopping cart theory"""
         await interaction.response.send_message(
             "https://i.redd.it/3zhf6p3lrky41.jpg", ephemeral=True
         )

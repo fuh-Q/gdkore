@@ -16,17 +16,13 @@ if TYPE_CHECKING:
     from helper_bot import NotGDKID
     from utils import NGKContext
 
-muted = lambda user: f"""
-hello, i have been summoned by the great `{user.name}` to restore some peace and sanity in this hell of a server.
-
-their desires are simple - i literally said it one line above
-
-and as for fulfilling this desire, i shall utilise the neverfailing power of the **indefinite mute**.
+muted: Callable[[discord.Member], str] = lambda user: f"""
+{user.mention} has been muted forever.
 
 L
 """
 
-self_muted = lambda: f"""
+self_muted: Callable[[], str] = lambda: f"""
 okay, you've muted yourself forever.
 
 if you wanna get unmuted, dm `gdkid#0111` so he can laugh at you {BotEmojis.HAHALOL}
@@ -49,6 +45,8 @@ class Mod(commands.Cog):
             guild_ids=[self.client.AMAZE_GUILD_ID],
             callback=self.mute_user
         )
+
+        self._ignore_ids: Set[int] = set()
 
         self.client.tree.add_command(self.mute_user_cmd)
 
@@ -74,6 +72,10 @@ class Mod(commands.Cog):
             return
 
         if before.roles == after.roles:
+            return
+
+        if after.id in self._ignore_ids:
+            self._ignore_ids.remove(after.id)
             return
 
         added = tuple(r for r in after.roles
@@ -136,9 +138,7 @@ class Mod(commands.Cog):
                     discord.Object(self.client.MUTED_ROLE_ID),
                     reason=f"member mute requested by {interaction.user.name}#{interaction.user.discriminator}"
                 )
-                await interaction.response.defer(ephemeral=True)
-                return await interaction.delete_original_response()
-                #return await interaction.response.send_message(muted(interaction.user))
+                return await interaction.response.send_message(muted(target))
             await self.client.db.execute(insert_q(2), target.id, self.client.MUTED_ROLE_ID)
             await interaction.response.send_message(
                 "this user is not in the server, but they've been binded with the sticky role"
@@ -151,35 +151,50 @@ class Mod(commands.Cog):
 
     @commands.command(name="bind", aliases=["bindrole", "br"])
     @commands.is_owner()
-    @commands.guild_only()
-    async def bind_role(self, ctx: NGKContext, target: discord.User | discord.Member, *, role_search: str):
-        assert ctx.guild is not None
-        role = self.find_role(ctx.guild, role_search)
-        if isinstance(target, discord.User):
-            await self.client.db.execute(insert_q(2), target.id, role.id)
+    async def bind_role(self, ctx: NGKContext, target: discord.User, *, role_search: str):
+        guild = self.client.amaze_guild
+        member = guild.get_member(target.id)
 
-        elif isinstance(target, discord.Member) and role not in target.roles:
-            await target.add_roles(role)
+        role = self.find_role(guild, role_search)
+        if not member:
+            await self.client.db.execute(insert_q(2), target.id, role.id)
+        else:
+            await member.add_roles(role)
 
         await ctx.message.add_reaction(BotEmojis.YES)
 
     @commands.command(name="unbind", aliases=["unbindrole", "ub"])
     @commands.is_owner()
-    @commands.guild_only()
     async def unbind_role(self, ctx: NGKContext, target: discord.User, *, role_search: str | None = None):
-        assert ctx.guild is not None
+        guild = self.client.amaze_guild
+        member = guild.get_member(target.id)
+
         if not role_search:
             q = """DELETE FROM stickyroles
-                   WHERE user_id = $1"""
-            await self.client.db.execute(q, target.id)
-            return await ctx.reply(
-                f"all sticky roles cleared for `{target.name}`", mention_author=True
-            )
+                   WHERE user_id = $1 RETURNING role_id"""
+            rows = await self.client.db.fetch(q, target.id)
+            if not rows:
+                return await ctx.reply("nothing found")
 
-        role = self.find_role(ctx.guild, role_search)
-        q = """DELETE FROM stickyroles
-               WHERE user_id = $1 AND role_id = $2"""
-        await self.client.db.execute(q, target.id, role.id)
+            await ctx.reply(
+                f"cleared {len(rows)} role(s) for <@!{target.id}>",
+                allowed_mentions=discord.AllowedMentions(users=False),
+                mention_author=True
+            )
+            if member is None:
+                return
+
+            self._ignore_ids.add(member.id)
+            roles = (role for r in rows if (role := guild.get_role(r["role_id"])) is not None)
+            return await member.remove_roles(*roles, atomic=False)
+
+        role = self.find_role(guild, role_search)
+        if not member:
+            q = """DELETE FROM stickyroles
+                WHERE user_id = $1 AND role_id = $2"""
+            await self.client.db.execute(q, target.id, role.id)
+        else:
+            await member.remove_roles(role)
 
         await ctx.message.add_reaction(BotEmojis.YES)
 

@@ -197,6 +197,7 @@ class NotGDKID(commands.Bot):
 
         await self.change_presence(status=discord.Status.idle, activity=None)
         self.owner = await self.fetch_user(596481615253733408)
+        self.amaze_guild = self.get_guild(self.AMAZE_GUILD_ID)
 
         end = time.monotonic()
         e = Embed(description=f"❯❯  started up in ~`{round(end - start, 1)}s`")
