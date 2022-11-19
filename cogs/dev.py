@@ -143,7 +143,7 @@ class DirectoryView(BasePages):
     def get_select_options(self) -> List[discord.SelectOption]:
         opts = [discord.SelectOption(label=f"{cap(f.name):100}", value=str(f.resolve()))
                 for f in self._directory_slices[self.slice_index]
-                if not f.name.startswith(".") and not f.name in ("venv", "__pycache__")]
+                if not f.name.startswith(".") and not f.name in self.EXCLUDED_DIRS]
 
         opts.insert(0, discord.SelectOption(
             label="..",
