@@ -75,13 +75,9 @@ class Mod(commands.Cog):
             self._ignore_ids.remove(after.id)
             return
 
-        added = tuple(r for r in after.roles
-                      if r not in before.roles
-                      and r.id != self.client.MEMBER_ROLE_ID)
-
-        removed = tuple(r for r in before.roles
-                        if r not in after.roles
-                        and r.id != self.client.MEMBER_ROLE_ID)
+        r = self.client.amaze_guild.get_role(self.client.AMAZE_GUILD_ID)
+        added = tuple(set(after.roles) - set(before.roles) - {r})
+        removed = tuple(set(before.roles) - set(after.roles) - {r})
 
         if added:
             args: Tuple[int, ...] = tuple(chain.from_iterable((after.id, r.id) for r in added))
