@@ -53,9 +53,6 @@ class Mod(commands.Cog):
     async def cog_unload(self) -> None:
         self.client.tree.remove_command("shut the fuck up")
 
-    async def cog_check(self, ctx: NGKContext):
-        return ctx.guild and ctx.guild.id == self.client.AMAZE_GUILD_ID
-
     def find_role(self, guild: discord.Guild, search: str) -> discord.Role:
         try:
             role = guild.get_role(int(search))

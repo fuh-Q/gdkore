@@ -141,9 +141,17 @@ class DirectoryView(BasePages):
             yield directories[idx:min(idx + chunk_size, l)]
 
     def get_select_options(self) -> List[discord.SelectOption]:
-        opts = [discord.SelectOption(label=f"{cap(f.name):100}", value=str(f.resolve()))
-                for f in self._directory_slices[self.slice_index]
-                if not f.name.startswith(".") and not f.name in self.EXCLUDED_DIRS]
+        opts = []
+        values = set()
+        for f in self._directory_slices[self.slice_index]:
+            if (not f.name.startswith(".")
+                and not f.name in self.EXCLUDED_DIRS
+                and (r := str(f.resolve())) not in values):
+
+                values.add(r)
+                opts.append(discord.SelectOption(
+                    label=f"{cap(f.name):100}", value=r
+                ))
 
         opts.insert(0, discord.SelectOption(
             label="..",
