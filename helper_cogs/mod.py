@@ -85,10 +85,10 @@ class Mod(commands.Cog):
 
         if added:
             args: Tuple[int, ...] = tuple(chain.from_iterable((after.id, r.id) for r in added))
-            await self.client.db.execute(insert_q(len(added)), *args)
+            await self.client.db.execute(insert_q(len(added) * 2), *args)
         if removed:
             q = "DELETE FROM stickyroles WHERE"
-            for i in range(1, len(removed) + 1, 2):
+            for i in range(1, len(removed) * 2 + 1, 2):
                 base = "" if i == 1 else "OR"
                 q += f"{base} user_id = ${i} AND role_id = ${i + 1} "
             args: Tuple[int, ...] = tuple(chain.from_iterable((after.id, r.id) for r in removed))
