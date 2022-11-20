@@ -27,7 +27,7 @@ class Authorization(commands.Cog):
         get a login link to authorize with google
         """
 
-        def run_google(): # all of the google libs are sync
+        def run_google():  # all of the google libs are sync
             return self.client.google_flow.authorization_url(
                 access_type="offline",
                 include_granted_scopes="false",
@@ -40,23 +40,23 @@ class Authorization(commands.Cog):
             """
         if await self.client.db.fetchrow(q, interaction.user.id):
             return await interaction.followup.send(
-                f"hey, it looks like you've already authorized. " \
+                f"hey, it looks like you've already authorized. "
                 f"if you want to logout, just use </logout:{self.client.LOGOUT_CMD_ID}>",
-                ephemeral=True
+                ephemeral=True,
             )
 
-        MESSAGE = "\N{WAVING HAND SIGN} hey! please go to [this link](%s) " \
-                 f"to authorize with google, the link will expire " \
-                 f"**<t:{int(time.time() + self.LINK_EXPIRY)}:R>**" \
-                 "\n\nnote that you can only have your google account linked to **one** " \
-                 "discord account, and things will break if you try signing in on an " \
-                 "alt account"
+        MESSAGE = (
+            "\N{WAVING HAND SIGN} hey! please go to [this link](%s) "
+            f"to authorize with google, the link will expire "
+            f"**<t:{int(time.time() + self.LINK_EXPIRY)}:R>**"
+            "\n\nnote that you can only have your google account linked to **one** "
+            "discord account, and things will break if you try signing in on an "
+            "alt account"
+        )
 
         url, state = await asyncio.to_thread(run_google)
 
-        await interaction.followup.send(
-            MESSAGE % url, ephemeral=True
-        )
+        await interaction.followup.send(MESSAGE % url, ephemeral=True)
 
         await self.client.redis.set(state, interaction.user.id, self.LINK_EXPIRY)
 
@@ -68,15 +68,13 @@ class Authorization(commands.Cog):
         view = Confirm(interaction.user)
         embed = Embed(
             title="confirm logout",
-            description="you will no longer be able to use our commands " \
-                        "while signed out. proceed?" \
-                        "\n\n**note that all of your configured webhooks " \
-                        "will stop working once you logout**",
-            colour=BotColours.red
+            description="you will no longer be able to use our commands "
+            "while signed out. proceed?"
+            "\n\n**note that all of your configured webhooks "
+            "will stop working once you logout**",
+            colour=BotColours.red,
         )
-        await interaction.response.send_message(
-            embed=embed, view=view, ephemeral=True
-        )
+        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
         view.original_message = await interaction.original_response()
 
         expired = await view.wait()
@@ -85,14 +83,10 @@ class Authorization(commands.Cog):
 
         await view.interaction.response.edit_message(view=view)
         if not view.choice:
-            return await interaction.followup.send(
-                "phew, dodged a bullet there", ephemeral=True
-            )
+            return await interaction.followup.send("phew, dodged a bullet there", ephemeral=True)
 
         await self.client.remove_access(interaction.user.id)
-        await interaction.followup.send(
-            "successfully logged out", ephemeral=True
-        )
+        await interaction.followup.send("successfully logged out", ephemeral=True)
 
 
 async def setup(client: GClass):

@@ -36,17 +36,13 @@ if TYPE_CHECKING:
     from discord.ui import Item
 
     from bot import GClass
-    from utils import (
-        Attachment,
-        Post,
-        Resource,
-        WebhookData
-    )
+    from utils import Attachment, Post, Resource, WebhookData
 
 DEL_QUERY = """DELETE FROM webhooks
                 WHERE user_id = $1
                 AND course_id = $2
                 AND channel_id = $3"""
+
 
 @dataclass(init=False, slots=True)
 class EmbedWithPostData:
@@ -76,27 +72,37 @@ class EmbedWithPostData:
     def embed_header(self) -> str:
         return self.assignment_response or self.type
 
+
 @tasks.loop(minutes=15)
 async def fetch_posts(client: GClass):
-    def run_google() -> Tuple[Post]: # all google libs are sync
-        kwargs = {
-            "courseId": webhook["course_id"],
-            "pageSize": 5
-        }
+    def run_google() -> Tuple[Post]:  # all google libs are sync
+        kwargs = {"courseId": webhook["course_id"], "pageSize": 5}
         start = len(webhook) - 3
         courses: Resource = service.courses()
         _: Callable[[Resource], Dict[str, Post]] = lambda item: item.list(**kwargs).execute()
 
-        return tuple(chain.from_iterable(map(lambda i: tuple(filter(
-            lambda m: (created_at := format_google_time(m)) > webhook[tuple(webhook.keys())[i[0] + start]]
-            and created_at > webhook["last_date"], i[1]
-        )), enumerate((
-            _(courses.announcements()).get("announcements", []),              # announcements
-            _(courses.courseWorkMaterials()).get("courseWorkMaterial", []),   # materials
-            _(courses.courseWork()).get("courseWork", [])                     # assignments
-        )))))
+        return tuple(
+            chain.from_iterable(
+                map(
+                    lambda i: tuple(
+                        filter(
+                            lambda m: (created_at := format_google_time(m)) > webhook[tuple(webhook.keys())[i[0] + start]]
+                            and created_at > webhook["last_date"],
+                            i[1],
+                        )
+                    ),
+                    enumerate(
+                        (
+                            _(courses.announcements()).get("announcements", []),  # announcements
+                            _(courses.courseWorkMaterials()).get("courseWorkMaterial", []),  # materials
+                            _(courses.courseWork()).get("courseWork", []),  # assignments
+                        )
+                    ),
+                )
+            )
+        )
 
-    def make_embeds(posts: Tuple[Post]) -> List[EmbedWithPostData]: # transform post JSON into dpy embeds
+    def make_embeds(posts: Tuple[Post]) -> List[EmbedWithPostData]:  # transform post JSON into dpy embeds
         pages: List[EmbedWithPostData] = []
 
         for post in posts:
@@ -106,63 +112,41 @@ async def fetch_posts(client: GClass):
                 title=f"{cap(post.get('title', '')):256}",
                 description=f"{cap(d):4096}",
                 timestamp=format_google_time(post),
-                url=post["alternateLink"]
-            ).set_footer(
-                text="posted at",
-                icon_url=ICONS["posted"]
-            )
+                url=post["alternateLink"],
+            ).set_footer(text="posted at", icon_url=ICONS["posted"])
 
             if post.get("workType", None):
                 page.colour = BotColours.purple
 
-            if (due_date := get_due_date(post)): # type: ignore
-                page.add_field(
-                    name="assignment due",
-                    value=f"<t:{due_date.timestamp():.0f}:R>"
-                )
+            if due_date := get_due_date(post):  # type: ignore
+                page.add_field(name="assignment due", value=f"<t:{due_date.timestamp():.0f}:R>")
 
             assert page.description
             char_count = page.character_count()
             if char_count > 6000:
-                page.description = format(
-                    cap(page.description), str(4096 - (char_count - 6000))
-                )
+                page.description = format(cap(page.description), str(4096 - (char_count - 6000)))
 
             obj = EmbedWithPostData(page, post)
-            obj.embed.set_author(
-                name="new " + (n := obj.embed_header),
-                icon_url=ICONS[n],
-                url=post["alternateLink"]
-            )
+            obj.embed.set_author(name="new " + (n := obj.embed_header), icon_url=ICONS[n], url=post["alternateLink"])
             pages.append(obj)
 
         return pages
 
-    async def delete_webhook(*, is_deleted: bool = False) -> None: # delete the current webhook
-        await client.db.execute(DEL_QUERY,
-            webhook["user_id"],
-            webhook["course_id"],
-            webhook["channel_id"]
-        )
+    async def delete_webhook(*, is_deleted: bool = False) -> None:  # delete the current webhook
+        await client.db.execute(DEL_QUERY, webhook["user_id"], webhook["course_id"], webhook["channel_id"])
 
         if not is_deleted:
             try:
                 wh = Webhook.from_url(webhook["url"], session=client.session, bot_token=client.token)
-                await wh.send(embed=Embed(
-                    description="course not found, deleting this webhook..."
-                ))
+                await wh.send(embed=Embed(description="course not found, deleting this webhook..."))
                 await wh.delete(reason=f"associated course could not be found")
             except discord.HTTPException:
-                pass # we tried
+                pass  # we tried
 
-    async def post_data(pages: List[EmbedWithPostData]) -> None: # post embeds to the webhook's channel
+    async def post_data(pages: List[EmbedWithPostData]) -> None:  # post embeds to the webhook's channel
         wh: discord.Webhook
 
-        last_posts = {n: datetime.now(tz=timezone.utc) for n in (
-            "announcement",
-            "material",
-            "assignment"
-        )}
+        last_posts = {n: datetime.now(tz=timezone.utc) for n in ("announcement", "material", "assignment")}
 
         if not webhook["url"]:
             channel = client.get_channel(webhook["channel_id"])
@@ -172,8 +156,7 @@ async def fetch_posts(client: GClass):
             assert isinstance(channel, discord.TextChannel)
             try:
                 wh = await channel.create_webhook(
-                    name=webhook["course_name"],
-                    reason=f"created webhook for course {webhook['course_name']}"
+                    name=webhook["course_name"], reason=f"created webhook for course {webhook['course_name']}"
                 )
             except discord.Forbidden:
                 return await delete_webhook(is_deleted=True)
@@ -183,12 +166,7 @@ async def fetch_posts(client: GClass):
                     AND course_id = $3
                     AND channel_id = $4
                 """
-            await client.db.execute(q,
-                wh.url,
-                webhook["user_id"],
-                webhook["course_id"],
-                webhook["channel_id"]
-            )
+            await client.db.execute(q, wh.url, webhook["user_id"], webhook["course_id"], webhook["channel_id"])
         else:
             wh = Webhook.from_url(webhook["url"], session=client.session)
 
@@ -197,11 +175,7 @@ async def fetch_posts(client: GClass):
 
             await asyncio.sleep(1)
             view = View()
-            view.add_item(Button(
-                label="view in classroom",
-                style=discord.ButtonStyle.link,
-                url=page.url
-            ))
+            view.add_item(Button(label="view in classroom", style=discord.ButtonStyle.link, url=page.url))
             view.weights.weights[0] = 5
             AttachmentsView.add_attachments(page.materials, view)
 
@@ -210,8 +184,8 @@ async def fetch_posts(client: GClass):
                 json={
                     "username": webhook["course_name"],
                     "embeds": [page.embed.to_dict()],
-                    "components": view.to_components()
-                }
+                    "components": view.to_components(),
+                },
             ) as resp:
                 if resp.status == 404:
                     await delete_webhook()
@@ -225,12 +199,13 @@ async def fetch_posts(client: GClass):
                 AND course_id = $2
                 AND channel_id = $3
             """
-        await client.db.execute(q,
+        await client.db.execute(
+            q,
             webhook["user_id"],
             webhook["course_id"],
             webhook["channel_id"],
             datetime.now(tz=timezone.utc),
-            *last_posts.values()
+            *last_posts.values(),
         )
 
     resource_cache: CappedDict[int, Resource] = CappedDict(50)
@@ -238,8 +213,7 @@ async def fetch_posts(client: GClass):
     webhooks: List[WebhookData] = await client.db.fetch("SELECT * FROM webhooks")
 
     client.logger.info(
-        PrintColours.BLUE + "running loop for "
-        f"{PrintColours.GREEN}{len(webhooks):,}{PrintColours.BLUE} webhook(s)"
+        PrintColours.BLUE + "running loop for " f"{PrintColours.GREEN}{len(webhooks):,}{PrintColours.BLUE} webhook(s)"
     )
 
     for webhook in webhooks:
@@ -259,10 +233,7 @@ async def fetch_posts(client: GClass):
                     post_cache[webhook["course_id"]] = tuple()
                     continue
 
-                new_posts = tuple(sorted(
-                    new_posts,
-                    key = lambda i: format_google_time(i).timestamp()
-                ))
+                new_posts = tuple(sorted(new_posts, key=lambda i: format_google_time(i).timestamp()))
                 post_cache[webhook["course_id"]] = new_posts
             elif not new_posts:
                 continue
@@ -276,6 +247,7 @@ async def fetch_posts(client: GClass):
             if e.status_code in (403, 404):
                 await delete_webhook()
 
+
 class WebhookPicker(Select):
     _view: WebhookPages
 
@@ -286,12 +258,7 @@ class WebhookPicker(Select):
     def __init__(self, view: WebhookPages) -> None:
         self._view = view
 
-        super().__init__(
-            placeholder=self.get_placeholder(),
-            min_values=1,
-            max_values=1,
-            options=self.view.select_options
-        )
+        super().__init__(placeholder=self.get_placeholder(), min_values=1, max_values=1, options=self.view.select_options)
 
     def get_placeholder(self) -> str:
         total = len(tuple(chain.from_iterable(self.view._webhooks)))
@@ -314,13 +281,11 @@ class WebhookPicker(Select):
         wh: WebhookData = self.view._webhooks[self.view.current_page].pop(idx := int(self.values[0]))
         embed = Embed(
             title="confirm delete webhook",
-            description=f"are you sure you want to delete the webhook for " \
-                        f"**{cap(wh['course_name']):256}** created in <#{wh['channel_id']}>?",
-            colour=BotColours.red
+            description=f"are you sure you want to delete the webhook for "
+            f"**{cap(wh['course_name']):256}** created in <#{wh['channel_id']}>?",
+            colour=BotColours.red,
         )
-        msg = await interaction.followup.send(
-            embed=embed, view=view, ephemeral=True, wait=True
-        )
+        msg = await interaction.followup.send(embed=embed, view=view, ephemeral=True, wait=True)
         view.original_message = msg
 
         expired = await view.wait()
@@ -334,19 +299,13 @@ class WebhookPicker(Select):
 
         if wh["url"]:
             try:
-                await Webhook.from_url(
-                    wh["url"],
-                    session=self.view.client.session,
-                    bot_token=self.view.client.token
-                ).delete(reason=f"{interaction.user.name} ({interaction.user.id}) deleted webhook")
+                await Webhook.from_url(wh["url"], session=self.view.client.session, bot_token=self.view.client.token).delete(
+                    reason=f"{interaction.user.name} ({interaction.user.id}) deleted webhook"
+                )
             except discord.NotFound:
-                pass # meh their problem now
+                pass  # meh their problem now
 
-        await self.view.client.db.execute(DEL_QUERY,
-            wh["user_id"],
-            wh["course_id"],
-            wh["channel_id"]
-        )
+        await self.view.client.db.execute(DEL_QUERY, wh["user_id"], wh["course_id"], wh["channel_id"])
 
         self.view._pages[self.view.current_page].remove_field(idx)
         self.placeholder = self.get_placeholder()
@@ -358,14 +317,10 @@ class WebhookPicker(Select):
         await interaction.edit_original_response(**self.view.edit_kwargs)
 
 
-class WebhookPages(BasePages, auto_defer=False): # type: ignore
+class WebhookPages(BasePages, auto_defer=False):  # type: ignore
     WEBHOOKS_PER_PAGE = 12
 
-    def __init__(
-        self,
-        interaction: Interaction,
-        webhooks: List[WebhookData]
-    ):
+    def __init__(self, interaction: Interaction, webhooks: List[WebhookData]):
         self._pages = []
         self._current = 0
         self._parent = False
@@ -392,24 +347,23 @@ class WebhookPages(BasePages, auto_defer=False): # type: ignore
             page = Embed()
             page.set_author(
                 name=f"{interaction.user.name}#{interaction.user.discriminator}'s webhooks",
-                icon_url=interaction.user.display_avatar.url
+                icon_url=interaction.user.display_avatar.url,
             )
-            self._webhooks.append(bundle := webhooks[:self.WEBHOOKS_PER_PAGE])
+            self._webhooks.append(bundle := webhooks[: self.WEBHOOKS_PER_PAGE])
             for webhook in bundle:
                 page.add_field(
                     name=f"{cap(webhook['course_name']):256}",
-                    value= \
-                        f"— created in <#{webhook['channel_id']}>\n" \
-                        f"— in guild `{self.client.get_guild(webhook['guild_id']).name}`"
+                    value=f"— created in <#{webhook['channel_id']}>\n"
+                    f"— in guild `{self.client.get_guild(webhook['guild_id']).name}`",
                 )
             self._pages.append(page)
-            webhooks = webhooks[self.WEBHOOKS_PER_PAGE:]
+            webhooks = webhooks[self.WEBHOOKS_PER_PAGE :]
 
     @property
     def select_options(self):
         return [
             discord.SelectOption(
-                label=w["course_name"], # type: ignore
+                label=w["course_name"],  # type: ignore
                 value=str(idx),
             )
             for idx, w in enumerate(self._webhooks[self.current_page])
@@ -455,9 +409,7 @@ class Webhooks(commands.Cog):
             """
         webhooks: List[WebhookData] = await self.client.db.fetch(q, interaction.user.id)
         if not webhooks:
-            return await interaction.edit_original_response(embed=Embed(
-                description="no webhooks to display"
-            ))
+            return await interaction.edit_original_response(embed=Embed(description="no webhooks to display"))
 
         await WebhookPages(interaction, webhooks).start(edit_existing=True)
 

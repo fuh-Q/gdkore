@@ -13,6 +13,7 @@ class NewEmote(PartialEmoji):
         a, name, id = emoji_name.split(":")
         return cls(name=name, id=int(id), animated=bool(a))
 
+
 class BotEmojis:
     """
     Config class containing emojis.

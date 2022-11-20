@@ -8,13 +8,7 @@ from discord.app_commands import errors, command, describe, guild_only
 from discord.ext import commands
 from discord.ui import Button, Select, button
 
-from utils import (
-    BotEmojis,
-    BotColours,
-    Confirm,
-    MaxConcurrencyReached,
-    View
-)
+from utils import BotEmojis, BotColours, Confirm, MaxConcurrencyReached, View
 
 if TYPE_CHECKING:
     from discord import Interaction
@@ -22,11 +16,10 @@ if TYPE_CHECKING:
 
     from helper_bot import NotGDKID
 
-__all__ = (
-    "CheckersGame",
-)
+__all__ = ("CheckersGame",)
 
 MOVEMENTS: List[str] = ["NORTHWEST", "NORTHEAST", "SOUTHWEST", "SOUTHEAST"]
+
 
 def directional_button(view: Game, direction: str) -> Button[Game]:
     class cls(Button):
@@ -46,18 +39,14 @@ def directional_button(view: Game, direction: str) -> Button[Game]:
 
         async def callback(self, interaction: Interaction) -> None:
             if interaction.user.id != self.view.turn.id:
-                return await interaction.response.send_message(
-                    "wait your turn", ephemeral=True
-                )
+                return await interaction.response.send_message("wait your turn", ephemeral=True)
 
             piece = self.view.selected or self.view.logic.jumping_piece
             assert piece is not None
             self.view.logic.move_piece(
                 piece,
                 direction.upper(),
-                jump_confirm=(
-                    True if piece is self.view.logic.jumping_piece else False
-                ),
+                jump_confirm=(True if piece is self.view.logic.jumping_piece else False),
             )
 
             if self.view.logic.jumping_piece is None:
@@ -165,9 +154,7 @@ class Logic:
                 sl.piece = piece
                 self.pieces.append(piece)
 
-    def verify_directions(
-        self, piece: Piece, *, jump_only: bool = False
-    ) -> Dict[str, bool]:
+    def verify_directions(self, piece: Piece, *, jump_only: bool = False) -> Dict[str, bool]:
         directions: Dict[str, bool] = {}
         for i in MOVEMENTS:
             directions[i] = False
@@ -179,9 +166,7 @@ class Logic:
                 True
                 if (sl := self._get_slot(piece.x - op_x, piece.y - op_y)) is not None
                 and (
-                    sl.occupant is None
-                    and not jump_only
-                    or self.check_jump(piece, direction)  # no one occupying it
+                    sl.occupant is None and not jump_only or self.check_jump(piece, direction)  # no one occupying it
                 )  # or occupied but we can jump it
                 else False
             )
@@ -226,9 +211,7 @@ class Logic:
         else:
             return
 
-    def move_piece(
-        self, piece: Piece, direction: str, *, jump_confirm: bool = False
-    ) -> None:
+    def move_piece(self, piece: Piece, direction: str, *, jump_confirm: bool = False) -> None:
         op_x, op_y = self._resolve_direction(direction)
         if not jump_confirm:
             jump_confirm = self.check_jump(piece, direction)
@@ -311,7 +294,7 @@ class Game(View):
     northeast: Button[Game]
     southwest: Button[Game]
     southeast: Button[Game]
-    client: NotGDKID = None # type: ignore
+    client: NotGDKID = None  # type: ignore
 
     def __init__(
         self,
@@ -427,16 +410,12 @@ class Game(View):
 
         elif self.logic.jumping_piece is not None:
             s = "" if self.logic.jumped_counter == 1 else "s"
-            header = (
-                f"{self.turn.mention} jumped `{self.logic.jumped_counter}` piece{s}!"
-            )
+            header = f"{self.turn.mention} jumped `{self.logic.jumped_counter}` piece{s}!"
 
             for c in self.children[:-1]:
                 c.disabled = True
 
-            directions = self.logic.verify_directions(
-                self.logic.jumping_piece, jump_only=True
-            )
+            directions = self.logic.verify_directions(self.logic.jumping_piece, jump_only=True)
 
             for direction, value in directions.items():
                 if value is True:
@@ -451,22 +430,15 @@ class Game(View):
                 self.piece_selector.disabled = False
 
         # checking it again as it might've changed
-        if (
-            self.logic.jumping_piece is None
-            and self.logic.loser is None
-            and not self.timed_out
-        ):
-            header = (
-                f"{self.turn.mention} your turn! you have `2 minutes` to make a move"
-                + (f"\n\n{header}" if header else "")
+        if self.logic.jumping_piece is None and self.logic.loser is None and not self.timed_out:
+            header = f"{self.turn.mention} your turn! you have `2 minutes` to make a move" + (
+                f"\n\n{header}" if header else ""
             )
 
             self.piece_selector.options = self._generate_select_options()
             if not self.piece_selector.options:
                 self.piece_selector.disabled = True
-                self.piece_selector.options = [
-                    discord.SelectOption(label="no", description="fuck off")
-                ]
+                self.piece_selector.options = [discord.SelectOption(label="no", description="fuck off")]
             else:
                 self.piece_selector.disabled = False
 
@@ -475,14 +447,10 @@ class Game(View):
 
                 assert isinstance(c, Button)
                 c.disabled = True
-                c.emoji = getattr(
-                    BotEmojis, f"CHECKERS_{self.turn.emoji_colour}_{MOVEMENTS[i]}"
-                )
+                c.emoji = getattr(BotEmojis, f"CHECKERS_{self.turn.emoji_colour}_{MOVEMENTS[i]}")
 
             if self.selected is not None:
-                for direction, value in self.logic.verify_directions(
-                    self.selected
-                ).items():
+                for direction, value in self.logic.verify_directions(self.selected).items():
                     if value is True:
                         btn: Button = getattr(self, direction.lower())
                         btn.disabled = False
@@ -494,9 +462,7 @@ class Game(View):
             if not interaction.response.is_done():
                 await interaction.response.edit_message(**kwargs)
             else:
-                await interaction.followup.edit_message(
-                    self.original_message.id, **kwargs
-                )
+                await interaction.followup.edit_message(self.original_message.id, **kwargs)
 
         else:
             await self.original_message.edit(**kwargs)
@@ -531,9 +497,7 @@ class Game(View):
             colour=0xC0382B,
         )
 
-        msg = await interaction.followup.send(
-            embed=embed, view=view, ephemeral=True, wait=True
-        )
+        msg = await interaction.followup.send(embed=embed, view=view, ephemeral=True, wait=True)
         view.original_message = msg
 
         expired = await view.wait()
@@ -573,9 +537,7 @@ class PieceSelector(Select):
 
     async def callback(self, interaction: Interaction) -> ...:
         if interaction.user.id != self.view.turn.id:
-            return await interaction.response.send_message(
-                "wait your turn", ephemeral=True
-            )
+            return await interaction.response.send_message("wait your turn", ephemeral=True)
 
         x, y = map(lambda x: int(x), self.values[0])
 
@@ -599,12 +561,10 @@ class CheckersGame(commands.Cog):
         for game in self.client._checkers_games:
             game: Game
             if interaction.user in game.logic.users:
-                raise MaxConcurrencyReached(game.original_message.jump_url) # type: ignore
+                raise MaxConcurrencyReached(game.original_message.jump_url)  # type: ignore
 
         if opponent.id == interaction.user.id or opponent.bot:
-            return await interaction.followup.send(
-                "you can't play against yourself, or bots"
-            )
+            return await interaction.followup.send("you can't play against yourself, or bots")
 
         view = Confirm(opponent)
         embed = discord.Embed(
@@ -613,9 +573,7 @@ class CheckersGame(commands.Cog):
             colour=0x09DFFF,
         )
 
-        msg = await interaction.followup.send(
-            opponent.mention, embed=embed, view=view, wait=True
-        )
+        msg = await interaction.followup.send(opponent.mention, embed=embed, view=view, wait=True)
 
         assert isinstance(interaction.channel, discord.TextChannel)
         view.original_message = msg
@@ -652,17 +610,13 @@ class CheckersGame(commands.Cog):
         header = f"{view.turn.mention} your turn! you have `2 minutes` to make a move"
         board = view.generate_board()
 
-        await interaction.followup.edit_message(
-            msg.id, embed=None, content=header + "\n\n" + board, view=view
-        )
+        await interaction.followup.edit_message(msg.id, embed=None, content=header + "\n\n" + board, view=view)
         view.original_message = msg
 
         await view.wait()
 
     @checkers.error
-    async def checkers_error(
-        self, interaction: Interaction, error: errors.AppCommandError
-    ):
+    async def checkers_error(self, interaction: Interaction, error: errors.AppCommandError):
         if isinstance(error, MaxConcurrencyReached):
             author_game = error.jump_url
 
@@ -670,6 +624,7 @@ class CheckersGame(commands.Cog):
                 "you already have a game going on" f"\n[jump to game](<{author_game}>)",
                 ephemeral=True,
             )
+
 
 async def setup(client: NotGDKID):
     await client.add_cog(CheckersGame(client=client))

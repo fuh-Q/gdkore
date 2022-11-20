@@ -115,9 +115,7 @@ class Eval(commands.Cog):
 
     @staticmethod
     def async_compile(source: str, filename: str, mode: Literal["eval", "exec"]):
-        return compile(
-            source, filename, mode, flags=ast.PyCF_ALLOW_TOP_LEVEL_AWAIT, optimize=0
-        )
+        return compile(source, filename, mode, flags=ast.PyCF_ALLOW_TOP_LEVEL_AWAIT, optimize=0)
 
     @staticmethod
     async def maybe_await(coro: Any):
@@ -147,18 +145,10 @@ class Eval(commands.Cog):
                         in_indent = True
                         break
 
-            if (
-                in_indent
-                and re.search(r"^[ ]*$", line) is not None
-                or in_indent
-                and line.startswith(" ")
-            ):
+            if in_indent and re.search(r"^[ ]*$", line) is not None or in_indent and line.startswith(" "):
                 prefix = "..."
 
-            if (
-                prefix == "..."
-                and re.search(r"^[ ]*$", src_lines[index - 1]) is not None
-            ):
+            if prefix == "..." and re.search(r"^[ ]*$", src_lines[index - 1]) is not None:
                 prefix = ">>>"
 
             if re.search(r"^[ ]*$", line) is not None and prefix == "...":
@@ -179,11 +169,7 @@ class Eval(commands.Cog):
     @staticmethod
     def cleanup_code(content: str):
         # remove ```py\n```
-        if (
-            content.startswith("```")
-            and content.endswith("```")
-            and content.count("\n") > 0
-        ):
+        if content.startswith("```") and content.endswith("```") and content.count("\n") > 0:
             return "\n".join(content.split("\n")[1:-1])
         # remove `foo`
         return content.strip("` \n")
@@ -252,9 +238,7 @@ class Eval(commands.Cog):
 
         query = self.cleanup_code(query)
 
-        gamer_strats = (
-            self.client.db.execute if query.count(";") >= 1 else self.client.db.fetch
-        )
+        gamer_strats = self.client.db.execute if query.count(";") >= 1 else self.client.db.fetch
 
         try:
             start = time.monotonic()
@@ -265,9 +249,7 @@ class Eval(commands.Cog):
             return await ctx.send(f"```py\n{traceback.format_exc()}\n```")
 
         if isinstance(results, str) or not results:
-            return await ctx.send(
-                f"```\n{self.pretty_query(query)}\n\n{results}\n\nquery completed in {exec_time}ms\n```"
-            )
+            return await ctx.send(f"```\n{self.pretty_query(query)}\n\n{results}\n\nquery completed in {exec_time}ms\n```")
 
         table = SQLTable()
 
@@ -282,9 +264,7 @@ class Eval(commands.Cog):
         if len(msg) > 2000:
             fp = io.BytesIO(msg.encode("utf-8"))
             file = discord.File(fp, "thiccc.txt")
-            await ctx.send(
-                "the result was too thiccc, so i yeeted it into a file", file=file
-            )
+            await ctx.send("the result was too thiccc, so i yeeted it into a file", file=file)
         else:
             await ctx.send(f"```\n{msg}\n```")
 
@@ -306,9 +286,7 @@ class Eval(commands.Cog):
         except Exception as e:
             stuff = traceback.format_exc()
             view = SuppressTraceback(ctx=ctx)
-            embed = Embed(
-                title="FUCK!", description=f"```py\n{stuff}```", color=0x2E3135
-            )
+            embed = Embed(title="FUCK!", description=f"```py\n{stuff}```", color=0x2E3135)
             message = await ctx.reply(embed=embed, mention_author=True, view=view)
 
             await view.wait()
@@ -409,8 +387,7 @@ class Eval(commands.Cog):
                 response = await self.client.wait_for(
                     "message",
                     timeout=600,
-                    check=lambda m: str(m.content).startswith(f"`")
-                    and m.author == ctx.author,
+                    check=lambda m: str(m.content).startswith(f"`") and m.author == ctx.author,
                 )
 
                 cleaned = self.cleanup_code(response.content)
@@ -449,7 +426,7 @@ class Eval(commands.Cog):
                     assert code
                     with redirect_stdout(stdout):
                         if executor is None:
-                            result = types.FunctionType(code, env)() # type: ignore
+                            result = types.FunctionType(code, env)()  # type: ignore
                         else:
                             result = executor(code, env)
                         result = await self.maybe_await(result)
@@ -463,9 +440,7 @@ class Eval(commands.Cog):
                     elif result is None:
                         try:
                             with redirect_stdout(stdout):
-                                result = await self.maybe_await(
-                                    eval(cleaned.split("\n")[-1], env)
-                                )
+                                result = await self.maybe_await(eval(cleaned.split("\n")[-1], env))
 
                                 if result is None:
                                     raise
@@ -476,9 +451,7 @@ class Eval(commands.Cog):
 
                 __input = self.simulate_repl(cleaned)
 
-                embed = Embed(
-                    description=f"```py\n{__input}\n\n{msg}```", color=0x2E3135
-                )
+                embed = Embed(description=f"```py\n{__input}\n\n{msg}```", color=0x2E3135)
 
                 try:
                     if len(msg) > 1000:
@@ -498,9 +471,7 @@ class Eval(commands.Cog):
                                 )
                                 list_of_embeds.append(embed)
                                 break
-                            embed = Embed(
-                                description=f"```py\n{page}\n```", color=0x2E3135
-                            )
+                            embed = Embed(description=f"```py\n{page}\n```", color=0x2E3135)
                             list_of_embeds.append(embed)
                             if len(list_of_embeds) == 3:
                                 if len(paginated_text) == 3:
@@ -567,41 +538,29 @@ class Eval(commands.Cog):
             if ret is None:
                 if value:
                     try:
-                        embed = Embed(
-                            description=f"```py\n{value}\n```", color=color
-                        )
+                        embed = Embed(description=f"```py\n{value}\n```", color=color)
                         await ctx.send(embed=embed)
                     except:
                         paginated_text = Eval.paginate(value)
                         for page in paginated_text:
                             if page == paginated_text[-1]:
-                                embed = Embed(
-                                    description=f"```py\n{page}\n```", color=color
-                                )
+                                embed = Embed(description=f"```py\n{page}\n```", color=color)
                                 await ctx.send(embed=embed)
                                 break
-                            embed = Embed(
-                                description=f"```py\n{page}\n```", color=color
-                            )
+                            embed = Embed(description=f"```py\n{page}\n```", color=color)
                             await ctx.send(embed=embed)
             else:
                 try:
-                    embed = Embed(
-                        description=f"```py\n{value}{ret}\n```", color=color
-                    )
+                    embed = Embed(description=f"```py\n{value}{ret}\n```", color=color)
                     await ctx.send(embed=embed)
                 except:
                     paginated_text = Eval.paginate(f"{value}{ret}")
                     for page in paginated_text:
                         if page == paginated_text[-1]:
-                            embed = Embed(
-                                description=f"```py\n{page}\n```", color=color
-                            )
+                            embed = Embed(description=f"```py\n{page}\n```", color=color)
                             await ctx.send(embed=embed)
                             break
-                        embed = Embed(
-                            description=f"```py\n{page}\n```", color=color
-                        )
+                        embed = Embed(description=f"```py\n{page}\n```", color=color)
                         await ctx.send(embed=embed)
 
             await ctx.message.add_reaction(BotEmojis.YES)
@@ -649,7 +608,7 @@ class Eval(commands.Cog):
         try:
             with redirect_stdout(stdout):
                 if executor is None:
-                    result = types.FunctionType(code, env)() # type: ignore
+                    result = types.FunctionType(code, env)()  # type: ignore
                 else:
                     result = executor(code, env)
                 result = await self.maybe_await(result)
@@ -663,9 +622,7 @@ class Eval(commands.Cog):
             elif result is None:
                 try:
                     with redirect_stdout(stdout):
-                        result = await self.maybe_await(
-                            eval(cleaned.split("\n")[-1], env)
-                        )
+                        result = await self.maybe_await(eval(cleaned.split("\n")[-1], env))
 
                         if result is None:
                             raise
@@ -676,9 +633,7 @@ class Eval(commands.Cog):
 
         __input = self.simulate_repl(cleaned)
 
-        embed = Embed(
-            description=f"```py\n{__input}\n\n{msg}```", color=0x2E3135
-        )
+        embed = Embed(description=f"```py\n{__input}\n\n{msg}```", color=0x2E3135)
 
         try:
             if len(msg) > 1000:
@@ -698,9 +653,7 @@ class Eval(commands.Cog):
                         )
                         list_of_embeds.append(embed)
                         break
-                    embed = Embed(
-                        description=f"```py\n{page}\n```", color=0x2E3135
-                    )
+                    embed = Embed(description=f"```py\n{page}\n```", color=0x2E3135)
                     list_of_embeds.append(embed)
                     if len(list_of_embeds) == 3:
                         if len(paginated_text) == 3:

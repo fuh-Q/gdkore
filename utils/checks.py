@@ -2,8 +2,10 @@ from discord import Interaction
 from discord.app_commands import check
 
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from bot import GClass
+
 
 def is_logged_in():
     """
@@ -11,7 +13,7 @@ def is_logged_in():
     """
 
     async def predicate(interaction: Interaction) -> bool:
-        client: GClass = interaction.client # type: ignore
+        client: GClass = interaction.client  # type: ignore
         user_id: int = interaction.user.id
 
         q = """SELECT credentials FROM authorized

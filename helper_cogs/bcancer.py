@@ -24,9 +24,9 @@ class BCancer(commands.Cog):
     REPLACABLES = ["c", "d", "g", "j", "k", "p", "q", "t", "v", "z"]
 
     WHITELIST = [
-        988862592468521031, # Amaze
-        859104775429947432, # Not GDKID
-        596481615253733408, # GDKID
+        988862592468521031,  # Amaze
+        859104775429947432,  # Not GDKID
+        596481615253733408,  # GDKID
     ]
 
     def __init__(self, client: NotGDKID) -> None:
@@ -50,12 +50,12 @@ class BCancer(commands.Cog):
                         continue
                     else:
                         found = found[0]
-                    return text[:(idx := text.index(found))] + self.CHAR*len(found) + text[idx + len(found):]
+                    return text[: (idx := text.index(found))] + self.CHAR * len(found) + text[idx + len(found) :]
 
         def vowels():
             for idx, char in enumerate(text):
                 if char.lower() in self.VOWELS:
-                    return text[:idx - 1] + self.CHAR + text[idx:]
+                    return text[: idx - 1] + self.CHAR + text[idx:]
 
         def run_tests():
             if text[0].lower() in self.VOWELS:
@@ -101,7 +101,7 @@ class BCancer(commands.Cog):
         if not after.guild.id == self.client.AMAZE_GUILD_ID:
             return
 
-        if (before.display_name != after.display_name):
+        if before.display_name != after.display_name:
             if not self.is_bcancered(after):
                 nick = self.make_nick(after.display_name)
                 await after.edit(nick=nick, reason="member auto-🅱️-cancer'd")
@@ -112,10 +112,7 @@ class BCancer(commands.Cog):
     async def bcancer(self, ctx: NGKContext, member: discord.Member):
         nick = self.make_nick(member.name)
 
-        await member.edit(
-            nick=nick,
-            reason=f"manual 🅱️-cancer requested by {ctx.author.name}#{ctx.author.discriminator}"
-        )
+        await member.edit(nick=nick, reason=f"manual 🅱️-cancer requested by {ctx.author.name}#{ctx.author.discriminator}")
 
         return await ctx.message.add_reaction(BotEmojis.YES)
 
@@ -124,13 +121,9 @@ class BCancer(commands.Cog):
     @commands.guild_only()
     async def bhoist(self, ctx: NGKContext):
         assert ctx.guild is not None
-        to_bcancer = [m for m in ctx.guild.members
-                      if not self.is_bcancered(m)
-                      and m.id not in self.WHITELIST]
+        to_bcancer = [m for m in ctx.guild.members if not self.is_bcancered(m) and m.id not in self.WHITELIST]
         if not to_bcancer:
-            return await ctx.reply(
-                "theres no one to `🅱️`-cancer `🅱️`reh", mention_author=True
-            )
+            return await ctx.reply("theres no one to `🅱️`-cancer `🅱️`reh", mention_author=True)
 
         base = "would you like to `🅱️`-cancer the following **`{0}`** members?"
         view = Confirm(ctx.author)
@@ -143,14 +136,10 @@ class BCancer(commands.Cog):
                 "```py",
             ]
             if len(to_bcancer) > cutoff:
-                content.append(
-                    "\n".join(f"{m.name}#{m.discriminator}" for m in to_bcancer[:cutoff])
-                )
+                content.append("\n".join(f"{m.name}#{m.discriminator}" for m in to_bcancer[:cutoff]))
                 content.append(f"\n... ({len(to_bcancer) - cutoff} more)")
             else:
-                content.append(
-                    "\n".join(f"{m.name}#{m.discriminator}" for m in to_bcancer)
-                )
+                content.append("\n".join(f"{m.name}#{m.discriminator}" for m in to_bcancer))
             content.append("```")
 
             msg = await ctx.reply("\n".join(content), view=view, mention_author=True)
@@ -159,10 +148,7 @@ class BCancer(commands.Cog):
             text = "\n".join(f"{m.name}#{m.discriminator}" for m in to_bcancer)
 
             msg = await ctx.reply(
-                content,
-                file=discord.File(io.BytesIO(text.encode("utf-8")), "names.txt"),
-                view=view,
-                mention_author=True
+                content, file=discord.File(io.BytesIO(text.encode("utf-8")), "names.txt"), view=view, mention_author=True
             )
 
         view.original_message = msg
@@ -177,8 +163,7 @@ class BCancer(commands.Cog):
 
         await view.interaction.response.edit_message(view=view)
         msg = await ctx.reply(
-            f"alrighty, i should be finishing up <t:{int(time.time() + (len(to_bcancer) * 1.25))}:R>",
-            mention_author=True
+            f"alrighty, i should be finishing up <t:{int(time.time() + (len(to_bcancer) * 1.25))}:R>", mention_author=True
         )
         async with ctx.typing():
             success = fail = 0
@@ -196,9 +181,7 @@ class BCancer(commands.Cog):
                     await asyncio.sleep(0.75)
 
         return await msg.reply(
-            "`🅱️`-hoist completed\n\n"
-            f"— {BotEmojis.YES} success `{success}`"
-            f"— {BotEmojis.NO} fails `{fail}`—"
+            "`🅱️`-hoist completed\n\n" f"— {BotEmojis.YES} success `{success}`" f"— {BotEmojis.NO} fails `{fail}`—"
         )
 
 

@@ -17,13 +17,7 @@ import discord
 from discord.ext import commands
 from discord.ui import Button, Modal, Select, TextInput, button
 
-from utils import (
-    BasePages,
-    BotEmojis,
-    Confirm,
-    Embed,
-    cap
-)
+from utils import BasePages, BotEmojis, Confirm, Embed, cap
 
 if TYPE_CHECKING:
     from discord import Interaction
@@ -37,6 +31,7 @@ Slicer = Generator[Tuple[pathlib.Path], None, None]
 
 S = "\\" if sys.platform == "win32" else "/"
 
+
 def size(size_in_bytes: int) -> str:
     """
     Converts a number of bytes to an appropriately-scaled unit
@@ -47,15 +42,12 @@ def size(size_in_bytes: int) -> str:
     if not size_in_bytes:
         return "0 bytes"
 
-    units = (
-        " bytes", "KiB", "MiB",
-        "GiB", "TiB", "PiB",
-        "EiB", "ZiB", "YiB"
-    )
+    units = (" bytes", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB")
 
     power = int(math.log(size_in_bytes, 1024))
 
     return f"{(size_in_bytes / (1024 ** power)):.2f}{units[power]}"
+
 
 class DirectoryView(BasePages):
     items: List[pathlib.Path]
@@ -63,21 +55,11 @@ class DirectoryView(BasePages):
     _directory_slices: List[Tuple[pathlib.Path]]
     _actual_files: List[pathlib.Path]
 
-    EXCLUDED_DIRS = (
-        "__pycache__",
-    )
+    EXCLUDED_DIRS = ("__pycache__",)
 
-    def __init__(
-        self,
-        directory: pathlib.Path,
-        ctx: commands.Context | None = None,
-        interaction: Interaction | None = None
-    ):
+    def __init__(self, directory: pathlib.Path, ctx: commands.Context | None = None, interaction: Interaction | None = None):
         self.directory = directory.resolve()
-        self.items = sorted(
-            map(lambda item: item.resolve(), directory.iterdir()),
-            key=lambda k: k.name.lower()
-        )
+        self.items = sorted(map(lambda item: item.resolve(), directory.iterdir()), key=lambda k: k.name.lower())
 
         self._pages = []
         self._directory_slices = []
@@ -109,23 +91,25 @@ class DirectoryView(BasePages):
 
     def make_pages(self) -> None:
         files = list(filter(lambda i: not i.is_dir(), self.items))
-        directories = tuple(i for i in self.items if i not in files and
-                            not i.name.startswith(".") and not i.name in self.EXCLUDED_DIRS
-                            and len(str(i)) <= 100)
+        directories = tuple(
+            i
+            for i in self.items
+            if i not in files and not i.name.startswith(".") and not i.name in self.EXCLUDED_DIRS and len(str(i)) <= 100
+        )
         self._actual_files = files
-        self._pages = [Embed(
-            title=f"{cap(discord.utils.escape_markdown(f.name, as_needed=True)):256}",
-            description= \
-                f"file size - `{size(os.path.getsize(resolved := f))}`\n" \
+        self._pages = [
+            Embed(
+                title=f"{cap(discord.utils.escape_markdown(f.name, as_needed=True)):256}",
+                description=f"file size - `{size(os.path.getsize(resolved := f))}`\n"
                 f"file last modified - <t:{os.path.getmtime(str(resolved)):.0f}:R>",
-            timestamp=datetime.now(tz=timezone.utc),
-            url=f"https://fileinfo.com/extension/{f.parts[-1].split('.')[-1]}"
-        ).set_author(name=f"{cap(str(f)):256}") for f in files]
+                timestamp=datetime.now(tz=timezone.utc),
+                url=f"https://fileinfo.com/extension/{f.parts[-1].split('.')[-1]}",
+            ).set_author(name=f"{cap(str(f)):256}")
+            for f in files
+        ]
 
         if not self._pages:
-            self._pages.append(Embed(
-                description="no files to display"
-            ).set_author(name=f"{cap(str(self.directory)):256}"))
+            self._pages.append(Embed(description="no files to display").set_author(name=f"{cap(str(self.directory)):256}"))
 
         if len(directories) > 25:
             self._directory_slices = [s for s in self.slice_directories(directories)]
@@ -134,34 +118,27 @@ class DirectoryView(BasePages):
 
         if (slices := len(self._directory_slices)) > self.page_count:
             diff = slices - self.page_count
-            self._pages += [Embed(
-                description="no files to display"
-            ).set_author(name=f"{cap(str(self.directory)):256}") for _ in range(diff)]
-
+            self._pages += [
+                Embed(description="no files to display").set_author(name=f"{cap(str(self.directory)):256}")
+                for _ in range(diff)
+            ]
 
     def slice_directories(self, directories: Tuple[pathlib.Path]) -> Slicer:
         chunk_size = 24
         l = len(directories)
         for idx in range(0, l, chunk_size):
-            yield directories[idx:min(idx + chunk_size, l)]
+            yield directories[idx : min(idx + chunk_size, l)]
 
     def get_select_options(self) -> List[discord.SelectOption]:
         opts = []
         values = set()
         for f in self._directory_slices[self.slice_index]:
-            if (not f.name.startswith(".")
-                and not f.name in self.EXCLUDED_DIRS
-                and (r := str(f)) not in values):
+            if not f.name.startswith(".") and not f.name in self.EXCLUDED_DIRS and (r := str(f)) not in values:
 
                 values.add(r)
-                opts.append(discord.SelectOption(
-                    label=f"{cap(f.name):100}", value=r
-                ))
+                opts.append(discord.SelectOption(label=f"{cap(f.name):100}", value=r))
 
-        opts.insert(0, discord.SelectOption(
-            label="..",
-            value=str(self.directory.parent)
-        ))
+        opts.insert(0, discord.SelectOption(label="..", value=str(self.directory.parent)))
 
         return opts
 
@@ -212,9 +189,7 @@ class DirectoryView(BasePages):
 
         view = Confirm(interaction.user, add_third=True, third_label="cancel")
         embed = Embed(description="would you like to have this item sent **ephemerally**?")
-        msg = await interaction.followup.send(
-            embed=embed, view=view, ephemeral=True, wait=True
-        )
+        msg = await interaction.followup.send(embed=embed, view=view, ephemeral=True, wait=True)
         view.original_message = msg
 
         expired = await view.wait()
@@ -261,15 +236,16 @@ class DirectoryView(BasePages):
                     buffer = await asyncio.to_thread(zip_creator, io.BytesIO())
                     file = discord.File(buffer, filename=f"{self.directory.name}.zip")
         except FileNotFoundError as e:
-            return await interaction.followup.send(
-                embed=Embed(description=f"```py\n{e}\n```"), ephemeral=True
-            )
+            return await interaction.followup.send(embed=Embed(description=f"```py\n{e}\n```"), ephemeral=True)
         finally:
             if buffer is not None and not buffer.closed:
                 buffer.close()
 
-        method, kwargs = ((view.interaction.edit_original_response, {"attachments": [file], "embed": None})
-                          if ephemeral is True else (view.interaction.followup.send, {"file": file}))
+        method, kwargs = (
+            (view.interaction.edit_original_response, {"attachments": [file], "embed": None})
+            if ephemeral is True
+            else (view.interaction.followup.send, {"file": file})
+        )
 
         try:
             await method(**kwargs)
@@ -307,12 +283,8 @@ class DirectoryView(BasePages):
         view = Confirm(interaction.user)
 
         filename = self._actual_files[self.current_page].name
-        embed = Embed(
-            description=f"confirm that you want to delete `{cap(filename):4000}`?"
-        )
-        msg = await interaction.followup.send(
-            embed=embed, view=view, ephemeral=True, wait=True
-        )
+        embed = Embed(description=f"confirm that you want to delete `{cap(filename):4000}`?")
+        msg = await interaction.followup.send(embed=embed, view=view, ephemeral=True, wait=True)
         view.original_message = msg
 
         expired = await view.wait()
@@ -331,19 +303,14 @@ class DirectoryView(BasePages):
             self._current -= 1
 
         if not self._actual_files:
-            return await interaction.response.edit_message(
-                embed=Embed(description="no files to display"), view=self
-            )
+            return await interaction.response.edit_message(embed=Embed(description="no files to display"), view=self)
 
         self.update_components()
         await interaction.edit_original_response(**self.edit_kwargs)
 
+
 class RenameFile(Modal):
-    name = TextInput(
-        label="new name",
-        placeholder="example.txt",
-        max_length=100
-    )
+    name = TextInput(label="new name", placeholder="example.txt", max_length=100)
 
     def __init__(self, view: DirectoryView) -> None:
         self._view = view
@@ -358,9 +325,7 @@ class RenameFile(Modal):
         await interaction.response.send_message(embed=embed)
 
     async def on_submit(self, interaction: Interaction) -> None:
-        self._file = self._file.rename(
-            f"{self._file.parts[0]}{S.join(self._file.parts[1:-1])}{S}{self.name.value}"
-        )
+        self._file = self._file.rename(f"{self._file.parts[0]}{S.join(self._file.parts[1:-1])}{S}{self.name.value}")
 
         self._view._actual_files[self._view.current_page] = self._file
 
@@ -369,12 +334,14 @@ class RenameFile(Modal):
         self._page.set_author(name=f"{fp:256}").title = f"{title:256}"
         await interaction.response.edit_message(embed=self._page)
 
+
 class ExtensionAction(Enum):
     value: Tuple[str, ExtCoro]
 
     LOAD = ("load as extension", commands.Bot.load_extension)
     UNLOAD = ("unload extension", commands.Bot.unload_extension)
     RELOAD = ("reload extension", commands.Bot.reload_extension)
+
 
 class ExtensionButton(Button[DirectoryView]):
     _view: DirectoryView
@@ -387,12 +354,8 @@ class ExtensionButton(Button[DirectoryView]):
         self._view = view
 
         label, method = button_action.value
-        super().__init__(
-            label=label,
-            style=discord.ButtonStyle.success,
-            row=3
-        )
-        self.method: partial[ExtCoro] = partial(method, view.client) # type: ignore
+        super().__init__(label=label, style=discord.ButtonStyle.success, row=3)
+        self.method: partial[ExtCoro] = partial(method, view.client)  # type: ignore
 
     async def callback(self, interaction: Interaction) -> None:
         folder, name = self.view._actual_files[self.view.current_page].parts[-2:]
@@ -406,9 +369,8 @@ class ExtensionButton(Button[DirectoryView]):
             assert self.label
             self.view.update_file_buttons()
             await interaction.response.edit_message(view=self.view)
-            await interaction.followup.send(
-                f"{self.label.split(' ')[0]}ed `{folder}.{name[:-3]}`", ephemeral=True
-            )
+            await interaction.followup.send(f"{self.label.split(' ')[0]}ed `{folder}.{name[:-3]}`", ephemeral=True)
+
 
 class DirectoryPicker(Select[DirectoryView]):
     _view: DirectoryView
@@ -424,7 +386,7 @@ class DirectoryPicker(Select[DirectoryView]):
             placeholder=self.get_placeholder(self.view.current_page),
             min_values=1,
             max_values=1,
-            options=self.view.get_select_options()
+            options=self.view.get_select_options(),
         )
 
         if not self.options:
@@ -450,10 +412,7 @@ class DirectoryPicker(Select[DirectoryView]):
             em = Embed(title="FUCK!", description=f"```py\n{e}\n```")
             return await interaction.response.send_message(embed=em, ephemeral=True)
 
-        await interaction.response.edit_message(
-            embed=view.pages[0],
-            view=view
-        )
+        await interaction.response.edit_message(embed=view.pages[0], view=view)
 
         self.view.stop()
         del self._view, self
@@ -471,15 +430,13 @@ class Dev(commands.Cog):
 
         view.original_message = await ctx.reply(embed=view.pages[0], view=view)
 
-    @commands.command(
-        name="guilds", aliases=["servers"], hidden=True, brief="Get the bot's server count"
-    )
+    @commands.command(name="guilds", aliases=["servers"], hidden=True, brief="Get the bot's server count")
     @commands.is_owner()
     async def guilds(self, ctx: commands.Context):
         command = self.client.get_command("repl exec")
         await ctx.invoke(
-            command, # type: ignore
-            code='"".join(["\\n".join(["{0.name}: {1} members | {0.id}".format(g, len([m for m in g.members if not m.bot])) for g in client.guilds]), f"\\n\\n{len(client.guilds):.2f} servers"])', # type: ignore
+            command,  # type: ignore
+            code='"".join(["\\n".join(["{0.name}: {1} members | {0.id}".format(g, len([m for m in g.members if not m.bot])) for g in client.guilds]), f"\\n\\n{len(client.guilds):.2f} servers"])',  # type: ignore
         )
 
     @commands.command(name="shutdown", hidden=True, brief="Shut down the bot")

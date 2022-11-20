@@ -5,6 +5,7 @@ from pytz import timezone as pytimezone
 
 from .types import Post
 
+
 def is_dst(timezone: str = "America/Toronto") -> bool:
     """
     Returns `True` if DST (daylight savings) is in effect.

@@ -39,18 +39,11 @@ async def mobile(self: DiscordWebSocket):
     if state._intents is not None:
         payload["d"]["intents"] = state._intents.value
 
-    await self.call_hooks(
-        "before_identify", self.shard_id, initial=self._initial_identify
-    )
+    await self.call_hooks("before_identify", self.shard_id, initial=self._initial_identify)
     await self.send_as_json(payload)
 
 
-def new_call_soon(
-    self: Any,
-    callback: Callable[..., object],
-    *args: Any,
-    context=None
-) -> Handle: # type: ignore
+def new_call_soon(self: Any, callback: Callable[..., object], *args: Any, context=None) -> Handle:  # type: ignore
     """
     `asyncio` override to suppress the FUCKING ANNOYING error thrown on Windows.
     """

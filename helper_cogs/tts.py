@@ -21,14 +21,8 @@ class TTS(commands.Cog):
     @guild_only()
     async def tts(self, interaction: Interaction, text: str):
         """say something"""
-        if (
-            interaction.user.id not in self.client.owner_ids
-            or not interaction.guild
-            or not interaction.guild.voice_client
-        ):
-            return await interaction.response.send_message(
-                "no", ephemeral=True
-            )
+        if interaction.user.id not in self.client.owner_ids or not interaction.guild or not interaction.guild.voice_client:
+            return await interaction.response.send_message("no", ephemeral=True)
 
         await interaction.response.defer(ephemeral=True)
 
@@ -41,15 +35,11 @@ class TTS(commands.Cog):
 
             except Exception as e:
                 print(e)
-                return await interaction.response.send_message(
-                    "something went wrong there", ephemeral=True
-                )
+                return await interaction.response.send_message("something went wrong there", ephemeral=True)
 
             src = discord.FFmpegPCMAudio(
                 source=fp,
-                executable=r"/usr/bin/ffmpeg"
-                if sys.platform == "linux"
-                else r"d:\thingyy\ffmpeg.exe",
+                executable=r"/usr/bin/ffmpeg" if sys.platform == "linux" else r"d:\thingyy\ffmpeg.exe",
             )
             vc.play(src, after=lambda _: os.remove("tts.mp3"))
 

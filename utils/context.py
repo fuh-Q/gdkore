@@ -8,6 +8,7 @@ from discord.ext import commands
 if TYPE_CHECKING:
     from helper_bot import NotGDKID
 
+
 class NGKContext(commands.Context):
     bot: NotGDKID
 

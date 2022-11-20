@@ -111,9 +111,7 @@ def prompt():
             bot_to_launch = user_input
             if process_map[list(process_map)[user_input - 1]] is True:
                 print("")
-                print(
-                    f"{G + bot_map[user_input][:-3] + W} is already running - Start bot regardless? [y|n]"
-                )
+                print(f"{G + bot_map[user_input][:-3] + W} is already running - Start bot regardless? [y|n]")
                 confirm = input(ask)
 
                 if confirm.lower() in ["y", "yes", "true"]:
@@ -133,11 +131,9 @@ def main():
     prompt()
 
     while True:
-        os.system(
-            "cls" if sys.platform == "win32" else "clear"
-        )  # Makes things look nicer
+        os.system("cls" if sys.platform == "win32" else "clear")  # Makes things look nicer
 
-        proc = subprocess.Popen(**generate_kwargs()) # type: ignore
+        proc = subprocess.Popen(**generate_kwargs())  # type: ignore
 
         code = proc.wait()
         proc.kill()  # Just in case
@@ -150,4 +146,4 @@ if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        pass # shut up python
+        pass  # shut up python

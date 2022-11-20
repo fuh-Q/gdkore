@@ -47,9 +47,7 @@ class GoogleChunker(Generic[IT]):
         if self._stop:
             raise StopAsyncIteration
 
-        result = await self.loop.run_in_executor(
-            None, self.func, *self.args, self.next_page
-        )
+        result = await self.loop.run_in_executor(None, self.func, *self.args, self.next_page)
 
         if not (next_page := result.get("nextPageToken", "")):
             self._stop = True

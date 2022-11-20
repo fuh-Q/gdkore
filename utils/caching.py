@@ -4,6 +4,7 @@ from typing import Any, Generic, Tuple, TypeVar
 KT = TypeVar("KT")
 VT = TypeVar("VT")
 
+
 class CappedDict(dict, Generic[KT, VT]):
     """
     Modified `dict` which removes the oldest item when a new item
@@ -29,6 +30,7 @@ class CappedDict(dict, Generic[KT, VT]):
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({super().__repr__()})"
+
 
 class ExpiringDict(dict, Generic[KT, VT]):
     """

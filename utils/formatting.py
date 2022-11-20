@@ -3,14 +3,12 @@ import sys
 from datetime import datetime
 from typing import Callable, Generator, List
 
-from discord.embeds import (
-    Embed as DPYEmbed,
-    EmbedProxy as DPYEmbedProxy
-)
+from discord.embeds import Embed as DPYEmbed, EmbedProxy as DPYEmbedProxy
 
 from .enums import PrintColours
 
 EmbedProperty = str | DPYEmbedProxy | List[DPYEmbedProxy]
+
 
 class Embed(DPYEmbed):
     def character_count(self) -> int:
@@ -29,27 +27,23 @@ class Embed(DPYEmbed):
         """
 
         will_count: map[EmbedProperty] = map(
-            lambda n: getattr(self, n, None), ( # type: ignore
-            "author",
-            "fields",
-            "footer",
-            "description",
-            "title"
-        ))
+            lambda n: getattr(self, n, None), ("author", "fields", "footer", "description", "title")  # type: ignore
+        )
 
         count_proxy: Callable[[DPYEmbedProxy], int] = lambda obj: sum(
-            len(v) if not k.startswith("_")
-            and isinstance(v, str)
-            and not "url" in k else 0
-            for k, v in obj.__dict__.items()
+            len(v) if not k.startswith("_") and isinstance(v, str) and not "url" in k else 0 for k, v in obj.__dict__.items()
         )
 
         return sum(
-            len(i) if isinstance(i, str)
-            else count_proxy(i) if isinstance(i, DPYEmbedProxy)
+            len(i)
+            if isinstance(i, str)
+            else count_proxy(i)
+            if isinstance(i, DPYEmbedProxy)
             else sum([count_proxy(p) for p in i])
-            for i in will_count if i is not None
+            for i in will_count
+            if i is not None
         )
+
 
 class GClassLogging(logging.Formatter):
     """
@@ -65,14 +59,11 @@ class GClassLogging(logging.Formatter):
         logging.INFO: PrintColours.BLUE,
         logging.WARNING: PrintColours.YELLOW,
         logging.ERROR: PrintColours.RED,
-        logging.CRITICAL: PrintColours.RED + PrintColours.BOLD
+        logging.CRITICAL: PrintColours.RED + PrintColours.BOLD,
     }
 
     def __init__(self):
-        super().__init__(
-            "|{levelname:<8}|",
-            style="{"
-        )
+        super().__init__("|{levelname:<8}|", style="{")
 
     def format(self, record: logging.LogRecord) -> str:
         log_fmt = self.COLOURS[record.levelno]
@@ -80,7 +71,7 @@ class GClassLogging(logging.Formatter):
         formatter = logging.Formatter(
             log_fmt + self._fmt + "{asctime}" + colour + "{message}" + PrintColours.WHITE,
             datefmt=f"{PrintColours.YELLOW} [{datetime.now().strftime(self.FMT)}] ",
-            style="{"
+            style="{",
         )
 
         if record.exc_info:

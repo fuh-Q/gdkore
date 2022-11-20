@@ -33,17 +33,7 @@ from redis import asyncio as aioredis
 from fuzzy_match import match
 
 # <-- local imports -->
-from utils import (
-    BotColours,
-    BotEmojis,
-    Embed,
-    GClassLogging,
-    PrintColours,
-    db_init,
-    is_dst,
-    mobile,
-    new_call_soon
-)
+from utils import BotColours, BotEmojis, Embed, GClassLogging, PrintColours, db_init, is_dst, mobile, new_call_soon
 
 # <-- type checking -->
 if TYPE_CHECKING:
@@ -91,7 +81,7 @@ class GClass(commands.Bot):
         "https://www.googleapis.com/auth/classroom.announcements.readonly",
         "https://www.googleapis.com/auth/classroom.courses.readonly",
         "https://www.googleapis.com/auth/classroom.courseworkmaterials.readonly",
-        "https://www.googleapis.com/auth/classroom.student-submissions.me.readonly"
+        "https://www.googleapis.com/auth/classroom.student-submissions.me.readonly",
     ]
 
     logger = logging.getLogger(__name__)
@@ -104,9 +94,7 @@ class GClass(commands.Bot):
     topgg_wh: WebhookManager
     session: aiohttp.ClientSession
 
-    google_flow = Flow.from_client_secrets_file(
-        "config/google-creds.json", scopes=SCOPES
-    )
+    google_flow = Flow.from_client_secrets_file("config/google-creds.json", scopes=SCOPES)
     google_flow.redirect_uri = "https://gclass.onrender.com"
 
     user: discord.ClientUser
@@ -155,9 +143,7 @@ class GClass(commands.Bot):
         self._restart = False
         self.description = self.__doc__ or ""
         self.guild_limit = []
-        self.uptime = datetime.now(tz=timezone(timedelta(
-            hours=-4 if is_dst() else -5
-        )))
+        self.uptime = datetime.now(tz=timezone(timedelta(hours=-4 if is_dst() else -5)))
 
         self.tree.on_error = self.on_app_command_error
         self.add_commands()
@@ -178,7 +164,7 @@ class GClass(commands.Bot):
         """
 
         try:
-            cog: Browser = self.get_cog("Browser") # type: ignore
+            cog: Browser = self.get_cog("Browser")  # type: ignore
             del cog.course_cache[user_id]
         except KeyError:
             pass
@@ -196,9 +182,12 @@ class GClass(commands.Bot):
             names = self.table_names
             names.remove("authorized")
             for table in names:
-                q = """DELETE FROM %s
+                q = (
+                    """DELETE FROM %s
                         WHERE user_id = $1
-                    """ % table
+                    """
+                    % table
+                )
                 await self.db.execute(q, user_id)
 
         if not creds.valid:
@@ -211,7 +200,7 @@ class GClass(commands.Bot):
 
     @property
     def db(self) -> PostgresPool:
-        return self._db # type: ignore
+        return self._db  # type: ignore
 
     @property
     def table_names(self) -> List[str]:
@@ -224,23 +213,17 @@ class GClass(commands.Bot):
     async def load_extension(self, name: str) -> None:
         await super().load_extension(name)
 
-        self.logger.info(
-            f"{PrintColours.GREEN}loaded{PrintColours.WHITE} {name}"
-        )
+        self.logger.info(f"{PrintColours.GREEN}loaded{PrintColours.WHITE} {name}")
 
     async def unload_extension(self, name: str) -> None:
         await super().unload_extension(name)
 
-        self.logger.info(
-            f"{PrintColours.RED}unloaded{PrintColours.WHITE} {name}"
-        )
+        self.logger.info(f"{PrintColours.RED}unloaded{PrintColours.WHITE} {name}")
 
     async def reload_extension(self, name: str) -> None:
         await super().reload_extension(name)
 
-        self.logger.info(
-            f"{PrintColours.YELLOW}reloaded{PrintColours.WHITE} {name}"
-        )
+        self.logger.info(f"{PrintColours.YELLOW}reloaded{PrintColours.WHITE} {name}")
 
     async def setup_hook(self) -> None:
         self._db = await asyncpg.create_pool(self.postgres_dns, init=db_init)
@@ -256,8 +239,7 @@ class GClass(commands.Bot):
         self.logger.info(f"{PrintColours.GREEN}databases connected")
 
         self.loop.create_task(self.first_ready()).add_done_callback(
-            lambda exc: self.logger.error(traceback.format_exc())
-            if exc.exception() else None
+            lambda exc: self.logger.error(traceback.format_exc()) if exc.exception() else None
         )
 
         q = """SELECT tablename FROM pg_tables
@@ -271,10 +253,7 @@ class GClass(commands.Bot):
 
     async def first_ready(self):
         await self.wait_until_ready()
-        self.logger.info(
-            PrintColours.PURPLE + \
-            f"logged in as: {self.user.name}#{self.user.discriminator} : {self.user.id}"
-        )
+        self.logger.info(PrintColours.PURPLE + f"logged in as: {self.user.name}#{self.user.discriminator} : {self.user.id}")
 
         await self.change_presence(status=discord.Status.online, activity=None)
 
@@ -287,7 +266,7 @@ class GClass(commands.Bot):
         e = Embed(description=f"❯❯  started up in ~`{round(end - start, 1)}s`")
         await owner.send(embed=e)
 
-        await self.db.execute("SELECT 1") # wake it up ig
+        await self.db.execute("SELECT 1")  # wake it up ig
 
     async def on_guild_join(self, guild: discord.Guild):
         counter = 0
@@ -345,18 +324,14 @@ class GClass(commands.Bot):
         if (responded := interaction.response.is_done()) and isinstance(error, CheckFailure):
             return
         else:
-            method = interaction.response.send_message \
-                    if not responded else interaction.followup.send
+            method = interaction.response.send_message if not responded else interaction.followup.send
 
         if hasattr(error, "original"):
             error = getattr(error, "original")
 
         # <-- actual error checks -->
         if isinstance(error, errors.CommandOnCooldown):
-            return await method(
-                f"this command is on cooldown, try again in `{error.retry_after:.2f}`s",
-                ephemeral=True
-            )
+            return await method(f"this command is on cooldown, try again in `{error.retry_after:.2f}`s", ephemeral=True)
         if isinstance(error, RefreshError):
             q = """DELETE FROM authorized
                     WHERE user_id = $1
@@ -364,10 +339,7 @@ class GClass(commands.Bot):
             await self.db.execute(q, interaction.user.id)
 
         if isinstance(error, (CheckFailure, RefreshError)):
-            return await method(
-                f"you need to be logged in, you can do so with </login:{self.LOGIN_CMD_ID}>",
-                ephemeral=True
-            )
+            return await method(f"you need to be logged in, you can do so with </login:{self.LOGIN_CMD_ID}>", ephemeral=True)
 
         # <-- send to error logs -->
         tr = traceback.format_exc()
@@ -377,19 +349,13 @@ class GClass(commands.Bot):
             "if its an error on my end, my dev'll probably fix it soon\n"
             f"really depends on how lazy he is atm {BotEmojis.LUL}"
             f"```py\n{error}\n```",
-            ephemeral=True
+            ephemeral=True,
         )
 
-        location = f"guild {interaction.guild_id}" \
-                    if interaction.guild \
-                    else f"dms with <@!{interaction.user.id}>"
+        location = f"guild {interaction.guild_id}" if interaction.guild else f"dms with <@!{interaction.user.id}>"
 
         await self.error_logs.send(
-            f"error in {location}",
-            file=discord.File(
-                io.BytesIO(tr.encode("utf-8")),
-                filename="traceback.py"
-            )
+            f"error in {location}", file=discord.File(io.BytesIO(tr.encode("utf-8")), filename="traceback.py")
         )
 
     async def on_message(self, message: discord.Message):
@@ -401,9 +367,7 @@ class GClass(commands.Bot):
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
         if payload.user_id in self.owner_ids and payload.emoji.name == "❌":
             try:
-                msg = await self.get_channel(payload.channel_id).fetch_message(
-                    payload.message_id
-                )
+                msg = await self.get_channel(payload.channel_id).fetch_message(payload.message_id)
 
                 if msg.author == self.user:
                     await msg.delete()
@@ -419,11 +383,7 @@ class GClass(commands.Bot):
         handler = logging.StreamHandler()
         formatter = GClassLogging()
         handler.setFormatter(formatter)
-        discord.utils.setup_logging(
-            handler=handler,
-            formatter=formatter,
-            level=logging.INFO
-        )
+        discord.utils.setup_logging(handler=handler, formatter=formatter, level=logging.INFO)
 
         try:
             asyncio.run(runner())
@@ -458,9 +418,7 @@ class GClass(commands.Bot):
         @self.command(name="load", brief="Load cogs", hidden=True)
         @commands.is_owner()
         async def _load(ctx: commands.Context, extension: str):
-            the_match: Tuple[str, float] = match.extractOne(
-                extension, os.listdir("./cogs") + ["utils"]
-            ) # type: ignore
+            the_match: Tuple[str, float] = match.extractOne(extension, os.listdir("./cogs") + ["utils"])  # type: ignore
 
             if the_match[1] < 0.1:
                 return await ctx.reply(
@@ -480,16 +438,12 @@ class GClass(commands.Bot):
                     mention_author=True,
                 )
             else:
-                await ctx.reply(
-                    content=f"Loaded `{cog_fmt}`", mention_author=True
-                )
+                await ctx.reply(content=f"Loaded `{cog_fmt}`", mention_author=True)
 
         @self.command(name="unload", brief="Unload cogs", hidden=True)
         @commands.is_owner()
         async def _unload(ctx: commands.Context, extension: str):
-            the_match: Tuple[ModuleType, float] = match.extractOne(
-                extension, self.extensions
-            ) # type: ignore
+            the_match: Tuple[ModuleType, float] = match.extractOne(extension, self.extensions)  # type: ignore
 
             if the_match[1] < 0.1:
                 return await ctx.reply(
@@ -504,13 +458,9 @@ class GClass(commands.Bot):
             try:
                 await self.unload_extension(cog)
             except commands.ExtensionNotLoaded:
-                return await ctx.reply(
-                    content=f"`{cog_fmt}` is not loaded", mention_author=True
-                )
+                return await ctx.reply(content=f"`{cog_fmt}` is not loaded", mention_author=True)
             else:
-                await ctx.reply(
-                    content=f"Unloaded `{cog_fmt}`", mention_author=True
-                )
+                await ctx.reply(content=f"Unloaded `{cog_fmt}`", mention_author=True)
 
         @self.command(name="reload", brief="Reload cogs", hidden=True)
         @commands.is_owner()
@@ -523,12 +473,8 @@ class GClass(commands.Bot):
                         li.append(f"`{extension.split('.')[1]}`")
                     except IndexError:
                         li.append(f"`{extension}`")
-                return await ctx.reply(
-                    content=f"Reloaded {', '.join(li)}", mention_author=True
-                )
-            the_match: Tuple[ModuleType, float] = match.extractOne(
-                extension, self.extensions
-            ) # type: ignore
+                return await ctx.reply(content=f"Reloaded {', '.join(li)}", mention_author=True)
+            the_match: Tuple[ModuleType, float] = match.extractOne(extension, self.extensions)  # type: ignore
 
             if the_match[1] < 0.1:
                 return await ctx.reply(
@@ -541,9 +487,7 @@ class GClass(commands.Bot):
                 content = f"Reloaded `{cog.split('.')[1]}`"
             except IndexError:
                 content = f"Reloaded `{cog}`"
-            await ctx.reply(
-                content=content, mention_author=True
-            )
+            await ctx.reply(content=content, mention_author=True)
 
 
 if __name__ == "__main__":

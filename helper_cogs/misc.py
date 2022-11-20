@@ -40,9 +40,7 @@ class Misc(commands.Cog):
     @command(name="shoppingcart")
     async def _shoppingcart(self, interaction: Interaction):
         """the shopping cart theory"""
-        await interaction.response.send_message(
-            "https://i.redd.it/3zhf6p3lrky41.jpg", ephemeral=True
-        )
+        await interaction.response.send_message("https://i.redd.it/3zhf6p3lrky41.jpg", ephemeral=True)
 
 
 async def setup(client: NotGDKID):

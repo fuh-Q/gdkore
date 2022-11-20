@@ -16,34 +16,42 @@ if TYPE_CHECKING:
     from helper_bot import NotGDKID
     from utils import NGKContext
 
-muted: Callable[[discord.Member], str] = lambda user: f"""
+muted: Callable[
+    [discord.Member], str
+] = (
+    lambda user: f"""
 {user.mention} has been muted forever.
 
 L
 """
+)
 
-self_muted: Callable[[], str] = lambda: f"""
+self_muted: Callable[
+    [], str
+] = (
+    lambda: f"""
 okay, you've muted yourself forever.
 
 if you wanna get unmuted, dm `gdkid#0111` so he can laugh at you {BotEmojis.HAHALOL}
 
 this message is also able to be seen by the entire server, because it really is just that funny
 """
+)
 
-insert_q: Callable[[int], str] = lambda stop: \
-    """INSERT INTO stickyroles VALUES {0}
+insert_q: Callable[
+    [int], str
+] = lambda stop: """INSERT INTO stickyroles VALUES {0}
     ON CONFLICT ON CONSTRAINT stickyroles_pkey
-    DO NOTHING""".format(",".join(
-        f"(${i}, ${i + 1})" for i in range(1, stop + 1, 2)
-    ))
+    DO NOTHING""".format(
+    ",".join(f"(${i}, ${i + 1})" for i in range(1, stop + 1, 2))
+)
+
 
 class Mod(commands.Cog):
     def __init__(self, client: NotGDKID) -> None:
         self.client = client
         self.mute_user_cmd = ContextMenu(
-            name="shut the fuck up",
-            guild_ids=[self.client.AMAZE_GUILD_ID],
-            callback=self.mute_user
+            name="shut the fuck up", guild_ids=[self.client.AMAZE_GUILD_ID], callback=self.mute_user
         )
 
         self._ignore_ids: Set[int] = set()
@@ -59,7 +67,7 @@ class Mod(commands.Cog):
             if not role:
                 raise ValueError
         except ValueError:
-            role = match.extractOne(search, guild.roles)[0] # type: ignore
+            role = match.extractOne(search, guild.roles)[0]  # type: ignore
 
         return role
 
@@ -95,15 +103,14 @@ class Mod(commands.Cog):
         if not member.guild.id == self.client.AMAZE_GUILD_ID:
             return
 
-        extra_roles: Set[discord.Role | None] = {
-            member.guild.get_role(self.client.MEMBER_ROLE_ID)
-        }
+        extra_roles: Set[discord.Role | None] = {member.guild.get_role(self.client.MEMBER_ROLE_ID)}
 
         q = """SELECT role_id FROM stickyroles
                WHERE user_id = $1"""
-        roles: chain[discord.Role] = chain(map( # type: ignore
-            lambda rec: member.guild.get_role(rec["role_id"]), await self.client.db.fetch(q, member.id)
-        ), extra_roles)
+        roles: chain[discord.Role] = chain(
+            map(lambda rec: member.guild.get_role(rec["role_id"]), await self.client.db.fetch(q, member.id)),  # type: ignore
+            extra_roles,
+        )
 
         await member.add_roles(*roles, reason="sticky roles", atomic=False)
 
@@ -122,14 +129,14 @@ class Mod(commands.Cog):
         if interaction.user.id == target.id:
             await target.add_roles(
                 discord.Object(self.client.MUTED_ROLE_ID),
-                reason=f"self-mute requested by {interaction.user.name}#{interaction.user.discriminator}"
+                reason=f"self-mute requested by {interaction.user.name}#{interaction.user.discriminator}",
             )
             await interaction.response.send_message(self_muted())
         elif interaction.guild.get_role(self.client.ADMIN_ROLE_ID) in interaction.user.roles:
             if isinstance(target, discord.Member):
                 await target.add_roles(
                     discord.Object(self.client.MUTED_ROLE_ID),
-                    reason=f"member mute requested by {interaction.user.name}#{interaction.user.discriminator}"
+                    reason=f"member mute requested by {interaction.user.name}#{interaction.user.discriminator}",
                 )
                 return await interaction.response.send_message(muted(target))
             await self.client.db.execute(insert_q(2), target.id, self.client.MUTED_ROLE_ID)
@@ -172,7 +179,7 @@ class Mod(commands.Cog):
             await ctx.reply(
                 f"cleared {len(rows)} role(s) for <@!{target.id}>",
                 allowed_mentions=discord.AllowedMentions(users=False),
-                mention_author=True
+                mention_author=True,
             )
             if member is None:
                 return

@@ -25,6 +25,6 @@ class BotColours:
     green = 0x2ECC70
     cyan = 0x09DFFF
     blue = 0x0000FF
-    blurple = 0x7289da
-    purple = 0x673ab7
+    blurple = 0x7289DA
+    purple = 0x673AB7
     pink = 0xFF0080

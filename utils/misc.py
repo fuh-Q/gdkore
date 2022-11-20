@@ -15,6 +15,7 @@ CHOICES = [
     "can i see your non-existent proof that you have control over this paginator?",
 ]
 
+
 class MaxConcurrencyReached(CheckFailure):
     """
     An error subclass typically for game commands
@@ -26,6 +27,7 @@ class MaxConcurrencyReached(CheckFailure):
 
     def __init__(self, jump_url: str) -> None:
         self.jump_url = jump_url
+
 
 def get_member_count(client: commands.Bot) -> int:
     """
@@ -41,7 +43,8 @@ def get_member_count(client: commands.Bot) -> int:
     get_member_count: `int`
         The total amount of members.
     """
-    return sum([guild.member_count for guild in client.guilds]) # type: ignore
+    return sum([guild.member_count for guild in client.guilds])  # type: ignore
+
 
 async def db_init(conn: asyncpg.Connection):
     """

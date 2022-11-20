@@ -9,6 +9,7 @@ if TYPE_CHECKING:
     from asyncpg import Connection
     from types import TracebackType
 
+
 class ConnectionContextManager(Protocol):
     async def __aenter__(self) -> Connection:
         ...
@@ -20,6 +21,7 @@ class ConnectionContextManager(Protocol):
         traceback: TracebackType | None,
     ) -> None:
         ...
+
 
 class PostgresPool(Protocol):
     async def execute(self, query: str, *args: Any, timeout: float | None = None) -> str:
@@ -43,6 +45,7 @@ class PostgresPool(Protocol):
     def release(self, connection: Connection) -> None:
         ...
 
+
 class Resource(Protocol):
     def courses(self) -> Resource:
         ...
@@ -62,6 +65,7 @@ class Resource(Protocol):
     def list(self, **kwargs: str | int) -> HttpRequest:
         ...
 
+
 class Announcement(TypedDict):
     updateTime: str
     alternateLink: str
@@ -76,11 +80,13 @@ class Announcement(TypedDict):
     individualStudentOptions: Dict[Literal["studentIds"], List[str]]
     id: str
 
+
 class Attachment(TypedDict):
     youtubeVideo: Dict[str, str] | None
     driveFile: Dict[Literal["driveFile", "shareMode"], Dict[str, str] | str] | None
     link: Dict[str, str] | None
     form: Dict[str, str] | None
+
 
 class Course(TypedDict):
     updateTime: str
@@ -101,6 +107,7 @@ class Course(TypedDict):
     id: str
     descriptionHeading: str
     description: str
+
 
 class CourseWork(TypedDict):
     updateTime: str
@@ -127,6 +134,7 @@ class CourseWork(TypedDict):
     multipleChoiceQuestion: Dict[Literal["choices"], List[str]]
     studentSubmissions: Any | None
 
+
 class CourseWorkMaterials(TypedDict):
     topicId: str
     updateTime: str
@@ -143,12 +151,14 @@ class CourseWorkMaterials(TypedDict):
     individualStudentOptions: Dict[Literal["studentIds"], List[str]]
     id: str
 
+
 class GradeHistory(TypedDict):
     gradeTimestamp: str
     actorUserId: str
     pointsEarned: float
     maxPoints: float
     gradeChangeType: str
+
 
 class StudentSubmissions(TypedDict):
     draftGrade: float
@@ -169,6 +179,7 @@ class StudentSubmissions(TypedDict):
     assignmentSubmission: Dict[Literal["attachments"], List[Attachment]]
     id: str
 
+
 class WebhookData(TypedDict):
     user_id: int
     course_id: int
@@ -180,5 +191,6 @@ class WebhookData(TypedDict):
     last_announcement_post: datetime
     last_material_post: datetime
     last_assignment_post: datetime
+
 
 Post = Announcement | CourseWork | CourseWorkMaterials

@@ -17,17 +17,7 @@ from discord.app_commands import AppCommandError
 from discord.gateway import DiscordWebSocket
 from discord.ext import commands, tasks
 
-from utils import (
-    Config,
-    Confirm,
-    Embed,
-    GClassLogging,
-    NGKContext,
-    PrintColours,
-    mobile,
-    is_dst,
-    new_call_soon
-)
+from utils import Config, Confirm, Embed, GClassLogging, NGKContext, PrintColours, mobile, is_dst, new_call_soon
 
 if TYPE_CHECKING:
     from discord import Interaction
@@ -64,6 +54,7 @@ async def status_task(client: NotGDKID):
             type=discord.ActivityType.watching,
         ),
     )
+
 
 @status_task.before_loop
 async def before_status_task():
@@ -135,9 +126,7 @@ class NotGDKID(commands.Bot):
 
         self._restart = False
         self.description = self.__doc__ or ""
-        self.uptime = datetime.now(tz=timezone(timedelta(
-            hours=-4 if is_dst() else -5
-        )))
+        self.uptime = datetime.now(tz=timezone(timedelta(hours=-4 if is_dst() else -5)))
 
         self.tree.interaction_check = self.on_app_command
         self.tree.on_error = self.on_app_command_error
@@ -145,28 +134,22 @@ class NotGDKID(commands.Bot):
 
     @property
     def db(self) -> PostgresPool:
-        return self._db # type: ignore
+        return self._db  # type: ignore
 
     async def load_extension(self, name: str) -> None:
         await super().load_extension(name)
 
-        self.logger.info(
-            f"{PrintColours.GREEN}loaded{PrintColours.WHITE} {name}"
-        )
+        self.logger.info(f"{PrintColours.GREEN}loaded{PrintColours.WHITE} {name}")
 
     async def unload_extension(self, name: str) -> None:
         await super().unload_extension(name)
 
-        self.logger.info(
-            f"{PrintColours.RED}unloaded{PrintColours.WHITE} {name}"
-        )
+        self.logger.info(f"{PrintColours.RED}unloaded{PrintColours.WHITE} {name}")
 
     async def reload_extension(self, name: str) -> None:
         await super().reload_extension(name)
 
-        self.logger.info(
-            f"{PrintColours.YELLOW}reloaded{PrintColours.WHITE} {name}"
-        )
+        self.logger.info(f"{PrintColours.YELLOW}reloaded{PrintColours.WHITE} {name}")
 
     async def setup_hook(self) -> None:
         self._db = await asyncpg.create_pool(self.postgres_dns)
@@ -175,20 +158,14 @@ class NotGDKID(commands.Bot):
 
         self.status_task = status_task.start(self)
         ready_task = self.loop.create_task(self.first_ready())
-        ready_task.add_done_callback(
-            lambda exc: print(traceback.format_exc())
-            if exc.exception() else ...
-        )
+        ready_task.add_done_callback(lambda exc: print(traceback.format_exc()) if exc.exception() else ...)
 
         for extension in self.init_extensions:
             await self.load_extension(extension)
 
     async def first_ready(self):
         await self.wait_until_ready()
-        self.logger.info(
-            PrintColours.PURPLE + \
-            f"logged in as: {self.user.name}#{self.user.discriminator} : {self.user.id}"
-        )
+        self.logger.info(PrintColours.PURPLE + f"logged in as: {self.user.name}#{self.user.discriminator} : {self.user.id}")
 
         for guild in self.guilds:
             if guild.id not in self.whitelist:
@@ -217,12 +194,10 @@ class NotGDKID(commands.Bot):
 
     async def on_app_command(self, interaction: Interaction) -> bool:
         if (g := interaction.guild) and g.id in self._pending_verification:
-            await interaction.response.send_message(
-                "server is not whitelisted", ephemeral=True
-            )
+            await interaction.response.send_message("server is not whitelisted", ephemeral=True)
 
             return False
-        return True # i only really care about servers here
+        return True  # i only really care about servers here
 
     async def on_app_command_error(self, interaction: Interaction, error: AppCommandError):
         tr = traceback.format_exc()
@@ -238,9 +213,7 @@ class NotGDKID(commands.Bot):
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
         if payload.user_id in self.owner_ids and payload.emoji.name == "❌":
             try:
-                msg = await self.get_channel(payload.channel_id).fetch_message(
-                    payload.message_id
-                )
+                msg = await self.get_channel(payload.channel_id).fetch_message(payload.message_id)
 
                 if msg.author == self.user:
                     await msg.delete()
@@ -262,7 +235,7 @@ class NotGDKID(commands.Bot):
         embed = Embed(
             title=f"guild joined (id - {guild.id})",
             description=f"guild name: `{guild.name}`\n\nwhitelist guild?",
-            timestamp=datetime.now(tz=timezone.utc)
+            timestamp=datetime.now(tz=timezone.utc),
         )
 
         view = Confirm(self.owner)
@@ -285,7 +258,7 @@ class NotGDKID(commands.Bot):
 
         if (
             member.voice
-            and not args[0].channel # before.channel
+            and not args[0].channel  # before.channel
             and member.voice.self_mute
             and not member.voice.self_deaf
             and not member.guild.voice_client
@@ -293,10 +266,7 @@ class NotGDKID(commands.Bot):
             assert member.voice and member.voice.channel
             await member.voice.channel.connect()
 
-        elif (
-            member.guild.voice_client
-            and (not member.voice or member.voice.self_deaf)
-        ):
+        elif member.guild.voice_client and (not member.voice or member.voice.self_deaf):
             await member.guild.voice_client.disconnect(force=True)
 
     def run(self) -> None:
@@ -307,11 +277,7 @@ class NotGDKID(commands.Bot):
         handler = logging.StreamHandler()
         formatter = GClassLogging()
         handler.setFormatter(formatter)
-        discord.utils.setup_logging(
-            handler=handler,
-            formatter=formatter,
-            level=logging.INFO
-        )
+        discord.utils.setup_logging(handler=handler, formatter=formatter, level=logging.INFO)
 
         try:
             asyncio.run(runner())

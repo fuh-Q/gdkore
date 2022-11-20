@@ -83,7 +83,7 @@ class PaginatorInterFace(OGPaginatorInterface):
 
         for child in self.children:
             try:
-                child.emoji = None # type: ignore
+                child.emoji = None  # type: ignore
             except Exception:
                 pass
 
@@ -115,9 +115,7 @@ class PaginatorInterFace(OGPaginatorInterface):
         """Check that determines whether this interaction should be honored"""
         assert self.owner
         if interaction.user.id != self.owner.id:
-            await interaction.response.send_message(
-                content=random.choice(CHOICES), ephemeral=True
-            )
+            await interaction.response.send_message(content=random.choice(CHOICES), ephemeral=True)
             return False
         return True
 
@@ -153,7 +151,7 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
             f"Jishaku `v{package_version('jishaku')}`, discord.py `v{package_version('discord.py')}`, "
             f"`Python v{sys.version}` on `{sys.platform}`".replace("\n", ""),
             f"Bot was started <t:{self.bot.uptime.timestamp():.0f}:R>, "
-            f"cog was loaded <t:{self.start_time.timestamp():.0f}:R>.", # type: ignore
+            f"cog was loaded <t:{self.start_time.timestamp():.0f}:R>.",  # type: ignore
             "",
         ]
 
@@ -178,9 +176,7 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
                         pid = proc.pid
                         thread_count = proc.num_threads()
 
-                        summary.append(
-                            f"Running on `PID {pid}` (`{name}`) with `{thread_count}` thread(s)."
-                        )
+                        summary.append(f"Running on `PID {pid}` (`{name}`) with `{thread_count}` thread(s).")
                     except psutil.AccessDenied:
                         pass
             except psutil.AccessDenied:
@@ -222,9 +218,7 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
 
         # pylint: disable=protected-access
         if self.bot._connection.max_messages:
-            message_cache = (
-                f"Message cache capped at `{self.bot._connection.max_messages}`"
-            )
+            message_cache = f"Message cache capped at `{self.bot._connection.max_messages}`"
         else:
             message_cache = "Message cache is disabled"
 
@@ -235,11 +229,9 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
             summary.append(f"{message_cache}, {presence_intent} and {members_intent}.")
 
             if discord.version_info >= (2, 0, 0):
-                summary.append(
-                    f"This bot *{'can' if self.bot.intents.message_content else 'cannot'}* read message content."
-                )
+                summary.append(f"This bot *{'can' if self.bot.intents.message_content else 'cannot'}* read message content.")
         else:
-            guild_subscriptions = f"guild subscriptions are *{'enabled' if self.bot._connection.guild_subscriptions else 'disabled'}*" # type: ignore
+            guild_subscriptions = f"guild subscriptions are *{'enabled' if self.bot._connection.guild_subscriptions else 'disabled'}*"  # type: ignore
 
             summary.append(f"{message_cache} and {guild_subscriptions}.")
 
@@ -247,9 +239,7 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
 
         # Show websocket latency in milliseconds
         summary.append("")  # blank line
-        summary.append(
-            f"Average websocket latency: `{round(self.bot.latency * 1000, 2)}ms`"
-        )
+        summary.append(f"Average websocket latency: `{round(self.bot.latency * 1000, 2)}ms`")
 
         await ctx.send("\n".join(summary))
 
@@ -268,12 +258,12 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
         If invoked without subcommand, relays current voice state.
         """
 
-        if await self.voice_check(ctx): # type: ignore
+        if await self.voice_check(ctx):  # type: ignore
             return
 
         # give info about the current voice client if there is one
         assert ctx.guild
-        voice: discord.VoiceClient = ctx.guild.voice_client # type: ignore
+        voice: discord.VoiceClient = ctx.guild.voice_client  # type: ignore
 
         if not voice or not voice.is_connected():
             return await ctx.send("Not connected.")
@@ -289,7 +279,7 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
         name="shell",
         aliases=["bash", "sh", "powershell", "ps1", "ps", "cmd"],
     )
-    async def jsk_shell(self, ctx: commands.Context, *, argument: codeblock_converter): # type: ignore
+    async def jsk_shell(self, ctx: commands.Context, *, argument: codeblock_converter):  # type: ignore
         """
         Executes statements in the system shell.
 
@@ -298,14 +288,12 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
         """
 
         async with ReplResponseReactor(ctx.message):
-            with self.submit(ctx): # type: ignore
+            with self.submit(ctx):  # type: ignore
                 with ShellReader(argument.content) as reader:
                     prefix = "```" + reader.highlight
 
                     paginator = WrappedPaginator(prefix=prefix, max_size=1975)
-                    paginator.add_line(
-                        f"{reader.ps1} {argument.content}```\n```{reader.highlight}\n"
-                    )
+                    paginator.add_line(f"{reader.ps1} {argument.content}```\n```{reader.highlight}\n")
 
                     interface = PaginatorInterFace(ctx.bot, paginator, owner=ctx.author)
                     self.bot.loop.create_task(interface.send_to(ctx))
@@ -318,25 +306,25 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
                 await interface.add_line(f"\n[status] Return code {reader.close_code}")
 
     @Feature.Command(parent="", standalone_ok=True, name="git")
-    async def jsk_git(self, ctx: commands.Context, *, argument: codeblock_converter): # type: ignore
+    async def jsk_git(self, ctx: commands.Context, *, argument: codeblock_converter):  # type: ignore
         """
         Shortcut for 'jsk sh git'. Invokes the system shell.
         """
 
         return await ctx.invoke(
-            self.jsk_shell, # type: ignore
-            argument=Codeblock(argument.language, "git " + argument.content), # type: ignore
+            self.jsk_shell,  # type: ignore
+            argument=Codeblock(argument.language, "git " + argument.content),  # type: ignore
         )
 
     @Feature.Command(parent="", standalone_ok=True, name="pip")
-    async def jsk_pip(self, ctx: commands.Context, *, argument: codeblock_converter): # type: ignore
+    async def jsk_pip(self, ctx: commands.Context, *, argument: codeblock_converter):  # type: ignore
         """
         Shortcut for 'jsk sh pip'. Invokes the system shell.
         """
 
         return await ctx.invoke(
-            self.jsk_shell, # type: ignore
-            argument=Codeblock(argument.language, "pip " + argument.content), # type: ignore
+            self.jsk_shell,  # type: ignore
+            argument=Codeblock(argument.language, "pip " + argument.content),  # type: ignore
         )
 
     @Feature.Command(parent="", standalone_ok=True, name="source", aliases=["src"])
@@ -347,42 +335,32 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
 
         if not (command := self.bot.get_command(command_name)):
             if not (command := self.bot.tree.get_command(command_name)):
-                if maybe_command := self.bot.tree.get_command(
-                    (split := command_name.split(" "))[0]
-                ):
+                if maybe_command := self.bot.tree.get_command((split := command_name.split(" "))[0]):
                     # we got a group
 
-                    command = maybe_command.get_command(split[1]) # type: ignore
+                    command = maybe_command.get_command(split[1])  # type: ignore
 
         if not command:
             return await ctx.send(f"Couldn't find command `{command_name}`.")
 
         try:
-            source_lines, _ = inspect.getsourcelines(command.callback) # type: ignore
+            source_lines, _ = inspect.getsourcelines(command.callback)  # type: ignore
         except (TypeError, OSError):
-            return await ctx.send(
-                f"Was unable to retrieve the source for `{command}` for some reason."
-            )
+            return await ctx.send(f"Was unable to retrieve the source for `{command}` for some reason.")
 
         source_text = "".join(source_lines)
 
         filename = "source.py"
 
         try:
-            filename = pathlib.Path(inspect.getfile(command.callback)).name # type: ignore
+            filename = pathlib.Path(inspect.getfile(command.callback)).name  # type: ignore
         except (TypeError, OSError):
             pass
 
-        await ctx.send(
-            file=discord.File(
-                filename=filename, fp=io.BytesIO(source_text.encode("utf-8"))
-            )
-        )
+        await ctx.send(file=discord.File(filename=filename, fp=io.BytesIO(source_text.encode("utf-8"))))
 
     @Feature.Command(parent="", standalone_ok=True, name="cat")
-    async def jsk_cat(
-        self, ctx: commands.Context, argument: str
-    ):  # pylint: disable=too-many-locals
+    async def jsk_cat(self, ctx: commands.Context, argument: str):  # pylint: disable=too-many-locals
         """
         Read out a file, using syntax highlighting if detected.
 
@@ -417,20 +395,13 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
             return await ctx.send(f"`{path}`: Cowardly refusing to read a file >128MB.")
 
         def check(message: discord.Message) -> bool:
-            return (
-                message.author.id == ctx.author.id
-                and message.channel.id == ctx.channel.id
-            )
+            return message.author.id == ctx.author.id and message.channel.id == ctx.channel.id
 
         file_format = False
-        await ctx.send(
-            "Would you like this in the form of a file rather than a paginator? `[yes|no]`"
-        )
+        await ctx.send("Would you like this in the form of a file rather than a paginator? `[yes|no]`")
         while True:
             try:
-                msg: discord.Message = await self.bot.wait_for(
-                    "message", timeout=60, check=check
-                )
+                msg: discord.Message = await self.bot.wait_for("message", timeout=60, check=check)
             except asyncio.TimeoutError:
                 await ctx.send("You took too long to respond, imma take that as a no")
                 break
@@ -441,9 +412,7 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
 
         try:
             with open(path, "rb") as file:
-                if (
-                    file_format and not JISHAKU_FORCE_PAGINATOR
-                ):  # File "full content" preview limit
+                if file_format and not JISHAKU_FORCE_PAGINATOR:  # File "full content" preview limit
                     if line_span:
                         content, *_ = guess_file_traits(file.read())
 
@@ -456,21 +425,13 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
                             )
                         )
                     else:
-                        await ctx.send(
-                            file=discord.File(
-                                filename=pathlib.Path(file.name).name, fp=file
-                            )
-                        )
+                        await ctx.send(file=discord.File(filename=pathlib.Path(file.name).name, fp=file))
                 else:
-                    paginator = WrappedFilePaginator(
-                        file, line_span=line_span, max_size=1985
-                    )
+                    paginator = WrappedFilePaginator(file, line_span=line_span, max_size=1985)
                     interface = PaginatorInterFace(ctx.bot, paginator, owner=ctx.author)
                     await interface.send_to(ctx)
         except UnicodeDecodeError:
-            return await ctx.send(
-                f"`{path}`: Couldn't determine the encoding of this file."
-            )
+            return await ctx.send(f"`{path}`: Couldn't determine the encoding of this file.")
         except ValueError as exc:
             return await ctx.send(f"`{path}`: Couldn't read this file, {exc}")
 
@@ -496,33 +457,22 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
                 return await ctx.send(f"HTTP response was empty (status code {code}).")
 
             def check(message: discord.Message) -> bool:
-                return (
-                    message.author.id == ctx.author.id
-                    and message.channel.id == ctx.channel.id
-                )
+                return message.author.id == ctx.author.id and message.channel.id == ctx.channel.id
 
             file_format = False
-            await ctx.send(
-                "Would you like this in the form of a file rather than a paginator? `[yes|no]`"
-            )
+            await ctx.send("Would you like this in the form of a file rather than a paginator? `[yes|no]`")
             while True:
                 try:
-                    msg: discord.Message = await self.bot.wait_for(
-                        "message", timeout=60, check=check
-                    )
+                    msg: discord.Message = await self.bot.wait_for("message", timeout=60, check=check)
                 except asyncio.TimeoutError:
-                    await ctx.send(
-                        "You took too long to respond, imma take that as a no"
-                    )
+                    await ctx.send("You took too long to respond, imma take that as a no")
                     break
                 else:
                     if msg.content.lower() == "yes":
                         file_format = True
                     break
 
-            if (
-                file_format and not JISHAKU_FORCE_PAGINATOR
-            ):  # File "full content" preview limit
+            if file_format and not JISHAKU_FORCE_PAGINATOR:  # File "full content" preview limit
                 # Shallow language detection
                 language = None
 
@@ -532,32 +482,20 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
                     if language:
                         break
 
-                await ctx.send(
-                    file=discord.File(
-                        filename=f"response.{language or 'txt'}", fp=io.BytesIO(data)
-                    )
-                )
+                await ctx.send(file=discord.File(filename=f"response.{language or 'txt'}", fp=io.BytesIO(data)))
             else:
                 try:
-                    paginator = WrappedFilePaginator(
-                        io.BytesIO(data), language_hints=hints, max_size=1985
-                    )
+                    paginator = WrappedFilePaginator(io.BytesIO(data), language_hints=hints, max_size=1985)
                 except UnicodeDecodeError:
-                    return await ctx.send(
-                        f"Couldn't determine the encoding of the response. (status code {code})"
-                    )
+                    return await ctx.send(f"Couldn't determine the encoding of the response. (status code {code})")
                 except ValueError as exc:
-                    return await ctx.send(
-                        f"Couldn't read response (status code {code}), {exc}"
-                    )
+                    return await ctx.send(f"Couldn't read response (status code {code}), {exc}")
 
                 interface = PaginatorInterFace(ctx.bot, paginator, owner=ctx.author)
                 await interface.send_to(ctx)
 
     @Feature.Command(parent="", standalone_ok=True, name="dis", aliases=["disassemble"])
-    async def jsk_disassemble(
-        self, ctx: commands.Context, *, argument: codeblock_converter # type: ignore
-    ):
+    async def jsk_disassemble(self, ctx: commands.Context, *, argument: codeblock_converter):  # type: ignore
         """
         Disassemble Python code into bytecode.
         """
@@ -568,38 +506,23 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
             text = "\n".join(disassemble(argument.content, arg_dict=arg_dict))
 
             def check(message: discord.Message) -> bool:
-                return (
-                    message.author.id == ctx.author.id
-                    and message.channel.id == ctx.channel.id
-                )
+                return message.author.id == ctx.author.id and message.channel.id == ctx.channel.id
 
             file_format = False
-            await ctx.send(
-                "Would you like this in the form of a file rather than a paginator? `[yes|no]`"
-            )
+            await ctx.send("Would you like this in the form of a file rather than a paginator? `[yes|no]`")
             while True:
                 try:
-                    msg: discord.Message = await self.bot.wait_for(
-                        "message", timeout=60, check=check
-                    )
+                    msg: discord.Message = await self.bot.wait_for("message", timeout=60, check=check)
                 except asyncio.TimeoutError:
-                    await ctx.send(
-                        "You took too long to respond, imma take that as a no"
-                    )
+                    await ctx.send("You took too long to respond, imma take that as a no")
                     break
                 else:
                     if msg.content.lower() == "yes":
                         file_format = True
                     break
 
-            if (
-                file_format and not JISHAKU_FORCE_PAGINATOR
-            ):  # File "full content" preview limit
-                await ctx.send(
-                    file=discord.File(
-                        filename="dis.py", fp=io.BytesIO(text.encode("utf-8"))
-                    )
-                )
+            if file_format and not JISHAKU_FORCE_PAGINATOR:  # File "full content" preview limit
+                await ctx.send(file=discord.File(filename="dis.py", fp=io.BytesIO(text.encode("utf-8"))))
             else:
                 paginator = WrappedPaginator(prefix="```py", max_size=1985)
 
@@ -609,29 +532,24 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
                 await interface.send_to(ctx)
 
     @Feature.Command(parent="", standalone_ok=True, name="py", aliases=["python"])
-    async def jsk_python(self, ctx: commands.Context, *, argument: codeblock_converter): # type: ignore
+    async def jsk_python(self, ctx: commands.Context, *, argument: codeblock_converter):  # type: ignore
         """
         Direct evaluation of Python code.
         """
 
         def check(message: discord.Message) -> bool:
-            return (
-                message.author.id == ctx.author.id
-                and message.channel.id == ctx.channel.id
-            )
+            return message.author.id == ctx.author.id and message.channel.id == ctx.channel.id
 
         arg_dict = get_var_dict_from_ctx(ctx, SCOPE_PREFIX)
         arg_dict["_"] = self.last_result
 
-        scope = self.scope # type: ignore
+        scope = self.scope  # type: ignore
 
         try:
             async with ReplResponseReactor(ctx.message):
-                with self.submit(ctx): # type: ignore
-                    executor = AsyncCodeExecutor(
-                        argument.content, scope, arg_dict=arg_dict
-                    )
-                    async for send, result in AsyncSender(executor): # type: ignore
+                with self.submit(ctx):  # type: ignore
+                    executor = AsyncCodeExecutor(argument.content, scope, arg_dict=arg_dict)
+                    async for send, result in AsyncSender(executor):  # type: ignore
                         if result is None:
                             continue
 
@@ -653,11 +571,7 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
                                     result = "\u200b"
 
                                 assert self.bot.http.token
-                                send(
-                                    await ctx.send(
-                                        result.replace(self.bot.http.token, "[TOKEN]")
-                                    )
-                                )
+                                send(await ctx.send(result.replace(self.bot.http.token, "[TOKEN]")))
 
                             else:
                                 ye_or_nu = "no"
@@ -668,15 +582,9 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
                                 )
                                 while True:
                                     try:
-                                        msg: discord.Message = await self.bot.wait_for(
-                                            "message", timeout=60, check=check
-                                        )
+                                        msg: discord.Message = await self.bot.wait_for("message", timeout=60, check=check)
                                     except asyncio.TimeoutError:
-                                        send(
-                                            await ctx.send(
-                                                "You took too long to respond, I'll take that as a no :|"
-                                            )
-                                        )
+                                        send(await ctx.send("You took too long to respond, I'll take that as a no :|"))
                                         ye_or_nu = "no"
                                         break
                                     else:
@@ -695,9 +603,7 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
                                     )
 
                                 else:
-                                    paginator = WrappedPaginator(
-                                        prefix="```py", suffix="```", max_size=1985
-                                    )
+                                    paginator = WrappedPaginator(prefix="```py", suffix="```", max_size=1985)
 
                                     try:
                                         paginator.add_line(result)
@@ -707,9 +613,7 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
                                         )
                                         paginator.add_line(result[:1975])
 
-                                    interface = PaginatorInterFace(
-                                        ctx.bot, paginator, owner=ctx.author
-                                    )
+                                    interface = PaginatorInterFace(ctx.bot, paginator, owner=ctx.author)
                                     send(await interface.send_to(ctx))
 
         finally:
@@ -722,7 +626,7 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
         aliases=["pyi", "python_inspect", "pythoninspect"],
     )
     async def jsk_python_inspect(
-        self, ctx: commands.Context, *, argument: codeblock_converter # type: ignore
+        self, ctx: commands.Context, *, argument: codeblock_converter  # type: ignore
     ):  # pylint: disable=too-many-locals
         """
         Evaluation of Python code with inspect information.
@@ -731,23 +635,17 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
         arg_dict = get_var_dict_from_ctx(ctx, SCOPE_PREFIX)
         arg_dict["_"] = self.last_result
 
-        scope = self.scope # type: ignore
+        scope = self.scope  # type: ignore
 
         try:
             async with ReplResponseReactor(ctx.message):
-                with self.submit(ctx): # type: ignore
-                    executor = AsyncCodeExecutor(
-                        argument.content, scope, arg_dict=arg_dict
-                    )
-                    async for send, result in AsyncSender(executor): # type: ignore
+                with self.submit(ctx):  # type: ignore
+                    executor = AsyncCodeExecutor(argument.content, scope, arg_dict=arg_dict)
+                    async for send, result in AsyncSender(executor):  # type: ignore
                         self.last_result = result
 
                         assert self.bot.http.token
-                        header = (
-                            repr(result)
-                            .replace("``", "`\u200b`")
-                            .replace(self.bot.http.token, "[TOKEN]")
-                        )
+                        header = repr(result).replace("``", "`\u200b`").replace(self.bot.http.token, "[TOKEN]")
 
                         if len(header) > 485:
                             header = header[0:482] + "..."
@@ -761,7 +659,7 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
 
                         if (
                             len(text) < 50_000
-                            and not ctx.author.is_on_mobile() # type: ignore
+                            and not ctx.author.is_on_mobile()  # type: ignore
                             and not JISHAKU_FORCE_PAGINATOR
                         ):  # File "full content" preview limit
                             send(
@@ -773,15 +671,11 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
                                 )
                             )
                         else:
-                            paginator = WrappedPaginator(
-                                prefix="```prolog", max_size=1985
-                            )
+                            paginator = WrappedPaginator(prefix="```prolog", max_size=1985)
 
                             paginator.add_line(text)
 
-                            interface = PaginatorInterFace(
-                                ctx.bot, paginator, owner=ctx.author
-                            )
+                            interface = PaginatorInterFace(ctx.bot, paginator, owner=ctx.author)
                             send(await interface.send_to(ctx))
         finally:
             scope.clear_intersection(arg_dict)
@@ -792,12 +686,12 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
         Shows the currently running jishaku tasks.
         """
 
-        if not self.tasks: # type: ignore
+        if not self.tasks:  # type: ignore
             return await ctx.send("No currently running tasks.")
 
         paginator = commands.Paginator(max_size=1985)
 
-        for task in self.tasks: # type: ignore
+        for task in self.tasks:  # type: ignore
             paginator.add_line(
                 f"{task.index}: `{task.ctx.command.qualified_name}`, invoked at "
                 f"{task.ctx.message.created_at.strftime('%Y-%m-%d %H:%M:%S')} UTC"
@@ -812,4 +706,4 @@ async def setup(bot: commands.Bot):
     The setup function defining the jishaku.cog and jishaku extensions.
     """
 
-    await bot.add_cog(Jishaku(bot=bot)) # type: ignore
+    await bot.add_cog(Jishaku(bot=bot))  # type: ignore

@@ -7,13 +7,7 @@ from . import CHOICES
 
 import discord
 from discord import Interaction, InteractionMessage, Member, User
-from discord.ui import (
-    View as DPYView,
-    Item,
-    Button,
-    Select,
-    button
-)
+from discord.ui import View as DPYView, Item, Button, Select, button
 
 from google.auth.exceptions import RefreshError
 
@@ -80,9 +74,7 @@ class Confirm(DPYView):
 
     async def interaction_check(self, interaction: Interaction, /) -> bool:
         if interaction.user != self.owner:
-            await interaction.response.send_message(
-                content=random.choice(CHOICES), ephemeral=True
-            )
+            await interaction.response.send_message(content=random.choice(CHOICES), ephemeral=True)
             return False
         return True
 
@@ -129,6 +121,7 @@ class _ViewMeta(type):
 
         return super().__new__(cls, name, bases, attrs)
 
+
 class View(DPYView, metaclass=_ViewMeta):
     """
     A subclass of `View` that reworks the timeout logic.
@@ -157,7 +150,7 @@ class View(DPYView, metaclass=_ViewMeta):
 
     async def _scheduled_task(self, item: Item, interaction: Interaction):
         try:
-            item._refresh_state(interaction, interaction.data) # type: ignore
+            item._refresh_state(interaction, interaction.data)  # type: ignore
 
             allow = await self.interaction_check(interaction, item)
             if allow is False:
@@ -175,12 +168,9 @@ class View(DPYView, metaclass=_ViewMeta):
         except Exception as e:
             return await self.on_error(interaction, e, item)
 
-    def disable_all(self, *, exclude_urls = False) -> None:
+    def disable_all(self, *, exclude_urls=False) -> None:
         for c in self.children:
-            if (
-                exclude_urls and not getattr(c, "url", None)
-                or not exclude_urls
-            ):
+            if exclude_urls and not getattr(c, "url", None) or not exclude_urls:
                 c.disabled = True
 
     def reposition(self, item: Item) -> None:
@@ -235,23 +225,21 @@ class BasePages(View):
     ABC for paginators to inherit from.
     """
 
-    TIMEOUT = 180 # default timeout
+    TIMEOUT = 180  # default timeout
 
-    _current: int # current page
-    _pages: List[discord.Embed] # pages are comprised of embeds
-    _interaction: Interaction # typically the initial interaction from the user
-    _ctx: Context[GClass] | None = None # instance of context if this is being used in a prefixed command
+    _current: int  # current page
+    _pages: List[discord.Embed]  # pages are comprised of embeds
+    _interaction: Interaction  # typically the initial interaction from the user
+    _ctx: Context[GClass] | None = None  # instance of context if this is being used in a prefixed command
 
-    _home: BasePages # homepage
-    _parent: bool # currently focused in a "sub-view"
+    _home: BasePages  # homepage
+    _parent: bool  # currently focused in a "sub-view"
 
     async def interaction_check(self, interaction: Interaction, item: Item) -> bool:
         uid = self._ctx.author.id if self._ctx else self._interaction.user.id
 
         if interaction.user.id != uid:
-            await interaction.response.send_message(
-                content=random.choice(CHOICES), ephemeral=True
-            )
+            await interaction.response.send_message(content=random.choice(CHOICES), ephemeral=True)
             return False
         return True
 
@@ -264,14 +252,13 @@ class BasePages(View):
             try:
                 await method(view=self)
             except discord.HTTPException:
-                pass # we tried
+                pass  # we tried
 
     async def on_error(self, interaction: Interaction, error: Exception, item: Item) -> None:
         if isinstance(error, RefreshError):
             return self._home.client.dispatch("app_command_error", interaction, error)
 
         raise error
-
 
     @property
     def client(self) -> GClass:
@@ -282,7 +269,7 @@ class BasePages(View):
         if self._ctx:
             return self._ctx.bot
 
-        return self._interaction.client # type: ignore
+        return self._interaction.client  # type: ignore
 
     @property
     def pages(self) -> List[discord.Embed]:
@@ -316,19 +303,15 @@ class BasePages(View):
         }
 
     def update_components(self):
-        self.button_start.disabled = (self._current == 0)
-        self.button_previous.disabled = (self._current == 0)
-        self.button_end.disabled = (self._current == self.page_count - 1)
-        self.button_next.disabled = (self._current == self.page_count - 1)
+        self.button_start.disabled = self._current == 0
+        self.button_previous.disabled = self._current == 0
+        self.button_end.disabled = self._current == self.page_count - 1
+        self.button_next.disabled = self._current == self.page_count - 1
 
         self.button_current.label = f"{self.current_page + 1} / {self.page_count}"
 
     async def start(
-        self,
-        *,
-        edit_existing: bool = False,
-        interaction: Interaction | None = None,
-        content: str | None = None
+        self, *, edit_existing: bool = False, interaction: Interaction | None = None, content: str | None = None
     ):
         if not interaction and not hasattr(self, "_interaction"):
             raise TypeError("Interaction must be set")
@@ -343,13 +326,13 @@ class BasePages(View):
         }
 
         if edit_existing:
-            method = interaction.response.edit_message \
-                    if not interaction.response.is_done() \
-                    else interaction.edit_original_response
+            method = (
+                interaction.response.edit_message
+                if not interaction.response.is_done()
+                else interaction.edit_original_response
+            )
         else:
-            method = interaction.response.send_message \
-                    if not interaction.response.is_done() \
-                    else interaction.followup.send
+            method = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
             kwargs["ephemeral"] = True
 
         await method(**kwargs)
