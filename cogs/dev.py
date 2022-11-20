@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+import io
 import math
 import os
 import pathlib
@@ -9,6 +11,7 @@ from enum import Enum
 from functools import partial
 from itertools import chain
 from typing import Any, Coroutine, Generator, List, Tuple, TYPE_CHECKING
+from zipfile import ZipFile, ZIP_DEFLATED as zip_comp
 
 import discord
 from discord.ext import commands
@@ -16,6 +19,7 @@ from discord.ui import Button, Modal, Select, TextInput, button
 
 from utils import (
     BasePages,
+    BotEmojis,
     Confirm,
     Embed,
     cap
@@ -69,8 +73,11 @@ class DirectoryView(BasePages):
         ctx: commands.Context | None = None,
         interaction: Interaction | None = None
     ):
-        self.directory = directory
-        self.items = sorted(directory.iterdir(), key=lambda k: k.name.lower())
+        self.directory = directory.resolve()
+        self.items = sorted(
+            map(lambda item: item.resolve(), directory.iterdir()),
+            key=lambda k: k.name.lower()
+        )
 
         self._pages = []
         self._directory_slices = []
@@ -89,8 +96,6 @@ class DirectoryView(BasePages):
         self.select_menu = DirectoryPicker(self)
         self.add_item(self.select_menu)
 
-        self.send_file = SendFile(self)
-        self.send_file_ephemeral = SendFile(self, send_ephemeral=True)
         self.load_file = ExtensionButton(self, ExtensionAction.LOAD)
         self.unload_file = ExtensionButton(self, ExtensionAction.UNLOAD)
         self.reload_file = ExtensionButton(self, ExtensionAction.RELOAD)
@@ -106,21 +111,21 @@ class DirectoryView(BasePages):
         files = list(filter(lambda i: not i.is_dir(), self.items))
         directories = tuple(i for i in self.items if i not in files and
                             not i.name.startswith(".") and not i.name in self.EXCLUDED_DIRS
-                            and len(str(i.resolve())) <= 100)
+                            and len(str(i)) <= 100)
         self._actual_files = files
         self._pages = [Embed(
             title=f"{cap(discord.utils.escape_markdown(f.name, as_needed=True)):256}",
             description= \
-                f"file size - `{size(os.path.getsize(resolved := f.resolve()))}`\n" \
+                f"file size - `{size(os.path.getsize(resolved := f))}`\n" \
                 f"file last modified - <t:{os.path.getmtime(str(resolved)):.0f}:R>",
             timestamp=datetime.now(tz=timezone.utc),
             url=f"https://fileinfo.com/extension/{f.parts[-1].split('.')[-1]}"
-        ).set_author(name=f"{cap(str(f.resolve())):256}") for f in files]
+        ).set_author(name=f"{cap(str(f)):256}") for f in files]
 
         if not self._pages:
             self._pages.append(Embed(
                 description="no files to display"
-            ).set_author(name=f"{cap(str(self.directory.resolve())):256}"))
+            ).set_author(name=f"{cap(str(self.directory)):256}"))
 
         if len(directories) > 25:
             self._directory_slices = [s for s in self.slice_directories(directories)]
@@ -131,7 +136,7 @@ class DirectoryView(BasePages):
             diff = slices - self.page_count
             self._pages += [Embed(
                 description="no files to display"
-            ).set_author(name=f"{cap(str(self.directory.resolve())):256}") for _ in range(diff)]
+            ).set_author(name=f"{cap(str(self.directory)):256}") for _ in range(diff)]
 
 
     def slice_directories(self, directories: Tuple[pathlib.Path]) -> Slicer:
@@ -146,7 +151,7 @@ class DirectoryView(BasePages):
         for f in self._directory_slices[self.slice_index]:
             if (not f.name.startswith(".")
                 and not f.name in self.EXCLUDED_DIRS
-                and (r := str(f.resolve())) not in values):
+                and (r := str(f)) not in values):
 
                 values.add(r)
                 opts.append(discord.SelectOption(
@@ -155,14 +160,13 @@ class DirectoryView(BasePages):
 
         opts.insert(0, discord.SelectOption(
             label="..",
-            value=str(self.directory.parent.resolve())
+            value=str(self.directory.parent)
         ))
 
         return opts
 
     def update_file_buttons(self) -> None:
         self.remove_item(self.send_file)
-        self.remove_item(self.send_file_ephemeral)
         self.remove_item(self.rename_file)
         self.remove_item(self.remove_file)
         self.remove_item(self.load_file)
@@ -184,7 +188,6 @@ class DirectoryView(BasePages):
 
         if self.pages[self.current_page].title:
             self.add_item(self.send_file)
-            self.add_item(self.send_file_ephemeral)
             self.add_item(self.rename_file)
             self.add_item(self.remove_file)
 
@@ -203,6 +206,96 @@ class DirectoryView(BasePages):
 
         self.update_components()
         await interaction.edit_original_response(**self.edit_kwargs)
+
+    async def prompt_ephemeral(self, interaction: Interaction) -> Tuple[bool | None, Confirm]:
+        await interaction.response.defer(ephemeral=True)
+
+        view = Confirm(interaction.user, add_third=True, third_label="cancel")
+        embed = Embed(description="would you like to have this item sent **ephemerally**?")
+        msg = await interaction.followup.send(
+            embed=embed, view=view, ephemeral=True, wait=True
+        )
+        view.original_message = msg
+
+        expired = await view.wait()
+        if expired:
+            return None, view
+
+        await view.interaction.response.defer()
+        if not view.choice:
+            await interaction.followup.delete_message(msg.id)
+
+        return view.choice, view
+
+    async def try_send_item(
+        self,
+        interaction: Interaction,
+        view: Confirm,
+        directory: bool,
+        ephemeral: bool,
+    ) -> None:
+        def zip_creator(buffer: io.BytesIO):
+            with ZipFile(buffer, "a", compression=zip_comp) as f:
+                for item in self.directory.iterdir():
+                    if not item.is_dir():
+                        try:
+                            f.writestr(item.name, item.read_bytes())
+                        except PermissionError:
+                            continue
+
+            buffer.seek(0)
+            return buffer
+
+        buffer = None
+        try:
+            if not directory:
+                path = self._actual_files[self.current_page]
+                file = discord.File(str(path), filename=path.name)
+            else:
+                if ephemeral is True:
+                    e = discord.Embed(description=f"{BotEmojis.LOADING} working on it...")
+                    await view.interaction.edit_original_response(embed=e, view=None)
+
+                assert isinstance(interaction.channel, discord.TextChannel)
+                async with interaction.channel.typing():
+                    buffer = await asyncio.to_thread(zip_creator, io.BytesIO())
+                    file = discord.File(buffer, filename=f"{self.directory.name}.zip")
+        except FileNotFoundError as e:
+            return await interaction.followup.send(
+                embed=Embed(description=f"```py\n{e}\n```"), ephemeral=True
+            )
+        finally:
+            if buffer is not None and not buffer.closed:
+                buffer.close()
+
+        method, kwargs = ((view.interaction.edit_original_response, {"attachments": [file], "embed": None})
+                          if ephemeral is True else (view.interaction.followup.send, {"file": file}))
+
+        try:
+            await method(**kwargs)
+        except discord.HTTPException as e:
+            if e.status == 413:
+                extras = {"embed": None} if ephemeral is True else {}
+                await method(content="entity exceeds file upload limit", **extras)
+                return
+
+            raise e
+
+    @button(label="send file", style=discord.ButtonStyle.primary, row=2)
+    async def send_file(self, interaction: Interaction, button: Button):
+        choice, view = await self.prompt_ephemeral(interaction)
+        if choice is None:
+            return
+
+        await self.try_send_item(interaction, view, directory=False, ephemeral=choice)
+
+    @button(label="send directory", style=discord.ButtonStyle.primary, row=2)
+    async def send_directory(self, interaction: Interaction, button: Button):
+        choice, view = await self.prompt_ephemeral(interaction)
+        if choice is None:
+            return
+
+        await self.try_send_item(interaction, view, directory=True, ephemeral=choice)
 
     @button(label="rename file", style=discord.ButtonStyle.secondary, row=2)
     async def rename_file(self, interaction: Interaction, button: Button):
@@ -245,48 +338,6 @@ class DirectoryView(BasePages):
         self.update_components()
         await interaction.edit_original_response(**self.edit_kwargs)
 
-class SendFile(Button[DirectoryView]):
-    _view: DirectoryView
-
-    @property
-    def view(self) -> DirectoryView:
-        return self._view
-
-    def __init__(self, view: DirectoryView, *, send_ephemeral: bool = False):
-        self._view = view
-        self.send_ephemeral = send_ephemeral
-
-        super().__init__(
-            label="send file",
-            style=discord.ButtonStyle.primary,
-            row=2
-        )
-
-        if send_ephemeral:
-            assert self.label
-            self.label += " (ephemeral)"
-
-    async def callback(self, interaction: Interaction) -> None:
-        await interaction.response.defer()
-
-        try:
-            path = self.view._actual_files[self.view.current_page].resolve()
-            file = discord.File(str(path), filename=path.name)
-        except FileNotFoundError as e:
-            return await interaction.followup.send(
-                embed=Embed(description=f"```py\n{e}\n```"), ephemeral=True
-            )
-
-        try:
-            await interaction.followup.send(file=file, ephemeral=self.send_ephemeral)
-        except discord.HTTPException as e:
-            if e.status == 413:
-                return await interaction.followup.send(
-                    "file size exceeds upload limit", ephemeral=True
-                )
-
-            raise e
-
 class RenameFile(Modal):
     name = TextInput(
         label="new name",
@@ -313,7 +364,7 @@ class RenameFile(Modal):
 
         self._view._actual_files[self._view.current_page] = self._file
 
-        fp = cap(str(self._file.resolve()))
+        fp = cap(str(self._file))
         title = cap(discord.utils.escape_markdown(self._file.name, as_needed=True))
         self._page.set_author(name=f"{fp:256}").title = f"{title:256}"
         await interaction.response.edit_message(embed=self._page)
@@ -344,7 +395,7 @@ class ExtensionButton(Button[DirectoryView]):
         self.method: partial[ExtCoro] = partial(method, view.client) # type: ignore
 
     async def callback(self, interaction: Interaction) -> None:
-        folder, name = self.view._actual_files[self.view.current_page].resolve().parts[-2:]
+        folder, name = self.view._actual_files[self.view.current_page].parts[-2:]
 
         try:
             await self.method(f"{folder}.{name[:-3]}")
