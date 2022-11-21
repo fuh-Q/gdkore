@@ -265,8 +265,8 @@ class DirectoryView(BasePages):
 
         await self.try_send_item(interaction, view, directory=False, ephemeral=choice)
 
-    @button(label="send directory", style=discord.ButtonStyle.primary, row=2)
-    async def send_directory(self, interaction: Interaction, button: Button):
+    @button(label="all files (zip)", style=discord.ButtonStyle.primary, row=2)
+    async def send_all_files(self, interaction: Interaction, button: Button):
         choice, view = await self.prompt_ephemeral(interaction)
         if choice is None:
             return
