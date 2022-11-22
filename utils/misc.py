@@ -46,7 +46,7 @@ def get_extensions(prefix: str | None = None, /, *, get_global: bool = True) -> 
     Returns
     -------
     get_extensions: `List[str]`
-        A list of strings in Python module format
+        A list of strings in Python module format.
     """
 
     def _inner(pre: str):
