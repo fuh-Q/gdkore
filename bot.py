@@ -43,7 +43,7 @@ from utils import (
     get_extensions,
     is_dst,
     mobile,
-    new_call_soon
+    new_call_soon,
 )
 
 # <-- type checking -->
@@ -60,7 +60,7 @@ if TYPE_CHECKING:
 
 # <-- uvloop -->
 try:
-    import uvloop # type: ignore
+    import uvloop  # type: ignore
 except (ModuleNotFoundError, ImportError):
     pass
 else:

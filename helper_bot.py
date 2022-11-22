@@ -27,7 +27,7 @@ from utils import (
     get_extensions,
     mobile,
     is_dst,
-    new_call_soon
+    new_call_soon,
 )
 
 if TYPE_CHECKING:

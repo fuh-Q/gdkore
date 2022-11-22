@@ -19,6 +19,7 @@ CHOICES = [
     "can i see your non-existent proof that you have control over this paginator?",
 ]
 
+
 class MaxConcurrencyReached(CheckFailure):
     """
     An error subclass typically for game commands
