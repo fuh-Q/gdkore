@@ -65,7 +65,7 @@ def get_extensions(prefix: str | None = None, /, *, get_global: bool = True) -> 
     else:
         prefix += "_"
 
-    return [*_inner(prefix), *_inner("global_")]
+    return [*_inner(prefix.strip("_")), *_inner("global_")]
 
 
 def get_member_count(client: commands.Bot) -> int:
