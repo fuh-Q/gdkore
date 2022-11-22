@@ -359,6 +359,9 @@ class GClass(commands.Bot):
         )
 
     async def on_message(self, message: discord.Message):
+        if message.author.bot:
+            return
+
         if message.content in [f"<@!{self.user.id}>", f"<@{self.user.id}>"]:
             return await message.reply(message.author.mention)
 

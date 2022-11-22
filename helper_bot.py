@@ -205,6 +205,9 @@ class NotGDKID(commands.Bot):
         self.logger.error("\n" + tr)
 
     async def on_message(self, message: discord.Message):
+        if message.author.bot:
+            return
+
         if message.content in [f"<@!{self.user.id}>", f"<@{self.user.id}>"]:
             await message.reply(content=message.author.mention)
 
