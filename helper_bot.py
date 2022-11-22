@@ -37,7 +37,7 @@ if TYPE_CHECKING:
     from utils import PostgresPool
 
 try:
-    import uvloop
+    import uvloop # type: ignore
 except (ModuleNotFoundError, ImportError):
     pass
 else:
