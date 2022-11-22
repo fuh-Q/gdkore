@@ -17,7 +17,18 @@ from discord.app_commands import AppCommandError
 from discord.gateway import DiscordWebSocket
 from discord.ext import commands, tasks
 
-from utils import Config, Confirm, Embed, GClassLogging, NGKContext, PrintColours, mobile, is_dst, new_call_soon
+from utils import (
+    Config,
+    Confirm,
+    Embed,
+    GClassLogging,
+    NGKContext,
+    PrintColours,
+    get_extensions,
+    mobile,
+    is_dst,
+    new_call_soon
+)
 
 if TYPE_CHECKING:
     from discord import Interaction
@@ -68,6 +79,8 @@ class NotGDKID(commands.Bot):
 
     __file__ = __file__
 
+    init_extensions = (*get_extensions("helper"), "utils")
+
     logger = logging.getLogger(__name__)
 
     AMAZE_GUILD_ID = 996435988194791614
@@ -106,19 +119,6 @@ class NotGDKID(commands.Bot):
         os.environ["JISHAKU_NO_UNDERSCORE"] = "True"
         os.environ["JISHAKU_NO_DM_TRACEBACK"] = "True"
         os.environ["JISHAKU_USE_BRAILLE_J"] = "True"
-
-        self.init_extensions = [
-            "cogs.debug",
-            "cogs.dev",
-            "cogs.Eval",
-            "helper_cogs.bcancer",
-            "helper_cogs.checkers",
-            "helper_cogs.emojis",
-            "helper_cogs.misc",
-            "helper_cogs.mod",
-            "helper_cogs.tts",
-            "utils",
-        ]
 
         self._checkers_games: Set[Game] = set()
 

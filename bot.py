@@ -33,7 +33,18 @@ from redis import asyncio as aioredis
 from fuzzy_match import match
 
 # <-- local imports -->
-from utils import BotColours, BotEmojis, Embed, GClassLogging, PrintColours, db_init, is_dst, mobile, new_call_soon
+from utils import (
+    BotColours,
+    BotEmojis,
+    Embed,
+    GClassLogging,
+    PrintColours,
+    db_init,
+    get_extensions,
+    is_dst,
+    mobile,
+    new_call_soon
+)
 
 # <-- type checking -->
 if TYPE_CHECKING:
@@ -49,7 +60,7 @@ if TYPE_CHECKING:
 
 # <-- uvloop -->
 try:
-    import uvloop
+    import uvloop # type: ignore
 except (ModuleNotFoundError, ImportError):
     pass
 else:
@@ -74,6 +85,8 @@ class GClass(commands.Bot):
     """
 
     __file__ = __file__
+
+    init_extensions = (*get_extensions(), "utils")
 
     LOGIN_CMD_ID = 1034690162585763840
     LOGOUT_CMD_ID = 1034690162585763841
@@ -128,17 +141,6 @@ class GClass(commands.Bot):
         os.environ["JISHAKU_NO_UNDERSCORE"] = "True"
         os.environ["JISHAKU_NO_DM_TRACEBACK"] = "True"
         os.environ["JISHAKU_USE_BRAILLE_J"] = "True"
-
-        self.init_extensions = [
-            "cogs.authorization",
-            "cogs.browser",
-            "cogs.debug",
-            "cogs.dev",
-            "cogs.Eval",
-            "cogs.voting",
-            "cogs.webhooks",
-            "utils",
-        ]
 
         self._restart = False
         self.description = self.__doc__ or ""
