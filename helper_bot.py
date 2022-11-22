@@ -79,7 +79,7 @@ class NotGDKID(commands.Bot):
 
     __file__ = __file__
 
-    init_extensions = (*get_extensions("helper"), "utils")
+    init_extensions = (*get_extensions(), "utils")
 
     logger = logging.getLogger(__name__)
 

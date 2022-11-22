@@ -61,7 +61,7 @@ def get_extensions(prefix: str | None = None, /, *, get_global: bool = True) -> 
         ]
 
     if prefix is None:
-        prefix = "".join(sub[-2:] if (sub := sys.argv[0].partition("_")) else "")
+        prefix = "".join(sub[:-1] if (sub := sys.argv[0].partition("_")) else "")
     else:
         prefix += "_"
 
