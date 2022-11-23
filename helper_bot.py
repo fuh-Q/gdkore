@@ -38,7 +38,7 @@ if TYPE_CHECKING:
     from utils import PostgresPool
 
 try:
-    import uvloop # type: ignore
+    import uvloop  # type: ignore
 except (ModuleNotFoundError, ImportError):
     pass
 else:
@@ -209,7 +209,7 @@ class NotGDKID(commands.Bot):
         await self.process_commands(message)
 
     async def on_app_command(self, interaction: Interaction) -> bool:
-        if (g := interaction.guild):
+        if g := interaction.guild:
             if g.id in self._pending_verification:
                 await interaction.response.send_message("server is not whitelisted", ephemeral=True)
 

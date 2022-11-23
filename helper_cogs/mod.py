@@ -18,22 +18,31 @@ if TYPE_CHECKING:
 
 #  fmt: off
 
-muted: Callable[[discord.Member], str] = lambda user: f"""
+muted: Callable[
+    [discord.Member], str
+] = (
+    lambda user: f"""
 {user.mention} has been muted forever.
 
 L
 """
+)
 
-self_muted: Callable[[], str] = lambda: f"""
+self_muted: Callable[
+    [], str
+] = (
+    lambda: f"""
 okay, you've muted yourself forever.
 
 if you wanna get unmuted, dm `gdkid#0111` so he can laugh at you {BotEmojis.HAHALOL}
 
 this message is also able to be seen by the entire server, because it really is just that funny
 """
+)
 
-insert_q: Callable[[int], str] = lambda stop: \
-"""INSERT INTO stickyroles VALUES {0}
+insert_q: Callable[
+    [int], str
+] = lambda stop: """INSERT INTO stickyroles VALUES {0}
 ON CONFLICT ON CONSTRAINT stickyroles_pkey
 DO NOTHING""".format(
     ",".join(f"(${i}, ${i + 1})" for i in range(1, stop + 1, 2))

@@ -335,7 +335,7 @@ class GClass(commands.Bot):
         await self.guild_logs.send(embed=e)
 
     async def on_app_command(self, interaction: Interaction) -> bool:
-        if (g := interaction.guild):
+        if g := interaction.guild:
             if self._is_blacklisted(g):
                 await interaction.response.send_message("server is blacklisted", ephemeral=True)
 
