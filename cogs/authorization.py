@@ -55,7 +55,6 @@ class Authorization(commands.Cog):
         )
 
         url, state = await asyncio.to_thread(run_google)
-
         await interaction.followup.send(MESSAGE % url, ephemeral=True)
 
         await self.client.redis.set(state, interaction.user.id, self.LINK_EXPIRY)
