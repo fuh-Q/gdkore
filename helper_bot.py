@@ -32,6 +32,7 @@ from utils import (
 
 if TYPE_CHECKING:
     from discord import Interaction
+    from discord.abc import Snowflake
 
     from helper_cogs.checkers import Game
     from utils import PostgresPool
@@ -79,7 +80,7 @@ class NotGDKID(commands.Bot):
 
     __file__ = __file__
 
-    init_extensions = (*get_extensions(), "utils")
+    init_extensions = (*get_extensions("helper"), "utils")
 
     logger = logging.getLogger(__name__)
 
@@ -96,6 +97,8 @@ class NotGDKID(commands.Bot):
     owner_ids: List[int]
     get_guild: Callable[[int], discord.Guild]
     get_channel: Callable[[int], discord.abc.Messageable]
+    whitelist: Config[int]
+    blacklist: Config[int]
 
     def __init__(self):
         allowed_mentions = discord.AllowedMentions.all()
@@ -132,6 +135,9 @@ class NotGDKID(commands.Bot):
         self.tree.on_error = self.on_app_command_error
         self.add_commands()
 
+    def _is_blacklisted(self, obj: Snowflake) -> bool:
+        return obj.id in self.blacklist
+
     @property
     def db(self) -> PostgresPool:
         return self._db  # type: ignore
@@ -152,8 +158,9 @@ class NotGDKID(commands.Bot):
         self.logger.info(f"{PrintColours.YELLOW}reloaded{PrintColours.WHITE} {name}")
 
     async def setup_hook(self) -> None:
+        self.whitelist = Config("dbs/whitelisted.json")
+        self.blacklist = Config("dbs/blacklisted.json")
         self._db = await asyncpg.create_pool(self.postgres_dns)
-        self.whitelist: Config[str] = Config("config/whitelisted.json")
         self.logger.info(f"{PrintColours.GREEN}database connected")
 
         self.status_task = status_task.start(self)
@@ -183,18 +190,31 @@ class NotGDKID(commands.Bot):
     async def process_commands(self, message: discord.Message) -> None:
         ctx = await self.get_context(message, cls=NGKContext)
 
-        if message.author.bot:
-            return
-
-        assert message.guild is not None
-        if (g := message.guild) and g.id in self._pending_verification:
-            return
-
         await self.invoke(ctx)
 
+    async def on_message(self, message: discord.Message):
+        if message.author.bot or self._is_blacklisted(message.author):
+            return
+
+        if message.guild is not None:
+            if self._is_blacklisted(message.guild):
+                return
+
+            if message.guild.id in self._pending_verification:
+                return
+
+        if message.content in [f"<@!{self.user.id}>", f"<@{self.user.id}>"]:
+            return await message.reply(content=message.author.mention)
+
+        await self.process_commands(message)
+
     async def on_app_command(self, interaction: Interaction) -> bool:
-        if (g := interaction.guild) and g.id in self._pending_verification:
-            await interaction.response.send_message("server is not whitelisted", ephemeral=True)
+        if (g := interaction.guild):
+            if g.id in self._pending_verification:
+                await interaction.response.send_message("server is not whitelisted", ephemeral=True)
+
+            elif self._is_blacklisted(g):
+                await interaction.response.send_message("server is blacklisted", ephemeral=True)
 
             return False
         return True  # i only really care about servers here
@@ -203,15 +223,6 @@ class NotGDKID(commands.Bot):
         tr = traceback.format_exc()
 
         self.logger.error("\n" + tr)
-
-    async def on_message(self, message: discord.Message):
-        if message.author.bot:
-            return
-
-        if message.content in [f"<@!{self.user.id}>", f"<@{self.user.id}>"]:
-            await message.reply(content=message.author.mention)
-
-        await self.process_commands(message)
 
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
         if payload.user_id in self.owner_ids and payload.emoji.name == "❌":
@@ -225,11 +236,14 @@ class NotGDKID(commands.Bot):
                 pass
 
     async def on_guild_join(self, guild: discord.Guild):
+        if self._is_blacklisted(guild):
+            return await guild.leave()
+
         if not (name := self.whitelist.get(guild.id, 0)):
             if name is None:
                 return await self.whitelist.put(guild.id, guild.name)
 
-        if not guild.get_member(self.owner.id):
+        if not (gdkid := guild.get_member(self.owner.id)):
             await self.whitelist.remove(guild.id, missing_ok=True)
             return await guild.leave()
 
@@ -242,7 +256,7 @@ class NotGDKID(commands.Bot):
         )
 
         view = Confirm(self.owner)
-        view.original_message = await self.owner.send(embed=embed, view=view)
+        view.original_message = await gdkid.send(embed=embed, view=view)
 
         expired = await view.wait()
         if expired:

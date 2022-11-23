@@ -33,14 +33,14 @@ class MaxConcurrencyReached(CheckFailure):
         self.jump_url = jump_url
 
 
-def get_extensions(prefix: str | None = None, /, *, get_global: bool = True) -> List[str]:
+def get_extensions(prefix: str, /, *, get_global: bool = True) -> List[str]:
     """
     Returns a list of module strings to load as extensions.
 
     Arguments
     ---------
     prefix: `str`
-        The prefix for the cogs folder to iterate through. Will use process file name if omitted.
+        The prefix for the cogs folder to iterate through.
     get_global: `bool`
         Whether or not to return extensions in the global_cogs folder. Defaults to `True`.
 
@@ -60,12 +60,9 @@ def get_extensions(prefix: str | None = None, /, *, get_global: bool = True) -> 
             if not path.is_dir()
         ]
 
-    if prefix is None:
-        prefix = "".join(sub[:-1] if (sub := sys.argv[0].partition("_")) else "")
-    else:
-        prefix += "_"
+    prefix += "_"
 
-    return [*_inner(prefix.strip("_")), *_inner("global_")]
+    return [*_inner(prefix.lstrip("_")), *_inner("global_")]
 
 
 def get_member_count(client: commands.Bot) -> int:

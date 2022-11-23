@@ -6,11 +6,12 @@ import discord
 from discord.ext import commands
 
 if TYPE_CHECKING:
+    from bot import GClass
     from helper_bot import NotGDKID
 
 
-class NGKContext(commands.Context):
-    bot: NotGDKID
+class NGKContext(commands.Context[commands.Bot]):
+    bot: GClass | NotGDKID
 
     async def try_react(self, *, emoji: str | discord.PartialEmoji):
         try:

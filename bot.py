@@ -36,8 +36,10 @@ from fuzzy_match import match
 from utils import (
     BotColours,
     BotEmojis,
+    Config,
     Embed,
     GClassLogging,
+    NGKContext,
     PrintColours,
     db_init,
     get_extensions,
@@ -51,6 +53,7 @@ if TYPE_CHECKING:
     from types import ModuleType
 
     from discord import Interaction
+    from discord.abc import Snowflake
     from discord.app_commands import AppCommandError, CommandInvokeError
 
     from topgg.webhook import WebhookManager
@@ -86,7 +89,7 @@ class GClass(commands.Bot):
 
     __file__ = __file__
 
-    init_extensions = (*get_extensions(), "utils")
+    init_extensions = (*get_extensions(""), "utils")
 
     LOGIN_CMD_ID = 1034690162585763840
     LOGOUT_CMD_ID = 1034690162585763841
@@ -114,6 +117,7 @@ class GClass(commands.Bot):
     owner_ids: List[int]
     get_guild: Callable[[int], discord.Guild]
     get_channel: Callable[[int], discord.abc.Messageable]
+    blacklist: Config[int]
 
     def __init__(self):
         allowed_mentions = discord.AllowedMentions.all()
@@ -147,8 +151,12 @@ class GClass(commands.Bot):
         self.guild_limit = []
         self.uptime = datetime.now(tz=timezone(timedelta(hours=-4 if is_dst() else -5)))
 
+        self.tree.interaction_check = self.on_app_command
         self.tree.on_error = self.on_app_command_error
         self.add_commands()
+
+    def _is_blacklisted(self, obj: Snowflake) -> bool:
+        return obj.id in self.blacklist
 
     async def remove_access(self, user_id: int):
         """
@@ -228,6 +236,7 @@ class GClass(commands.Bot):
         self.logger.info(f"{PrintColours.YELLOW}reloaded{PrintColours.WHITE} {name}")
 
     async def setup_hook(self) -> None:
+        self.blacklist = Config("dbs/blacklisted.json")
         self._db = await asyncpg.create_pool(self.postgres_dns, init=db_init)
         self.redis = aioredis.from_url(
             self.redis_dns,
@@ -271,6 +280,9 @@ class GClass(commands.Bot):
         await self.db.execute("SELECT 1")  # wake it up ig
 
     async def on_guild_join(self, guild: discord.Guild):
+        if self._is_blacklisted(guild):
+            return await guild.leave()
+
         counter = 0
         for server in self.guilds:
             if server.owner_id == guild.owner_id:
@@ -322,6 +334,14 @@ class GClass(commands.Bot):
 
         await self.guild_logs.send(embed=e)
 
+    async def on_app_command(self, interaction: Interaction) -> bool:
+        if (g := interaction.guild):
+            if self._is_blacklisted(g):
+                await interaction.response.send_message("server is blacklisted", ephemeral=True)
+
+            return False
+        return True
+
     async def on_app_command_error(self, interaction: Interaction, error: AppCommandError | CommandInvokeError):
         if (responded := interaction.response.is_done()) and isinstance(error, CheckFailure):
             return
@@ -360,12 +380,20 @@ class GClass(commands.Bot):
             f"error in {location}", file=discord.File(io.BytesIO(tr.encode("utf-8")), filename="traceback.py")
         )
 
+    async def process_commands(self, message: discord.Message) -> None:
+        ctx = await self.get_context(message, cls=NGKContext)
+
+        await self.invoke(ctx)
+
     async def on_message(self, message: discord.Message):
-        if message.author.bot:
+        if message.author.bot or self._is_blacklisted(message.author):
+            return
+
+        if message.guild and self._is_blacklisted(message.guild):
             return
 
         if message.content in [f"<@!{self.user.id}>", f"<@{self.user.id}>"]:
-            return await message.reply(message.author.mention)
+            return await message.reply(content=message.author.mention)
 
         await self.process_commands(message)
 

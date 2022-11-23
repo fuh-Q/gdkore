@@ -24,6 +24,7 @@ if TYPE_CHECKING:
     from discord.ui import Item
 
     from helper_bot import NotGDKID
+    from utils import NGKContext
 
 
 ExtCoro = Coroutine[Any, Any, None]
@@ -423,16 +424,32 @@ class Dev(commands.Cog):
         self.client = client
         self.emoji = "<a:gdkid:868976838112841760>"
 
-    @commands.command(name="files")
+    @commands.command(name="files", hidden=True)
     @commands.is_owner()
-    async def files(self, ctx: commands.Context):
+    async def files(self, ctx: NGKContext):
         view = DirectoryView(pathlib.Path(os.getcwd()), ctx)
 
         view.original_message = await ctx.reply(embed=view.pages[0], view=view)
 
+    @commands.command(name="blacklist", aliases=["bl"], hidden=True)
+    @commands.is_owner()
+    async def blacklist(self, ctx: NGKContext, obj: discord.Object):
+        await self.client.blacklist.put(obj.id, True)
+        guild = self.client.get_guild(obj.id)
+        if guild is not None:
+            await guild.leave()
+
+        await ctx.try_react(emoji=BotEmojis.YES)
+
+    @commands.command(name="unblacklist", aliases=["ubl"], hidden=True)
+    @commands.is_owner()
+    async def unblacklist(self, ctx: NGKContext, obj: discord.Object):
+        await self.client.blacklist.remove(obj.id, missing_ok=True)
+        await ctx.try_react(emoji=BotEmojis.YES)
+
     @commands.command(name="guilds", aliases=["servers"], hidden=True, brief="Get the bot's server count")
     @commands.is_owner()
-    async def guilds(self, ctx: commands.Context):
+    async def guilds(self, ctx: NGKContext):
         command = self.client.get_command("repl exec")
         await ctx.invoke(
             command,  # type: ignore
@@ -441,7 +458,7 @@ class Dev(commands.Cog):
 
     @commands.command(name="shutdown", hidden=True, brief="Shut down the bot")
     @commands.is_owner()
-    async def shutdown(self, ctx: commands.Context):
+    async def shutdown(self, ctx: NGKContext):
         e = Embed(description="👋 cya")
         await ctx.reply(embed=e)
 
@@ -449,7 +466,7 @@ class Dev(commands.Cog):
 
     @commands.command(name="restart", hidden=True, brief="Restart the bot")
     @commands.is_owner()
-    async def restart(self, ctx: commands.Context):
+    async def restart(self, ctx: NGKContext):
         e = Embed(description="👋 Aight brb")
         await ctx.reply(embed=e)
 
@@ -457,7 +474,7 @@ class Dev(commands.Cog):
 
     @commands.command(name="hi", brief='Say "Hi" to the bot', hidden=True)
     @commands.is_owner()
-    async def hi(self, ctx: commands.Context):
+    async def hi(self, ctx: NGKContext):
         await ctx.reply("hi")
 
 
