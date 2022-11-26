@@ -45,7 +45,7 @@ class Notes(commands.Cog):
             content += "\n" + self._convert_attachments(attachments)
 
         q = "UPDATE notes SET note = $2 WHERE id = $1"
-        return await self.client.web_db.execute(q, content, id)
+        return await self.client.web_db.execute(q, id, content)
 
     async def _delete_note(self, id: int) -> str:
         q = "DELETE FROM notes WHERE id = $1"
