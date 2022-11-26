@@ -12,6 +12,8 @@ from typing import Callable, Dict, List, Set, TYPE_CHECKING
 
 import asyncpg
 
+import aiohttp
+
 import discord
 from discord.app_commands import AppCommandError
 from discord.gateway import DiscordWebSocket
@@ -92,6 +94,7 @@ class NotGDKID(commands.Bot):
     token = secrets["helper_token"]
     testing_token = secrets["testing_token"]
     postgres_dns = secrets["postgres_dns"] + "notgdkid"
+    website_postgres = secrets["postgres_dns"] + "gdkid_xyz"
 
     user: discord.ClientUser
     owner_ids: List[int]
@@ -99,6 +102,7 @@ class NotGDKID(commands.Bot):
     get_channel: Callable[[int], discord.abc.Messageable]
     whitelist: Config[int]
     blacklist: Config[int]
+    session: aiohttp.ClientSession
 
     def __init__(self):
         allowed_mentions = discord.AllowedMentions.all()
@@ -142,6 +146,10 @@ class NotGDKID(commands.Bot):
     def db(self) -> PostgresPool:
         return self._db  # type: ignore
 
+    @property
+    def web_db(self) -> PostgresPool:
+        return self._web_db # type: ignore
+
     async def load_extension(self, name: str) -> None:
         await super().load_extension(name)
 
@@ -158,9 +166,11 @@ class NotGDKID(commands.Bot):
         self.logger.info(f"{PrintColours.YELLOW}reloaded{PrintColours.WHITE} {name}")
 
     async def setup_hook(self) -> None:
+        self.session = aiohttp.ClientSession()
         self.whitelist = Config("dbs/whitelisted.json")
         self.blacklist = Config("dbs/blacklisted.json")
         self._db = await asyncpg.create_pool(self.postgres_dns)
+        self._web_db = await asyncpg.create_pool(self.website_postgres)
         self.logger.info(f"{PrintColours.GREEN}database connected")
 
         self.status_task = status_task.start(self)
@@ -316,7 +326,9 @@ class NotGDKID(commands.Bot):
         self._restart = restart
 
         self.status_task.cancel()
+        await self.session.close()
         await self.db.close()
+        await self.web_db.close()
         await super().close()
 
     def add_commands(self):

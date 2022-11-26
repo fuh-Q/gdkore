@@ -26,10 +26,10 @@ from google.auth.transport.requests import Request
 
 # <-- database imports -->
 import asyncpg
-import aiohttp
 from redis import asyncio as aioredis
 
 # <-- other imports -->
+import aiohttp
 from fuzzy_match import match
 
 # <-- local imports -->
