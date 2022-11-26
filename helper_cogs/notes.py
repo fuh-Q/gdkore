@@ -20,9 +20,8 @@ class Notes(commands.Cog):
     def __init__(self, client: NotGDKID) -> None:
         self.client = client
 
-        self.add_note_app_cmd = ContextMenu(
-            name="add note", callback=self.add_note_msg
-        )
+        self.add_note_app_cmd = ContextMenu(name="add note", callback=self.add_note_msg)
+        self.client.tree.add_command(self.add_note_app_cmd)
 
     async def cog_unload(self) -> None:
         self.client.tree.remove_command("add note")
@@ -83,6 +82,7 @@ class Notes(commands.Cog):
             return await ctx.send("this note doesn't exist lol")
 
         await ctx.try_react(emoji=BotEmojis.YES)
+
 
 async def setup(client: NotGDKID):
     await client.add_cog(Notes(client=client))

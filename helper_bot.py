@@ -148,7 +148,7 @@ class NotGDKID(commands.Bot):
 
     @property
     def web_db(self) -> PostgresPool:
-        return self._web_db # type: ignore
+        return self._web_db  # type: ignore
 
     async def load_extension(self, name: str) -> None:
         await super().load_extension(name)

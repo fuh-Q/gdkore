@@ -25,13 +25,14 @@ def is_logged_in():
 
     return check(predicate)
 
+
 def is_owner():
     """
     Check to ensure the command-invoking user is the owner of the bot
     """
 
     async def predicate(interaction: Interaction) -> bool:
-        client: NotGDKID = interaction.client # type: ignore
+        client: NotGDKID = interaction.client  # type: ignore
         user_id: int = interaction.user.id
 
         return user_id in client.owner_ids
