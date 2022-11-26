@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime, timezone
 from typing import List, TYPE_CHECKING
 
@@ -58,6 +59,9 @@ class Notes(commands.Cog):
         await self._add_note(message.content, message.attachments)
         await interaction.followup.send("note added")
 
+        await asyncio.sleep(5)
+        await interaction.delete_original_response()
+
     @commands.command(name="addnote", aliases=["an", "sn"])
     @commands.is_owner()
     async def add_note_cmd(self, ctx: NGKContext, *, note_content: str):
@@ -70,7 +74,7 @@ class Notes(commands.Cog):
     async def edit_note_cmd(self, ctx: NGKContext, note_id: int, *, note_content: str):
         status = await self._edit_note(note_id, note_content, ctx.message.attachments)
         if status[-1] == "0":
-            return await ctx.reply("this note doesn't exist lol")
+            return await ctx.reply("this note doesn't exist lol", delete_after=5)
 
         await ctx.try_react(emoji=BotEmojis.YES)
 
@@ -79,7 +83,7 @@ class Notes(commands.Cog):
     async def delete_note_cmd(self, ctx: NGKContext, note_id: int):
         status = await self._delete_note(note_id)
         if status[-1] == "0":
-            return await ctx.reply("this note doesn't exist lol")
+            return await ctx.reply("this note doesn't exist lol", delete_after=5)
 
         await ctx.try_react(emoji=BotEmojis.YES)
 
