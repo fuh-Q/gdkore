@@ -70,7 +70,7 @@ class Notes(commands.Cog):
     async def edit_note_cmd(self, ctx: NGKContext, note_id: int, *, note_content: str):
         status = await self._edit_note(note_id, note_content, ctx.message.attachments)
         if status[-1] == "0":
-            return await ctx.send("this note doesn't exist lol")
+            return await ctx.reply("this note doesn't exist lol")
 
         await ctx.try_react(emoji=BotEmojis.YES)
 
@@ -79,7 +79,7 @@ class Notes(commands.Cog):
     async def delete_note_cmd(self, ctx: NGKContext, note_id: int):
         status = await self._delete_note(note_id)
         if status[-1] == "0":
-            return await ctx.send("this note doesn't exist lol")
+            return await ctx.reply("this note doesn't exist lol")
 
         await ctx.try_react(emoji=BotEmojis.YES)
 
