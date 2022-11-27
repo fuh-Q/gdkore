@@ -222,11 +222,12 @@ class NotGDKID(commands.Bot):
         if g := interaction.guild:
             if g.id in self._pending_verification:
                 await interaction.response.send_message("server is not whitelisted", ephemeral=True)
+                return False
 
             elif self._is_blacklisted(g):
                 await interaction.response.send_message("server is blacklisted", ephemeral=True)
+                return False
 
-            return False
         return True  # i only really care about servers here
 
     async def on_app_command_error(self, interaction: Interaction, error: AppCommandError):
