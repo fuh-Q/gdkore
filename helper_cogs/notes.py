@@ -29,7 +29,7 @@ class Notes(commands.Cog):
 
     @staticmethod
     def _convert_attachments(attachments: List[discord.Attachment]) -> str:
-        return "\n".join(f"![attachment {idx}]({attachment.url})" for idx, attachment in enumerate(attachments))
+        return "\n".join(attachment.url for attachment in attachments)
 
     async def _add_note(self, content: str, attachments: List[discord.Attachment]) -> None:
         if attachments:
