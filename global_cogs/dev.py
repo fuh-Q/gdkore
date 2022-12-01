@@ -93,9 +93,7 @@ class DirectoryView(BasePages):
     def make_pages(self) -> None:
         files = list(filter(lambda i: not i.is_dir(), self.items))
         directories = tuple(
-            i
-            for i in self.items
-            if i not in files and not i.name.startswith(".") and not i.name in self.EXCLUDED_DIRS and len(str(i)) <= 100
+            i for i in self.items if i not in files and not i.name in self.EXCLUDED_DIRS and len(str(i)) <= 100
         )
         self._actual_files = files
         self._pages = [
