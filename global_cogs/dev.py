@@ -135,7 +135,6 @@ class DirectoryView(BasePages):
         values = set()
         for f in self._directory_slices[self.slice_index]:
             if not f.name.startswith(".") and not f.name in self.EXCLUDED_DIRS and (r := str(f)) not in values:
-
                 values.add(r)
                 opts.append(discord.SelectOption(label=f"{cap(f.name):100}", value=r))
 
