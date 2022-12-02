@@ -213,7 +213,8 @@ async def fetch_posts(client: GClass):
     webhooks: List[WebhookData] = await client.db.fetch("SELECT * FROM webhooks")
 
     client.logger.info(
-        PrintColours.BLUE + "running loop for " f"{PrintColours.GREEN}{len(webhooks):,}{PrintColours.BLUE} webhook(s)"
+        "%srunning loop for %s%s%s webhook(s)",
+        PrintColours.BLUE, PrintColours.GREEN, format(len(webhooks), ","), PrintColours.BLUE
     )
 
     for webhook in webhooks:

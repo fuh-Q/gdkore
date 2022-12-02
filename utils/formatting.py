@@ -51,7 +51,7 @@ class GClassLogging(logging.Formatter):
     """
 
     _ = "#" if sys.platform == "win32" else "-"
-    FMT = f"%Y/%{_}m/%{_}d %{_}I:%M:%S %p"
+    FMT = "%Y/%{0}m/%{0}d %{0}I:%M:%S %p".format(_)
     _fmt: str
 
     COLOURS = {
@@ -70,13 +70,13 @@ class GClassLogging(logging.Formatter):
         colour = PrintColours.WHITE if record.levelno < logging.ERROR else PrintColours.RED
         formatter = logging.Formatter(
             log_fmt + self._fmt + "{asctime}" + colour + "{message}" + PrintColours.WHITE,
-            datefmt=f"{PrintColours.YELLOW} [{datetime.now().strftime(self.FMT)}] ",
+            datefmt="{0} [{1}] ".format(PrintColours.YELLOW, datetime.now().strftime(self.FMT)),
             style="{",
         )
 
         if record.exc_info:
             text = formatter.formatException(record.exc_info)
-            record.exc_text = f"{PrintColours.RED}{text}{PrintColours.WHITE}"
+            record.exc_text = "{0}{1}{2}".format(PrintColours.RED, text, PrintColours.WHITE)
 
         ret = formatter.format(record)
         record.exc_text = None

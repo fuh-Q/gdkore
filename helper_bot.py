@@ -153,17 +153,17 @@ class NotGDKID(commands.Bot):
     async def load_extension(self, name: str) -> None:
         await super().load_extension(name)
 
-        self.logger.info(f"{PrintColours.GREEN}loaded{PrintColours.WHITE} {name}")
+        self.logger.info("%sloaded%s %s", PrintColours.GREEN, PrintColours.WHITE, name)
 
     async def unload_extension(self, name: str) -> None:
         await super().unload_extension(name)
 
-        self.logger.info(f"{PrintColours.RED}unloaded{PrintColours.WHITE} {name}")
+        self.logger.info("%sunloaded%s %s", PrintColours.RED, PrintColours.WHITE, name)
 
     async def reload_extension(self, name: str) -> None:
         await super().reload_extension(name)
 
-        self.logger.info(f"{PrintColours.YELLOW}reloaded{PrintColours.WHITE} {name}")
+        self.logger.info("%sreloaded%s %s", PrintColours.YELLOW, PrintColours.WHITE, name)
 
     async def setup_hook(self) -> None:
         self.session = aiohttp.ClientSession()
@@ -171,7 +171,7 @@ class NotGDKID(commands.Bot):
         self.blacklist = Config("dbs/blacklisted.json")
         self._db = await asyncpg.create_pool(self.postgres_dns)
         self._web_db = await asyncpg.create_pool(self.website_postgres)
-        self.logger.info(f"{PrintColours.GREEN}database connected")
+        self.logger.info("%sdatabases connected", PrintColours.GREEN)
 
         self.status_task = status_task.start(self)
         ready_task = self.loop.create_task(self.first_ready())
@@ -182,7 +182,9 @@ class NotGDKID(commands.Bot):
 
     async def first_ready(self):
         await self.wait_until_ready()
-        self.logger.info(PrintColours.PURPLE + f"logged in as: {self.user.name}#{self.user.discriminator} : {self.user.id}")
+        self.logger.info(
+            "%sLogged in as: %s#%s : %d", PrintColours.PURPLE, self.user.name, self.user.discriminator, self.user.id
+        )
 
         for guild in self.guilds:
             if guild.id not in self.whitelist:
@@ -233,7 +235,7 @@ class NotGDKID(commands.Bot):
     async def on_app_command_error(self, interaction: Interaction, error: AppCommandError):
         tr = traceback.format_exc()
 
-        self.logger.error("\n" + tr)
+        self.logger.error("\n%s%s" + PrintColours.RED + tr)
 
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
         if payload.user_id in self.owner_ids and payload.emoji.name == "❌":
@@ -315,7 +317,7 @@ class NotGDKID(commands.Bot):
             # and `self.start` closes all sockets and the HTTPClient instance.
             return
         finally:
-            self.logger.info(f"{PrintColours.PURPLE}successfully logged out :D")
+            self.logger.info("%ssuccessfully logged out :D", PrintColours.PURPLE)
 
             if self._restart:
                 sys.exit(69)
