@@ -338,8 +338,8 @@ class GClass(commands.Bot):
         if g := interaction.guild:
             if self._is_blacklisted(g):
                 await interaction.response.send_message("server is blacklisted", ephemeral=True)
+                return False
 
-            return False
         return True
 
     async def on_app_command_error(self, interaction: Interaction, error: AppCommandError | CommandInvokeError):
