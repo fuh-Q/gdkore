@@ -176,7 +176,9 @@ class NotGDKID(commands.Bot):
         self._web_db = await asyncpg.create_pool(self.website_postgres)
         self.logger.info("%sdatabases connected", PrintColours.GREEN)
 
-        self.wavelink: wavelink.Node = await wavelink.NodePool.create_node(bot=self, identifier="NGKLavalink", **self.lavalink_creds)
+        self.wavelink: wavelink.Node = await wavelink.NodePool.create_node(
+            bot=self, identifier="NGKLavalink", **self.lavalink_creds
+        )
         self.logger.info("%swavelink server [%s] connected", PrintColours.GREEN, self.wavelink.identifier)
 
         self.status_task = status_task.start(self)
@@ -292,12 +294,12 @@ class NotGDKID(commands.Bot):
         self._pending_verification.remove(guild.id)
 
     async def on_voice_state_update(self, member: discord.Member, *args: discord.VoiceState):
-        if (vc := member.guild.voice_client):
+        if vc := member.guild.voice_client:
             assert isinstance(vc, wavelink.Player) and isinstance(vc.channel, discord.VoiceChannel)
             if len(vc.channel.members) == 1:
                 await vc.disconnect(force=True)
 
-                cog: Music | None = self.get_cog("Music") # type: ignore
+                cog: Music | None = self.get_cog("Music")  # type: ignore
                 if cog and cog.loops.get(member.guild.id, None):
                     del cog.loops[member.guild.id]
 
@@ -317,7 +319,7 @@ class NotGDKID(commands.Bot):
             await member.voice.channel.connect(cls=wavelink.Player)
 
         elif member.guild.voice_client and (not member.voice or member.voice.self_deaf):
-            cog: Music | None = self.get_cog("Music") # type: ignore
+            cog: Music | None = self.get_cog("Music")  # type: ignore
             if cog and cog.loops.get(member.guild.id, None):
                 return
 
