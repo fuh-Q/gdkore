@@ -3,7 +3,7 @@ from functools import partial
 
 from pytz import timezone as pytimezone
 
-from .types import Post
+from .typings import Post
 
 
 def is_dst(timezone: str = "America/Toronto") -> bool:

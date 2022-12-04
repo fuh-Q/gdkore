@@ -81,26 +81,16 @@ async def fetch_posts(client: GClass):
         courses: Resource = service.courses()
         _: Callable[[Resource], Dict[str, Post]] = lambda item: item.list(**kwargs).execute()
 
-        return tuple(
-            chain.from_iterable(
-                map(
-                    lambda i: tuple(
-                        filter(
-                            lambda m: (created_at := format_google_time(m)) > webhook[tuple(webhook.keys())[i[0] + start]]
-                            and created_at > webhook["last_date"],
-                            i[1],
-                        )
-                    ),
-                    enumerate(
-                        (
-                            _(courses.announcements()).get("announcements", []),  # announcements
-                            _(courses.courseWorkMaterials()).get("courseWorkMaterial", []),  # materials
-                            _(courses.courseWork()).get("courseWork", []),  # assignments
-                        )
-                    ),
-                )
-            )
-        )
+        # fmt: off
+        return tuple(chain.from_iterable(map(lambda i: tuple(filter(
+            lambda m: (created_at := format_google_time(m)) > webhook[tuple(webhook.keys())[i[0] + start]]
+            and created_at > webhook["last_date"], i[1]
+        )), enumerate((
+            _(courses.announcements()).get("announcements", []),  # announcements
+            _(courses.courseWorkMaterials()).get("courseWorkMaterial", []),  # materials
+            _(courses.courseWork()).get("courseWork", []),  # assignments
+        )))))
+        # fmt: on
 
     def make_embeds(posts: Tuple[Post]) -> List[EmbedWithPostData]:  # transform post JSON into dpy embeds
         pages: List[EmbedWithPostData] = []
@@ -214,7 +204,10 @@ async def fetch_posts(client: GClass):
 
     client.logger.info(
         "%srunning loop for %s%s%s webhook(s)",
-        PrintColours.BLUE, PrintColours.GREEN, format(len(webhooks), ","), PrintColours.BLUE
+        PrintColours.BLUE,
+        PrintColours.GREEN,
+        format(len(webhooks), ","),
+        PrintColours.BLUE,
     )
 
     for webhook in webhooks:

@@ -8,8 +8,8 @@ from .iterators import *
 from .json import *
 from .misc import *
 from .monkeypatching import *
-from .time import *
-from .types import *
+from .dates import *
+from .typings import *
 from .views import *
 
 

@@ -8,11 +8,11 @@ import sys
 import time
 import traceback
 from datetime import datetime, timedelta, timezone
-from typing import Callable, Dict, List, Set, TYPE_CHECKING
+from typing import Callable, List, Set, TYPE_CHECKING
 
 import asyncpg
-
 import aiohttp
+import wavelink
 
 import discord
 from discord.app_commands import AppCommandError
@@ -26,6 +26,7 @@ from utils import (
     GClassLogging,
     NGKContext,
     PrintColours,
+    Secrets,
     get_extensions,
     mobile,
     is_dst,
@@ -47,7 +48,7 @@ else:
     uvloop.install()
 
 with open("config/secrets.json", "r") as f:
-    secrets: Dict[str, str] = json.load(f)
+    secrets: Secrets = json.load(f)
 
 start = time.monotonic()
 asyncio.BaseEventLoop.call_soon = new_call_soon
@@ -95,6 +96,7 @@ class NotGDKID(commands.Bot):
     testing_token = secrets["testing_token"]
     postgres_dns = secrets["postgres_dns"] + "notgdkid"
     website_postgres = secrets["postgres_dns"] + "gdkid_xyz"
+    lavalink_creds = secrets["lavalink"]
 
     user: discord.ClientUser
     owner_ids: List[int]
@@ -173,6 +175,9 @@ class NotGDKID(commands.Bot):
         self._web_db = await asyncpg.create_pool(self.website_postgres)
         self.logger.info("%sdatabases connected", PrintColours.GREEN)
 
+        self.wavelink: wavelink.Node = await wavelink.NodePool.create_node(bot=self, identifier="NGKLavalink", **self.lavalink_creds)
+        self.logger.info("%swavelink server [%s] connected", PrintColours.GREEN, self.wavelink.identifier)
+
         self.status_task = status_task.start(self)
         ready_task = self.loop.create_task(self.first_ready())
         ready_task.add_done_callback(lambda exc: print(traceback.format_exc()) if exc.exception() else ...)
@@ -233,6 +238,9 @@ class NotGDKID(commands.Bot):
         return True  # i only really care about servers here
 
     async def on_app_command_error(self, interaction: Interaction, error: AppCommandError):
+        if interaction.response.is_done():  # interaction already responded to
+            return
+
         tr = traceback.format_exc()
 
         self.logger.error("\n%s%s" + PrintColours.RED + tr)
@@ -332,6 +340,7 @@ class NotGDKID(commands.Bot):
         await self.session.close()
         await self.db.close()
         await self.web_db.close()
+        await self.wavelink.disconnect(force=True)
         await super().close()
 
     def add_commands(self):
