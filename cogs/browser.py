@@ -647,7 +647,8 @@ class Browser(commands.Cog):
         self.course_cache[interaction.user.id] = courses
 
         if not courses:
-            return await interaction.response.send_message(embed=Embed(description="no courses to display"), ephemeral=True)
+            method = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
+            return await method(embed=Embed(description="no courses to display"), ephemeral=True)
 
         menu = CoursePages(interaction, courses, service)
         await menu.start()
