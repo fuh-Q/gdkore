@@ -213,11 +213,11 @@ class NotGDKID(commands.Bot):
         if message.author.bot or self._is_blacklisted(message.author):
             return
 
-        if message.guild is not None:
-            if self._is_blacklisted(message.guild) and not message.author.id in self.owner_ids:
+        if message.guild is not None and message.author.id not in self.owner_ids:
+            if self._is_blacklisted(message.guild):
                 return
 
-            if message.guild.id in self._pending_verification and not message.author.id in self.owner_ids:
+            if message.guild.id in self._pending_verification:
                 return
 
         if message.content in [f"<@!{self.user.id}>", f"<@{self.user.id}>"]:
