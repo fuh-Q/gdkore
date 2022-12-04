@@ -63,7 +63,6 @@ class Music(commands.Cog):
         890355226517860433,  # Stupidly Decent
         749892811905564672,  # Mod Mail Inbox
         764592577575911434,  # Vector Development
-        996435988194791614,  # Amazing 🅱iscord Server
     }
 
     def __init__(self, client: NotGDKID):
