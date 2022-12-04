@@ -8,7 +8,7 @@ import sys
 import time
 import traceback
 from datetime import datetime, timedelta, timezone
-from typing import Callable, List, Set, TYPE_CHECKING
+from typing import Callable, List, Set, TYPE_CHECKING, Tuple
 
 import asyncpg
 import aiohttp
@@ -38,6 +38,7 @@ if TYPE_CHECKING:
     from discord.abc import Snowflake
 
     from helper_cogs.checkers import Game
+    from helper_cogs.music import Music
     from utils import PostgresPool
 
 try:
@@ -290,7 +291,18 @@ class NotGDKID(commands.Bot):
         await self.whitelist.put(guild.id, guild.name)
         self._pending_verification.remove(guild.id)
 
-    async def on_voice_state_update(self, member: discord.Member, *args):
+    async def on_voice_state_update(self, member: discord.Member, *args: discord.VoiceState):
+        if (vc := member.guild.voice_client):
+            assert isinstance(vc, wavelink.Player) and isinstance(vc.channel, discord.VoiceChannel)
+            if len(vc.channel.members) == 1:
+                await vc.disconnect(force=True)
+
+                cog: Music | None = self.get_cog("Music") # type: ignore
+                if cog and cog.loops.get(member.guild.id, None):
+                    del cog.loops[member.guild.id]
+
+                return
+
         if member.id not in self.owner_ids:
             return
 
@@ -302,9 +314,13 @@ class NotGDKID(commands.Bot):
             and not member.guild.voice_client
         ):
             assert member.voice and member.voice.channel
-            await member.voice.channel.connect()
+            await member.voice.channel.connect(cls=wavelink.Player)
 
         elif member.guild.voice_client and (not member.voice or member.voice.self_deaf):
+            cog: Music | None = self.get_cog("Music") # type: ignore
+            if cog and cog.loops.get(member.guild.id, None):
+                return
+
             await member.guild.voice_client.disconnect(force=True)
 
     def run(self) -> None:

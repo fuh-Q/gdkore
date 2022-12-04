@@ -86,16 +86,17 @@ class Music(commands.Cog):
         else:
             desc = f"[{item.author} - {item.title}]({item.uri})"
 
-        percent = round(vc.position / item.duration * 100 / 4)
-        pre = ("=" * (percent - 1)) + "◯"
-        desc += "\n\n" + pre + ((25 - len(pre)) * "=")
-
         e = Embed(
             title=f"now playing ({self._format_seconds(item.duration)})",
             description=desc,
         )
 
         if get_time:
+            assert e.description
+            percent = round(vc.position / item.duration * 100 / 4)
+            pre = ("=" * (percent - 1)) + "◯"
+            e.description += "\n\n" + pre + ((25 - len(pre)) * "=")
+
             start = f"<t:{round(time.time() - vc.position)}:R>"
             end = f"<t:{round(time.time() + (item.duration - vc.position))}:R>"
             e.add_field(name="track started", value=start).add_field(name="track will end", value=end)
@@ -112,7 +113,8 @@ class Music(commands.Cog):
                     check=(lambda p, t, r: p.channel.id == channel.id and p.guild.id == player.guild.id),
                 )
             except asyncio.TimeoutError:
-                del self.loops[ctx.channel.id]
+                assert ctx.guild
+                del self.loops[ctx.guild.id]
                 await vc.disconnect(force=True)
 
         channel: discord.VoiceChannel = player.channel
@@ -125,7 +127,8 @@ class Music(commands.Cog):
             await ctx.send(embed=self._get_now_playing_embed(vc, next_song))
         except wavelink.QueueEmpty:
             if vc.loop:  # type: ignore
-                vc.queue = self.loops[ctx.channel.id].copy()  # type: ignore
+                assert ctx.guild
+                vc.queue = self.loops[ctx.guild.id].copy()  # type: ignore
                 try:
                     next_song = vc.queue.get()  # type: ignore
                 except wavelink.QueueEmpty:
@@ -146,7 +149,6 @@ class Music(commands.Cog):
         """searches and plays a song from a given query"""
         assert (
             interaction.guild
-            and interaction.channel
             and interaction.user
             and isinstance(interaction.user, discord.Member)
             and interaction.user.voice
@@ -161,13 +163,13 @@ class Music(commands.Cog):
         assert isinstance(vc, wavelink.Player)
 
         if vc.queue.is_empty and not vc.is_playing():
-            self.loops[interaction.channel.id] = vc.queue.copy()  # type: ignore
+            self.loops[interaction.guild.id] = vc.queue.copy()  # type: ignore
             await vc.play(track)
             vc.loop = False  # type: ignore
         else:
             await vc.queue.put_wait(track)
 
-        await self.loops[interaction.channel.id].put_wait(track)
+        await self.loops[interaction.guild.id].put_wait(track)
 
         if track.title.startswith(str(track.author)):
             desc = f"[{track.title}]({track.uri})"
@@ -231,8 +233,8 @@ class Music(commands.Cog):
         send = interaction.response.send_message
         vc: wavelink.Player = interaction.guild.voice_client  # type: ignore
 
-        if vc.queue.is_empty and not self.loops[interaction.channel.id].is_empty and vc.loop:  # type: ignore
-            return await QueuePages(interaction, self.loops[interaction.channel.id].copy()).start()  # type: ignore
+        if vc.queue.is_empty and not self.loops[interaction.guild.id].is_empty and vc.loop:  # type: ignore
+            return await QueuePages(interaction, self.loops[interaction.guild.id].copy()).start()  # type: ignore
         elif vc.queue.is_empty:
             return await send("queue is empty")
 
@@ -244,10 +246,10 @@ class Music(commands.Cog):
     @describe(position="the position of the track on the queue")
     async def remove(self, interaction: Interaction, position: int):
         """remove a track from the queue"""
-        assert interaction.channel
+        assert interaction.guild
         send = interaction.response.send_message
         vc: wavelink.Player = interaction.guild.voice_client  # type: ignore
-        loop = self.loops[interaction.channel.id]
+        loop = self.loops[interaction.guild.id]
 
         if position < 1:
             return await send("position must be equal or greater than 1")
@@ -264,6 +266,19 @@ class Music(commands.Cog):
             return await send("queue is empty")
 
         await send(f"track removed from queue")
+
+    @command(name="clear")
+    @voice_connected()
+    @guilds(*MUSIC_WHITELIST)
+    async def clear(self, interaction: Interaction):
+        """clears the queue"""
+        assert interaction.guild
+        send = interaction.response.send_message
+        vc: wavelink.Player = interaction.guild.voice_client  # type: ignore
+
+        vc.queue.clear()
+        self.loops[interaction.guild.id].clear()
+        await send("queue cleared")
 
     @command(name="seek")
     @voice_connected()
@@ -327,12 +342,10 @@ class Music(commands.Cog):
         """disconnects the player from the voice channel and clears its queue"""
         assert interaction.guild and interaction.channel and interaction.guild.voice_client
         send = interaction.response.send_message
-        vc: wavelink.Player = interaction.guild.voice_client  # type: ignore
 
-        vc.queue.clear()
-        del self.loops[interaction.channel.id]
         await interaction.guild.voice_client.disconnect(force=True)
         await send("\N{OK HAND SIGN}\u200b")
+        del self.loops[interaction.guild.id]
 
     @command(name="join")
     @voice_connected()
