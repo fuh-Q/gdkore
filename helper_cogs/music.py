@@ -103,41 +103,39 @@ class Music(commands.Cog):
 
         return e
 
+    async def _wait_for_start(self, ctx: NGKContext, vc: wavelink.Player) -> None:
+        try:
+            await self.client.wait_for(
+                "wavelink_track_start",
+                timeout=15,
+                check=(lambda p, t, r: p.channel.id == vc.channel.id and p.guild.id == vc.guild.id),
+            )
+        except asyncio.TimeoutError:
+            assert ctx.guild
+            await vc.disconnect(force=True)
+            del self.loops[ctx.guild.id]
+
     @commands.Cog.listener()
     async def on_wavelink_track_end(self, player: wavelink.Player, track: wavelink.Track, reason: str):
-        async def wait_for_start():
-            try:
-                await self.client.wait_for(
-                    "wavelink_track_start",
-                    timeout=15,
-                    check=(lambda p, t, r: p.channel.id == channel.id and p.guild.id == player.guild.id),
-                )
-            except asyncio.TimeoutError:
-                assert ctx.guild
-                del self.loops[ctx.guild.id]
-                await vc.disconnect(force=True)
-
-        channel: discord.VoiceChannel = player.channel
         ctx: NGKContext = player.ctx  # type: ignore
-        vc: wavelink.Player = player.guild.voice_client  # type: ignore
 
         try:
-            next_song: wavelink.YouTubeTrack = vc.queue.get()  # type: ignore
-            await vc.play(next_song)
-            await ctx.send(embed=self._get_now_playing_embed(vc, next_song))
+            next_song: wavelink.YouTubeTrack = player.queue.get()  # type: ignore
+            await player.play(next_song)
+            await ctx.send(embed=self._get_now_playing_embed(player, next_song))
         except wavelink.QueueEmpty:
-            if vc.loop:  # type: ignore
+            if player.loop:  # type: ignore
                 assert ctx.guild
-                vc.queue = self.loops[ctx.guild.id].copy()  # type: ignore
+                player.queue = self.loops[ctx.guild.id].copy()  # type: ignore
                 try:
-                    next_song = vc.queue.get()  # type: ignore
+                    next_song = player.queue.get()  # type: ignore
                 except wavelink.QueueEmpty:
-                    return await wait_for_start()
+                    return await self._wait_for_start(ctx, player)
                 else:
-                    await vc.play(next_song)
-                    return await ctx.send(embed=self._get_now_playing_embed(vc, next_song))
+                    await player.play(next_song)
+                    return await ctx.send(embed=self._get_now_playing_embed(player, next_song))
 
-            await wait_for_start()
+            await self._wait_for_start(ctx, player)
         else:
             return
 
@@ -155,12 +153,17 @@ class Music(commands.Cog):
             and interaction.user.voice.channel
         )
 
-        await interaction.response.defer()
-        ctx = await NGKContext.from_interaction(interaction)
-        track = await wavelink.YouTubeTrack.convert(ctx, query)
-
         vc = interaction.guild.voice_client or await interaction.user.voice.channel.connect(cls=wavelink.Player)
         assert isinstance(vc, wavelink.Player)
+
+        await interaction.response.defer()
+        ctx = await NGKContext.from_interaction(interaction)
+        results = await vc.node.get_tracks(wavelink.YouTubeTrack, f"ytsearch:{query}")
+        if not results:
+            await ctx.send("track not found")
+            return await self._wait_for_start(ctx, vc)
+        else:
+            track = results[0]
 
         if vc.queue.is_empty and not vc.is_playing():
             self.loops[interaction.guild.id] = vc.queue.copy()  # type: ignore
