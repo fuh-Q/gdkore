@@ -78,7 +78,7 @@ class Music(commands.Cog):
         elif time >= 60:
             return f"{time%3600//60}m{time%60}s"
         else:
-            return str(time)
+            return str(time) + "s"
 
     def _get_now_playing_embed(self, vc: wavelink.Player, item: wavelink.YouTubeTrack, *, get_time: bool = False) -> Embed:
         if item.title.startswith(str(item.author)):
