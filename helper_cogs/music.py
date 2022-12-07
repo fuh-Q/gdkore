@@ -62,7 +62,6 @@ class Music(commands.Cog):
     MUSIC_WHITELIST: Set[int] = {
         890355226517860433,  # Stupidly Decent
         749892811905564672,  # Mod Mail Inbox
-        764592577575911434,  # Vector Development
     }
 
     def __init__(self, client: NotGDKID):
