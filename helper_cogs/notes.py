@@ -41,15 +41,15 @@ class Notes(commands.Cog):
         q = "INSERT INTO notes (timestamp, note) VALUES ($1, $2)"
         await self.client.web_db.execute(q, datetime.now(tz=timezone.utc), content)
 
-    async def _edit_note(self, id: int, content: str, attachments: List[discord.Attachment]) -> str:
+    async def _edit_note(self, id: int | None, content: str, attachments: List[discord.Attachment]) -> str:
         if attachments:
             content += "\n" + self._convert_attachments(attachments)
 
-        q = "UPDATE notes SET note = $2 WHERE id = $1"
+        q = "UPDATE notes SET note = $2 WHERE id = COALESCE($1, (SELECT MAX(id) FROM notes))"
         return await self.client.web_db.execute(q, id, content)
 
-    async def _delete_note(self, id: int) -> str:
-        q = "DELETE FROM notes WHERE id = $1"
+    async def _delete_note(self, id: int | None) -> str:
+        q = "DELETE FROM notes WHERE id = $1 COALESCE($1, (SELECT MAX(id) FROM notes))"
         return await self.client.web_db.execute(q, id)
 
     @is_owner()
@@ -59,7 +59,7 @@ class Notes(commands.Cog):
         await self._add_note(message.content, message.attachments)
         await interaction.followup.send("note added")
 
-        await asyncio.sleep(5)
+        await asyncio.sleep(3)
         await interaction.delete_original_response()
 
     @commands.command(name="addnote", aliases=["an", "sn"])
@@ -71,19 +71,19 @@ class Notes(commands.Cog):
 
     @commands.command(name="editnote", aliases=["en"])
     @commands.is_owner()
-    async def edit_note_cmd(self, ctx: NGKContext, note_id: int, *, note_content: str):
+    async def edit_note_cmd(self, ctx: NGKContext, note_id: int | None, *, note_content: str):
         status = await self._edit_note(note_id, note_content, ctx.message.attachments)
         if status[-1] == "0":
-            return await ctx.reply("this note doesn't exist lol", delete_after=5)
+            return await ctx.reply("this note doesn't exist lol", delete_after=3)
 
         await ctx.try_react(emoji=BotEmojis.YES)
 
     @commands.command(name="deletenote", aliases=["dn"])
     @commands.is_owner()
-    async def delete_note_cmd(self, ctx: NGKContext, note_id: int):
+    async def delete_note_cmd(self, ctx: NGKContext, note_id: int | None):
         status = await self._delete_note(note_id)
         if status[-1] == "0":
-            return await ctx.reply("this note doesn't exist lol", delete_after=5)
+            return await ctx.reply("this note doesn't exist lol", delete_after=3)
 
         await ctx.try_react(emoji=BotEmojis.YES)
 
