@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import time
-from typing import Dict, List, Set, TYPE_CHECKING
+from typing import ClassVar, Dict, List, Set, TYPE_CHECKING
 
 import wavelink
 
@@ -59,7 +59,9 @@ class QueuePages(BasePages):
 
 
 class Music(commands.Cog):
-    MUSIC_WHITELIST: Set[int] = {
+    INACTIVITY_TIMEOUT: ClassVar[int] = 300
+
+    MUSIC_WHITELIST: ClassVar[Set[int]] = {
         890355226517860433,  # Stupidly Decent
         749892811905564672,  # Mod Mail Inbox
     }
@@ -106,7 +108,7 @@ class Music(commands.Cog):
         try:
             await self.client.wait_for(
                 "wavelink_track_start",
-                timeout=15,
+                timeout=self.INACTIVITY_TIMEOUT,
                 check=(lambda p, t, r: p.channel.id == vc.channel.id and p.guild.id == vc.guild.id),
             )
         except asyncio.TimeoutError:
@@ -139,7 +141,7 @@ class Music(commands.Cog):
             return
 
     @command(name="play")
-    @voice_connected()
+    @voice_connected(owner_bypass=True)
     @guilds(*MUSIC_WHITELIST)
     @describe(query="track to search for")
     async def play(self, interaction: Interaction, *, query: str):
@@ -214,31 +216,32 @@ class Music(commands.Cog):
         await send("\N{OK HAND SIGN}\u200b")
 
     @command(name="np")
-    @voice_connected()
+    @voice_connected(owner_bypass=True)
     @guilds(*MUSIC_WHITELIST)
     async def now_playing(self, interaction: Interaction):
         """get the track currently being played"""
         vc: wavelink.Player = interaction.guild.voice_client  # type: ignore
         send = interaction.response.send_message
 
-        if not vc.is_playing() or not vc.source:
+        if not vc or not vc.is_playing() or not vc.source:
             return await send("im not playing anything rn")
 
         assert isinstance(vc.source, wavelink.YouTubeTrack)
         await send(embed=self._get_now_playing_embed(vc, vc.source, get_time=True))
 
     @command(name="queue")
-    @voice_connected()
+    @voice_connected(owner_bypass=True)
     @guilds(*MUSIC_WHITELIST)
     async def queue(self, interaction: Interaction):
         """display the current queue of tracks"""
         send = interaction.response.send_message
         vc: wavelink.Player = interaction.guild.voice_client  # type: ignore
 
+        if not vc or vc.queue.is_empty:
+            return await send("queue is empty")
+
         if vc.queue.is_empty and not self.loops[interaction.guild.id].is_empty and vc.loop:  # type: ignore
             return await QueuePages(interaction, self.loops[interaction.guild.id].copy()).start()  # type: ignore
-        elif vc.queue.is_empty:
-            return await send("queue is empty")
 
         await QueuePages(interaction, vc.queue.copy()).start()  # type: ignore
 

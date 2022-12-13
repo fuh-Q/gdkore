@@ -46,9 +46,14 @@ def is_owner():
     return check(predicate)
 
 
-def voice_connected():
+def voice_connected(*, owner_bypass: bool = False):
     """
     Check to ensure the command-invoking user is properly connected to voice
+
+    Arguments
+    ---------
+    owner_bypass: `bool`
+        Whether bot owners are allowed to bypass this check
     """
 
     async def predicate(interaction: Interaction) -> bool:
@@ -56,10 +61,14 @@ def voice_connected():
             interaction.guild
             and interaction.channel
             and isinstance(interaction.user, discord.Member)
+            and isinstance(interaction.client, NotGDKID)
             and interaction.user.voice
             and interaction.user.voice.channel
             and interaction.command
         )
+
+        if interaction.user.id in interaction.client.owner_ids and owner_bypass:
+            return True
 
         if not interaction.user.voice or not interaction.user.voice.channel:
             await interaction.response.send_message("join a voice channel first", ephemeral=True)

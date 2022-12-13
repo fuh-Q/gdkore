@@ -468,12 +468,12 @@ class Game(View):
             await self.original_message.edit(**kwargs)
 
     async def interaction_check(self, interaction: Interaction, item: Item) -> bool | None:
-        if item.__class__.__name__ != "cls":
-            return None
-
         if interaction.user not in self.logic.users:
             await interaction.response.send_message("its not your game", ephemeral=True)
             return False
+
+        if item.__class__.__name__ != "cls":
+            return None
 
         return True
 
@@ -573,7 +573,9 @@ class CheckersGame(commands.Cog):
             colour=0x09DFFF,
         )
 
-        msg = await interaction.followup.send(opponent.mention, embed=embed, view=view, wait=True)
+        msg = await interaction.followup.send(
+            opponent.mention, embed=embed, view=view, allowed_mentions=discord.AllowedMentions(users=True), wait=True
+        )
 
         assert isinstance(interaction.channel, discord.TextChannel)
         view.original_message = msg
