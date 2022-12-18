@@ -2,13 +2,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from discord import Member
 from discord.app_commands import ContextMenu, command, guild_only
 from discord.ext import commands
 
 from utils import BotEmojis
 
 if TYPE_CHECKING:
-    from discord import Interaction, Member
+    from discord import Interaction
 
     from helper_bot import NotGDKID
     from utils import NGKContext
