@@ -48,7 +48,7 @@ class Mod(commands.Cog):
     def __init__(self, client: NotGDKID) -> None:
         self.client = client
         self.mute_user_cmd = ContextMenu(
-            name="shut the fuck up", guild_ids=[self.client.AMAZE_GUILD_ID], callback=self.mute_user
+            name="shut the fuck up", callback=self.mute_user, guild_ids=[self.client.AMAZE_GUILD_ID]
         )
 
         self._ignore_ids: Set[int] = set()
