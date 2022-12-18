@@ -31,7 +31,7 @@ class Misc(commands.Cog):
             return await interaction.response.send_message(f"{member.mention} is not a bot", ephemeral=True)
 
         url = f"https://discord.com/oauth2/authorize?client_id={member.id}&permissions=543312838143&scope=bot%20applications.commands"
-        if member.id == self.client.user.id:
+        if member.id == self.client.user.id and interaction.user.id not in self.client.owner_ids:
             url = "https://discord.gg/ggZn8PaQed"
 
         return await interaction.response.send_message(
