@@ -28,12 +28,19 @@ class Notes(commands.Cog):
         self.client.tree.remove_command("add note")
 
     @staticmethod
-    def _convert_attachments(attachments: List[discord.Attachment]) -> str:
-        return "\n".join(attachment.url for attachment in attachments)
+    async def _convert_attachments(attachments: List[discord.Attachment]) -> str:
+        ret = ""
+        for attachment in attachments:
+            if attachment.content_type and attachment.content_type.startswith("image"):
+                ret += f"\n{attachment.url}"
+            else:
+                ret += (await attachment.read()).decode('utf-8')
+
+        return ret
 
     async def _add_note(self, content: str, attachments: List[discord.Attachment]) -> None:
         if attachments:
-            content += "\n" + self._convert_attachments(attachments)
+            content += await self._convert_attachments(attachments)
 
         if not content:
             return
@@ -43,7 +50,7 @@ class Notes(commands.Cog):
 
     async def _edit_note(self, id: int | None, content: str, attachments: List[discord.Attachment]) -> str:
         if attachments:
-            content += "\n" + self._convert_attachments(attachments)
+            content += await self._convert_attachments(attachments)
 
         q = "UPDATE notes SET note = $2 WHERE id = COALESCE($1, (SELECT MAX(id) FROM notes))"
         return await self.client.web_db.execute(q, id, content)
