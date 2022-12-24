@@ -257,7 +257,10 @@ class ClassHome(GoBack[CoursePages]):
         edit_original = partial(interaction.edit_original_response, view=GoBack(self._home))
 
         assert interaction.channel and isinstance(interaction.user, discord.Member)
-        if not interaction.channel.permissions_for(interaction.user).manage_channels:
+        if (
+            not interaction.channel.permissions_for(interaction.user).manage_channels
+            and interaction.user.id not in self.client.owner_ids
+        ):
             return await edit(
                 embed=Embed(description="you need the `manage channels` permission in order to perform this operation")
             )
