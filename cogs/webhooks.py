@@ -73,7 +73,7 @@ class EmbedWithPostData:
         return self.assignment_response or self.type
 
 
-@tasks.loop(minutes=15)
+@tasks.loop(minutes=10)
 async def fetch_posts(client: GClass):
     def run_google() -> Tuple[Post]:  # all google libs are sync
         kwargs = {"courseId": webhook["course_id"], "pageSize": 5}
