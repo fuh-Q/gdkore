@@ -593,6 +593,13 @@ class AttachmentsView(GoBack[ClassMenu]):
                 a = attachment[k]
                 url = a["alternateLink"]
 
+            too_long = len(url) > 512
+            kwargs = {
+                "disabled": too_long,
+                "label": "url exceeds char limit (512)" if too_long else f"{cap(a.get('title', 'Untitled')):80}",
+                "url": "https://discord.gg/ggZn8PaQed" if too_long else url
+            }
+
             emojis = {
                 "driveFile": BotEmojis.DRIVE,
                 "form": BotEmojis.FORMS,
@@ -602,7 +609,7 @@ class AttachmentsView(GoBack[ClassMenu]):
 
             view.add_item(
                 Button(
-                    label=f"{cap(a.get('title', 'Untitled')):80}", emoji=emojis[k], style=discord.ButtonStyle.link, url=url
+                    emoji=emojis[k], style=discord.ButtonStyle.link, **kwargs
                 )
             )
 

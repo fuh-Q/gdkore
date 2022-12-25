@@ -60,25 +60,33 @@ class ExpiringDict(dict, Generic[KT, VT]):
             if value:
                 value[1] = time.monotonic()
 
-    def _clear_expired(self) -> None:
+    def _clear_expired(self, key: KT) -> bool:
         now = time.monotonic()
         expired: Tuple[KT] = tuple(k for (k, (v, t)) in self.items() if now - t > self.timeout)
         for key in expired:
             del self[key]
 
+        return key in expired
+
     def __contains__(self, key: KT) -> bool:
-        self._clear_expired()
+        key_removed = self._clear_expired(key)
+        if key_removed:
+            return False
+
         self._refresh_timeout(key)
         return super().__contains__(key)
 
     def __getitem__(self, key: KT) -> VT:
-        self._clear_expired()
+        key_removed = self._clear_expired(key)
+        if key_removed:
+            raise KeyError(key_removed)
+
         self._refresh_timeout(key)
         value = super().__getitem__(key)
         return value[0]
 
     def __setitem__(self, k: KT, v: VT) -> None:
-        self._clear_expired()
+        self._clear_expired(k)
         super().__setitem__(k, [v, time.monotonic()])
 
     def __repr__(self) -> str:
