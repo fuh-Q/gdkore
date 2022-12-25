@@ -352,14 +352,6 @@ class Music(commands.Cog):
         await send("\N{OK HAND SIGN}\u200b")
         del self.loops[interaction.guild.id]
 
-    @command(name="join")
-    @voice_connected()
-    @guilds(*MUSIC_WHITELIST)
-    async def join(self, interaction: Interaction):
-        """connects to the same voice channel as the user"""
-
-        await interaction.response.send_message("\N{OK HAND SIGN}\u200b")
-
 
 async def setup(client: NotGDKID):
     await client.add_cog(Music(client=client))
