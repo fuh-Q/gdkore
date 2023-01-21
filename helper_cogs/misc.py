@@ -9,7 +9,7 @@ from discord.ext import commands
 from utils import BotEmojis
 
 if TYPE_CHECKING:
-    from discord import Interaction
+    from discord import Interaction, Message
 
     from helper_bot import NotGDKID
     from utils import NGKContext
@@ -24,6 +24,11 @@ class Misc(commands.Cog):
 
     async def cog_unload(self) -> None:
         self.client.tree.remove_command("invite bot")
+
+    @commands.Cog.listener()
+    async def on_message(self, message: Message):
+        if message.channel.id == 749892811905564677 and message.author.id == 270904126974590976:
+            await message.delete(delay=3)
 
     @guild_only()
     async def invite_bot(self, interaction: Interaction, member: Member):
