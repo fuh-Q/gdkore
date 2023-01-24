@@ -148,7 +148,7 @@ async def fetch_posts(client: GClass):
                 wh = await channel.create_webhook(
                     name=webhook["course_name"], reason=f"created webhook for course {webhook['course_name']}"
                 )
-            except discord.Forbidden:
+            except discord.HTTPException:
                 return await delete_webhook(is_deleted=True)
 
             q = """UPDATE webhooks SET url = $1
