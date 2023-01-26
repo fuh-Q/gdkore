@@ -34,7 +34,7 @@ class Notes(commands.Cog):
             if attachment.content_type and attachment.content_type.startswith("image"):
                 ret += f"\n{attachment.url}"
             else:
-                ret += (await attachment.read()).decode('utf-8')
+                ret += (await attachment.read()).decode("utf-8")
 
         return ret
 

@@ -242,7 +242,7 @@ class DirectoryView(BasePages):
         method, kwargs = (
             (view.interaction.edit_original_response, {"attachments": [file], "embed": None, "view": None})
             if ephemeral is True
-            else (view.interaction.followup.send, {"file": file, "view": None})
+            else (view.interaction.followup.send, {"file": file})
         )
 
         try:

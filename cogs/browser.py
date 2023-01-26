@@ -597,7 +597,7 @@ class AttachmentsView(GoBack[ClassMenu]):
             kwargs = {
                 "disabled": too_long,
                 "label": "url exceeds char limit (512)" if too_long else f"{cap(a.get('title', 'Untitled')):80}",
-                "url": "https://discord.gg/ggZn8PaQed" if too_long else url
+                "url": "https://discord.gg/ggZn8PaQed" if too_long else url,
             }
 
             emojis = {
@@ -607,11 +607,7 @@ class AttachmentsView(GoBack[ClassMenu]):
                 "youtubeVideo": BotEmojis.YOUTUBE,
             }
 
-            view.add_item(
-                Button(
-                    emoji=emojis[k], style=discord.ButtonStyle.link, **kwargs
-                )
-            )
+            view.add_item(Button(emoji=emojis[k], style=discord.ButtonStyle.link, **kwargs))
 
     async def after_callback(self, interaction: Interaction, item: Item):
         self._home._home._refresh_timeout()  # refresh CoursePages object
