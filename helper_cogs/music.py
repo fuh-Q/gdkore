@@ -296,7 +296,7 @@ class Music(commands.Cog):
 
         parsed = timecode.split(":")
         if len(parsed) != 2 or not parsed[0].isdigit() or not parsed[1].isdigit():
-            return await send("invalid timecode; correct format is `min:sec` (e.g 4:20)", ephemeral=True)
+            return await send("invalid timecode; correct format is `min:sec` (e.g `4:20`)", ephemeral=True)
 
         total_ms = int(parsed[0]) * 60 * 1000 + int(parsed[1]) * 1000
 
