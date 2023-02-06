@@ -10,6 +10,14 @@ if TYPE_CHECKING:
     from types import TracebackType
 
 
+class SpotifyCreds(TypedDict):
+    access_token: str
+    expires_in: int
+    refresh_token: str
+    scope: str
+    token_type: str
+
+
 class ConnectionContextManager(Protocol):
     async def __aenter__(self) -> Connection:
         ...

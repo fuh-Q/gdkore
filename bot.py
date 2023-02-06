@@ -3,14 +3,13 @@ from __future__ import annotations
 # <-- stdlib imports -->
 import asyncio
 import io
-import json
 import logging
 import os
 import sys
 import time
 import traceback
 from datetime import datetime, timedelta, timezone
-from typing import Callable, Dict, List, Tuple, TYPE_CHECKING
+from typing import Callable, List, Tuple, TYPE_CHECKING
 
 # <-- discord imports -->
 import discord
@@ -30,6 +29,7 @@ from redis import asyncio as aioredis
 
 # <-- other imports -->
 import aiohttp
+import orjson
 from fuzzy_match import match
 
 # <-- local imports -->
@@ -59,7 +59,7 @@ if TYPE_CHECKING:
     from topgg.webhook import WebhookManager
 
     from cogs.browser import Browser
-    from utils import PostgresPool
+    from utils import PostgresPool, Secrets
 
 # <-- uvloop -->
 try:
@@ -71,7 +71,7 @@ else:
 
 # <-- load secrets file -->
 with open("config/secrets.json", "r") as f:
-    secrets: Dict[str, str] = json.load(f)
+    secrets: Secrets = orjson.loads(f.read())
 
 # <-- misc (too little to each deserve a section) -->
 start = time.monotonic()
@@ -108,7 +108,7 @@ class GClass(commands.Bot):
     redis_dns = f"redis://{secrets['vps_ip']}"
     topgg_auth = secrets["topgg_auth"]
     topgg_wh: WebhookManager
-    session: aiohttp.ClientSession
+    session: aiohttp.ClientSession | None
 
     google_flow = Flow.from_client_secrets_file("config/google-creds.json", scopes=SCOPES)
     google_flow.redirect_uri = "https://gclass.onrender.com"
@@ -202,6 +202,8 @@ class GClass(commands.Bot):
 
         if not creds.valid:
             await asyncio.to_thread(creds.refresh, Request())
+
+        assert self.session is not None
         await self.session.post(
             "https://oauth2.googleapis.com/revoke",
             data={"token": creds.token},
@@ -442,6 +444,7 @@ class GClass(commands.Bot):
             await super().start(self.token)
 
     async def close(self, restart: bool = False):
+        assert self.session is not None
         self._restart = restart
 
         await self.session.close()

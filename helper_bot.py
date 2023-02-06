@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
 import os
 import sys
@@ -12,6 +11,7 @@ from typing import Callable, List, Set, TYPE_CHECKING, Tuple
 
 import asyncpg
 import aiohttp
+import orjson
 import wavelink
 
 import discord
@@ -26,7 +26,6 @@ from utils import (
     GClassLogging,
     NGKContext,
     PrintColours,
-    Secrets,
     get_extensions,
     mobile,
     is_dst,
@@ -39,7 +38,7 @@ if TYPE_CHECKING:
 
     from helper_cogs.checkers import Game
     from helper_cogs.music import Music
-    from utils import PostgresPool
+    from utils import PostgresPool, Secrets, SpotifyCreds
 
 try:
     import uvloop  # type: ignore
@@ -49,7 +48,10 @@ else:
     uvloop.install()
 
 with open("config/secrets.json", "r") as f:
-    secrets: Secrets = json.load(f)
+    secrets: Secrets = orjson.loads(f.read())
+
+with open("config/spotify-creds.json", "r") as f:
+    spotify_creds: SpotifyCreds = orjson.loads(f.read())
 
 start = time.monotonic()
 asyncio.BaseEventLoop.call_soon = new_call_soon
@@ -99,13 +101,15 @@ class NotGDKID(commands.Bot):
     website_postgres = secrets["postgres_dns"] + "gdkid_xyz"
     lavalink_creds = secrets["lavalink"]
 
+    spotify_auth = spotify_creds
+
     user: discord.ClientUser
     owner_ids: List[int]
     get_guild: Callable[[int], discord.Guild]
     get_channel: Callable[[int], discord.abc.Messageable]
     whitelist: Config[int]
     blacklist: Config[int]
-    session: aiohttp.ClientSession
+    session: aiohttp.ClientSession | None
 
     def __init__(self):
         allowed_mentions = discord.AllowedMentions.all()
@@ -352,7 +356,11 @@ class NotGDKID(commands.Bot):
         await super().start(self.token)
 
     async def close(self, restart: bool = False):
+        assert self.session is not None
         self._restart = restart
+
+        with open("config/spotify-creds.json", "w") as f:
+            f.write(orjson.dumps(self.spotify_auth, option=orjson.OPT_INDENT_2).decode())
 
         self.status_task.cancel()
         await self.session.close()
