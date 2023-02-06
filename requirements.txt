@@ -14,7 +14,7 @@ fuzzy-match
 numpy
 
 psutil
-pytz
+tzdata
 uvloop
 
 dnspython

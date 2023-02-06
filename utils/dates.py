@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from functools import partial
 
-from pytz import timezone as pytimezone
+from zoneinfo import ZoneInfo
 
 from .typings import Post
 
@@ -21,7 +21,7 @@ def is_dst(timezone: str = "America/Toronto") -> bool:
         Whether or not DST is currently being observed.
     """
 
-    dst = datetime.now(tz=pytimezone(timezone)).dst()
+    dst = datetime.now(tz=ZoneInfo(timezone)).dst()
     assert dst
 
     return dst.seconds != 0
