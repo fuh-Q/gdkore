@@ -284,6 +284,9 @@ class GClass(commands.Bot):
         await self.db.execute("SELECT 1")  # wake it up ig
 
     async def on_guild_join(self, guild: discord.Guild):
+        if not hasattr(self, "guild_logs"):  # discord bug...?
+            return
+
         if self._is_blacklisted(guild):
             return await guild.leave()
 
@@ -318,6 +321,9 @@ class GClass(commands.Bot):
         await self.guild_logs.send(embed=e)
 
     async def on_guild_remove(self, guild: discord.Guild):
+        if not hasattr(self, "guild_logs"):  # discord bug...?
+            return
+
         try:
             self.guild_limit.remove(guild.id)
         except ValueError:
