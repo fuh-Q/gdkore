@@ -70,10 +70,8 @@ async def try_req(token: str, /, *, logger: logging.Logger) -> aiohttp.ClientRes
 
 @tasks.loop(minutes=1)
 async def spotify_task(client: NotGDKID):
-    with open("config/spotify-creds.json", "r") as f:
-        creds: SpotifyCreds = orjson.loads(f.read())
-        access_token = creds["access_token"]
-        refresh_token = creds["refresh_token"]
+    access_token = client.spotify_auth["access_token"]
+    refresh_token = client.spotify_auth["refresh_token"]
 
     resp = await try_req(access_token, logger=client.logger)
     colour = PrintColours.RED if resp.status >= 400 else PrintColours.GREEN
