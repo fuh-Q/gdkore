@@ -37,10 +37,9 @@ async def do_refresh(token: str, /) -> SpotifyCreds:
         f"https://accounts.spotify.com/api/token?grant_type=refresh_token&refresh_token={token}",
         headers=headers,
     ) as resp:
-        with open("config/spotify-creds.json", "w") as f:
-            data: SpotifyCreds = await resp.json()
-            data["refresh_token"] = token
-            return data
+        data: SpotifyCreds = await resp.json()
+        data["refresh_token"] = token
+        return data
 
 
 async def try_req(token: str, /, *, logger: logging.Logger) -> aiohttp.ClientResponse:
