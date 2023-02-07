@@ -3,26 +3,27 @@ from __future__ import annotations
 import asyncio
 import base64
 import json
-import logging
 import sys
 from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING
 
 from utils import PrintColours, is_dst
 
-import aiohttp
+from aiohttp import ClientSession
 from discord.ext import tasks
 
 if TYPE_CHECKING:
-    from helper_bot import NotGDKID
+    from logging import Logger
 
+    from aiohttp import ClientResponse
+
+    from helper_bot import NotGDKID
     from utils import SpotifyCreds
 
-session: aiohttp.ClientSession | None = None
 PLAYLIST_ID = "6NHn4X5wsSpeClsptOIycY"
 
 
-async def do_refresh(token: str, /) -> SpotifyCreds:
+async def do_refresh(token: str, /, *, session: ClientSession) -> SpotifyCreds:
     assert session is not None
     CLIENT_ID = "38727f6c28b44b4fb9dd3e661ecba1b7"
     CLIENT_SECRET = "40d954892817442cbad09f828412c0dd"
@@ -41,7 +42,7 @@ async def do_refresh(token: str, /) -> SpotifyCreds:
         return data
 
 
-async def try_req(token: str, /, *, logger: logging.Logger) -> aiohttp.ClientResponse:
+async def try_req(token: str, /, *, session: ClientSession, logger: Logger) -> ClientResponse:
     assert session is not None
     headers = {"Authorization": f"Bearer {token}"}
 
@@ -68,16 +69,18 @@ async def try_req(token: str, /, *, logger: logging.Logger) -> aiohttp.ClientRes
 
 @tasks.loop(minutes=1)
 async def spotify_task(client: NotGDKID):
+    assert client.session is not None
+
     access_token = client.spotify_auth["access_token"]
     refresh_token = client.spotify_auth["refresh_token"]
 
-    resp = await try_req(access_token, logger=client.logger)
+    resp = await try_req(access_token, session=client.session, logger=client.logger)
     colour = PrintColours.RED if resp.status >= 400 else PrintColours.GREEN
     client.logger.info("Attempt 1/2 -- Spotify responded with code: %s%d%s" % (colour, resp.status, PrintColours.WHITE))
 
     if resp.status == 401:
-        new_creds = await do_refresh(refresh_token)
-        resp = await try_req(new_creds["access_token"], logger=client.logger)
+        new_creds = await do_refresh(refresh_token, session=client.session)
+        resp = await try_req(new_creds["access_token"], session=client.session, logger=client.logger)
         colour = PrintColours.RED if resp.status >= 400 else PrintColours.GREEN
         client.logger.info("Attempt 2/2 -- Spotify responded with code: %s%d%s" % (colour, resp.status, PrintColours.WHITE))
 
@@ -92,12 +95,6 @@ async def before_status_task():
 async def teardown(_):
     spotify_task.stop()
 
-    if session is not None and not session.closed:
-        await session.close()
-
 
 async def setup(client: NotGDKID):
-    global session
-    session = aiohttp.ClientSession()
-
     spotify_task.start(client)
