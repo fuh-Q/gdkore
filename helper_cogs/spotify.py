@@ -11,7 +11,6 @@ from typing import TYPE_CHECKING
 from utils import PrintColours, is_dst
 
 import aiohttp
-import orjson
 from discord.ext import tasks
 
 if TYPE_CHECKING:
