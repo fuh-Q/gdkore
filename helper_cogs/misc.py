@@ -26,6 +26,7 @@ class Misc(commands.Cog):
         self.invite_cmd = ContextMenu(name="invite bot", callback=self.invite_bot)
 
         self._sleep_reminded = False
+        self._reminder_task: asyncio.Task[None] | None = None
 
         self.client.tree.add_command(self.invite_cmd)
 
@@ -46,15 +47,22 @@ class Misc(commands.Cog):
             if hour < 7 and self._sleep_reminded:
                 return
 
-            await asyncio.sleep(3600)
-            msg = f"{message.interaction.user.mention} oi giveaway time"
-            if hour < 7:
-                self._sleep_reminded = True
-                msg += "\nalso go to sleep wtf"
-            else:
-                self._sleep_reminded = False
+            async def task():
+                assert message.interaction
+                await asyncio.sleep(3600)
+                msg = f"{message.interaction.user.mention} oi giveaway time"
+                if hour < 7:
+                    self._sleep_reminded = True
+                    msg += "\nalso go to sleep wtf"
+                else:
+                    self._sleep_reminded = False
 
-            await message.reply(msg)
+                await message.reply(msg)
+                self._reminder_task = None
+
+            if self._reminder_task is not None:
+                self._reminder_task.cancel()
+            self._reminder_task = self.client.loop.create_task(task())
 
     @guild_only()
     async def invite_bot(self, interaction: Interaction, member: Member):
