@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import asyncio
+from datetime import datetime
 from typing import TYPE_CHECKING
+from zoneinfo import ZoneInfo
 
 from discord import Member
 from discord.app_commands import ContextMenu, command, guild_only
@@ -16,9 +19,13 @@ if TYPE_CHECKING:
 
 
 class Misc(commands.Cog):
+    STUPIDLY_DECENT_ID = 890355226517860433
+
     def __init__(self, client: NotGDKID) -> None:
         self.client = client
         self.invite_cmd = ContextMenu(name="invite bot", callback=self.invite_bot)
+
+        self._sleep_reminded = False
 
         self.client.tree.add_command(self.invite_cmd)
 
@@ -27,8 +34,27 @@ class Misc(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message: Message):
-        if message.channel.id == 749892811905564677 and message.author.id == 270904126974590976:
-            await message.delete(delay=3)
+        assert message.guild
+        if not message.interaction or message.guild.id != self.STUPIDLY_DECENT_ID:
+            return
+
+        if message.interaction.user.id not in self.client.owner_ids:
+            return
+
+        if message.interaction.name.startswith("giveaway"):
+            hour = datetime.now(tz=ZoneInfo("America/Toronto")).hour
+            if hour < 7 and self._sleep_reminded:
+                return
+
+            await asyncio.sleep(3600)
+            msg = f"{message.interaction.user.mention} oi giveaway time"
+            if hour < 7:
+                self._sleep_reminded = True
+                msg += "\nalso go to sleep wtf"
+            else:
+                self._sleep_reminded = False
+
+            await message.reply(msg)
 
     @guild_only()
     async def invite_bot(self, interaction: Interaction, member: Member):
