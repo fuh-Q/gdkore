@@ -35,6 +35,21 @@ class Misc(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message: Message):
+        async def task():
+            assert message.interaction
+            await asyncio.sleep(3600)
+
+            msg = f"{message.interaction.user.mention} oi giveaway time"
+            hour = datetime.now(tz=ZoneInfo("America/Toronto")).hour
+            if hour < 7:
+                self._sleep_reminded = True
+                msg += "\nalso go to sleep wtf"
+            else:
+                self._sleep_reminded = False
+
+            await message.reply(msg)
+            self._reminder_task = None
+
         assert message.guild
         if not message.interaction or message.guild.id != self.STUPIDLY_DECENT_ID:
             return
@@ -46,21 +61,6 @@ class Misc(commands.Cog):
             rn = datetime.now(tz=ZoneInfo("America/Toronto"))
             if rn.hour < 7 and self._sleep_reminded:
                 return
-
-            async def task():
-                assert message.interaction
-                await asyncio.sleep(3600)
-
-                msg = f"{message.interaction.user.mention} oi giveaway time"
-                hour = datetime.now(tz=ZoneInfo("America/Toronto")).hour
-                if hour < 7:
-                    self._sleep_reminded = True
-                    msg += "\nalso go to sleep wtf"
-                else:
-                    self._sleep_reminded = False
-
-                await message.reply(msg)
-                self._reminder_task = None
 
             if self._reminder_task is not None:
                 self._reminder_task.cancel()
