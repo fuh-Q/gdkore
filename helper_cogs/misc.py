@@ -43,15 +43,15 @@ class Misc(commands.Cog):
             return
 
         if message.interaction.name.startswith("giveaway"):
-            hour = datetime.now(tz=ZoneInfo("America/Toronto")).hour
-            if hour < 7 and self._sleep_reminded:
+            rn = datetime.now(tz=ZoneInfo("America/Toronto"))
+            if rn.hour < 7 and self._sleep_reminded:
                 return
 
             async def task():
                 assert message.interaction
                 await asyncio.sleep(3600)
                 msg = f"{message.interaction.user.mention} oi giveaway time"
-                if hour < 7:
+                if rn.hour < 7:
                     self._sleep_reminded = True
                     msg += "\nalso go to sleep wtf"
                 else:
@@ -62,7 +62,7 @@ class Misc(commands.Cog):
 
             if self._reminder_task is not None:
                 self._reminder_task.cancel()
-            self._reminder_task = self.client.loop.create_task(task())
+            self._reminder_task = self.client.loop.create_task(task(), name=f"Reminder-{rn.hour}:{rn.minute}")
 
     @guild_only()
     async def invite_bot(self, interaction: Interaction, member: Member):
