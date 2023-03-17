@@ -50,8 +50,10 @@ class Misc(commands.Cog):
             async def task():
                 assert message.interaction
                 await asyncio.sleep(3600)
+
                 msg = f"{message.interaction.user.mention} oi giveaway time"
-                if rn.hour < 7:
+                hour = datetime.now(tz=ZoneInfo("America/Toronto")).hour
+                if hour < 7:
                     self._sleep_reminded = True
                     msg += "\nalso go to sleep wtf"
                 else:
