@@ -179,7 +179,7 @@ async def fetch_posts(client: GClass):
                     "components": view.to_components(),
                 },
             ) as resp:
-                if resp.status == 404:
+                if resp.status in (401, 403, 404):
                     await delete_webhook()
 
         q = """UPDATE webhooks SET
@@ -240,7 +240,7 @@ async def fetch_posts(client: GClass):
             await delete_webhook()
             await client.remove_access(webhook["user_id"])
         except HttpError as e:
-            if e.status_code in (403, 404):
+            if e.status_code in (401, 403, 404):
                 await delete_webhook()
 
 
