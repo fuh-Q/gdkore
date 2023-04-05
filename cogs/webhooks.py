@@ -123,6 +123,7 @@ async def fetch_posts(client: GClass):
         return pages
 
     async def delete_webhook(*, is_deleted: bool = False) -> None:  # delete the current webhook
+        assert client.session
         await client.db.execute(DEL_QUERY, webhook["user_id"], webhook["course_id"], webhook["channel_id"])
 
         if not is_deleted:
@@ -135,6 +136,7 @@ async def fetch_posts(client: GClass):
 
     async def post_data(pages: List[EmbedWithPostData]) -> None:  # post embeds to the webhook's channel
         wh: discord.Webhook
+        assert client.session
 
         last_posts = {n: datetime.now(tz=timezone.utc) for n in ("announcement", "material", "assignment")}
 
@@ -269,6 +271,7 @@ class WebhookPicker(Select):
         return f"{cap(f'remove a webhook... [{start}-{stop} of {total}]'):150}"
 
     async def callback(self, interaction: Interaction) -> None:
+        assert self.view.client.session
         await interaction.response.defer(ephemeral=True)
         view = Confirm(interaction.user)
 
