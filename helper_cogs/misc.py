@@ -64,7 +64,10 @@ class Misc(commands.Cog):
 
             if self._reminder_task is not None:
                 self._reminder_task.cancel()
-            self._reminder_task = self.client.loop.create_task(task(), name=f"Reminder-{rn.hour}:{rn.minute}")
+
+            self._reminder_task = self.client.loop.create_task(
+                task(), name=f"Reminder-{rn.hour}:{rn.minute}-{rn.timestamp()}"
+            )
 
     @guild_only()
     async def invite_bot(self, interaction: Interaction, member: Member):
