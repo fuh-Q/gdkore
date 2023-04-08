@@ -66,7 +66,7 @@ class Misc(commands.Cog):
                 self._reminder_task.cancel()
 
             self._reminder_task = self.client.loop.create_task(
-                task(), name=f"Reminder-{rn.hour}:{rn.minute}-{rn.timestamp()}"
+                task(), name=f"Reminder-{rn.hour}:{rn.minute}-{int(rn.timestamp())}"
             )
 
     @guild_only()
