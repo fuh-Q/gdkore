@@ -83,6 +83,15 @@ class Misc(commands.Cog):
             ephemeral=True,
         )
 
+    @commands.command(name="lastgaw", aliases=["lg"])
+    @commands.is_owner()
+    async def _lastgaw(self, ctx: NGKContext):
+        t = self._reminder_task
+        if not t:
+            return await ctx.send("none found")
+
+        await ctx.send(f"last giveaway done <t:{t.get_name().split('-')[-1]}:R>")
+
     @commands.command(name="whitelist", aliases=["wl"], hidden=True)
     @commands.is_owner()
     async def wl(self, ctx: NGKContext, guild_id: int):
