@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from types import TracebackType
 
 
-class SpotifyCreds(TypedDict):
+class OAuthCreds(TypedDict):
     access_token: str
     expires_in: int
     refresh_token: str

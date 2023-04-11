@@ -18,12 +18,12 @@ if TYPE_CHECKING:
     from aiohttp import ClientResponse
 
     from helper_bot import NotGDKID
-    from utils import SpotifyCreds
+    from utils import OAuthCreds
 
 PLAYLIST_ID = "6NHn4X5wsSpeClsptOIycY"
 
 
-async def do_refresh(token: str, /, *, session: ClientSession) -> SpotifyCreds:
+async def do_refresh(token: str, /, *, session: ClientSession) -> OAuthCreds:
     assert session is not None
     CLIENT_ID = "38727f6c28b44b4fb9dd3e661ecba1b7"
     CLIENT_SECRET = "40d954892817442cbad09f828412c0dd"
@@ -37,7 +37,7 @@ async def do_refresh(token: str, /, *, session: ClientSession) -> SpotifyCreds:
         f"https://accounts.spotify.com/api/token?grant_type=refresh_token&refresh_token={token}",
         headers=headers,
     ) as resp:
-        data: SpotifyCreds = await resp.json()
+        data: OAuthCreds = await resp.json()
         data["refresh_token"] = token
         return data
 

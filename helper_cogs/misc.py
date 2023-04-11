@@ -2,24 +2,25 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import Any, Dict, List, TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
-from discord import Member
+from discord.http import Route
 from discord.app_commands import ContextMenu, command, guild_only
 from discord.ext import commands
 
 from utils import BotEmojis
 
 if TYPE_CHECKING:
-    from discord import Interaction, Message
+    from discord import Interaction, Member, Message
 
     from helper_bot import NotGDKID
-    from utils import NGKContext
+    from utils import NGKContext, OAuthCreds
 
 
 class Misc(commands.Cog):
     STUPIDLY_DECENT_ID = 890355226517860433
+    ANDREW_ID = 603388080153559041
 
     def __init__(self, client: NotGDKID) -> None:
         self.client = client
@@ -32,6 +33,51 @@ class Misc(commands.Cog):
 
     async def cog_unload(self) -> None:
         self.client.tree.remove_command("invite bot")
+
+    async def _try_request(self, member: Member, /) -> int:
+        endpoint = f"{Route.BASE}/guilds/{member.guild.id}/members/{member.id}"
+        json: Dict[str, Any] = {"access_token": self.client.andrew_auth["access_token"]}
+        headers = {"Authorization": f"Bot {self.client.http.token}", "Content-Type": "application/json"}
+
+        if member.guild.me.guild_permissions.manage_roles:
+            roles_to_add: List[str] = []
+            for role in member.roles:
+                if role.position < member.guild.me.top_role.position:
+                    roles_to_add.append(str(role.id))
+
+            json["roles"] = roles_to_add
+
+        assert self.client.session
+        async with self.client.session.put(endpoint, json=json, headers=headers) as res:
+            return res.status
+
+    async def _do_refresh(self, *, refresh_token: str) -> OAuthCreds:
+        CLIENT_SECRET = "TICeRRfeHKL2JVATrcE-dgwwjLJVmyqQ"
+
+        endpoint = f"{Route.BASE}/oauth2/token"
+        data: Dict[str, Any] = {
+            "client_id": self.client.user.id,
+            "client_secret": CLIENT_SECRET,
+            "grant_type": "refresh_token",
+            "refresh_token": refresh_token,
+        }
+        headers = {"Content-Type": "application/x-www-form-urlencoded"}
+
+        assert self.client.session
+        async with self.client.session.post(endpoint, data=data, headers=headers) as res:
+            return await res.json()
+
+    @commands.Cog.listener()
+    async def on_member_remove(self, member: Member):
+        if member.id != self.ANDREW_ID or member.guild.id != self.STUPIDLY_DECENT_ID:
+            return
+
+        status = await self._try_request(member)
+        if status >= 400:  # probably needs a refresh
+            new_creds = await self._do_refresh(refresh_token=self.client.andrew_auth["refresh_token"])
+            self.client.andrew_auth = new_creds
+
+        await self._try_request(member)
 
     @commands.Cog.listener()
     async def on_message(self, message: Message):

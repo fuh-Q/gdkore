@@ -38,7 +38,7 @@ if TYPE_CHECKING:
 
     from helper_cogs.checkers import Game
     from helper_cogs.music import Music
-    from utils import PostgresPool, Secrets, SpotifyCreds
+    from utils import PostgresPool, OAuthCreds, Secrets
 
 try:
     import uvloop  # type: ignore
@@ -46,12 +46,6 @@ except (ModuleNotFoundError, ImportError):
     pass
 else:
     uvloop.install()
-
-with open("config/secrets.json", "r") as f:
-    secrets: Secrets = orjson.loads(f.read())
-
-with open("config/spotify-creds.json", "r") as f:
-    spotify_creds: SpotifyCreds = orjson.loads(f.read())
 
 start = time.monotonic()
 asyncio.BaseEventLoop.call_soon = new_call_soon
@@ -95,14 +89,6 @@ class NotGDKID(commands.Bot):
     MEMBER_ROLE_ID = 1008572377703129119
     MUTED_ROLE_ID = 997376437390692373
 
-    token = secrets["helper_token"]
-    testing_token = secrets["testing_token"]
-    postgres_dns = secrets["postgres_dns"] + "notgdkid"
-    website_postgres = secrets["postgres_dns"] + "gdkid_xyz"
-    lavalink_creds = secrets["lavalink"]
-
-    spotify_auth = spotify_creds
-
     user: discord.ClientUser
     owner_ids: List[int]
     get_guild: Callable[[int], discord.Guild]
@@ -110,6 +96,21 @@ class NotGDKID(commands.Bot):
     whitelist: Config[int]
     blacklist: Config[int]
     session: aiohttp.ClientSession | None
+
+    with open("config/secrets.json", "r") as f:
+        secrets: Secrets = orjson.loads(f.read())
+
+        token = secrets["helper_token"]
+        testing_token = secrets["testing_token"]
+        postgres_dns = secrets["postgres_dns"] + "notgdkid"
+        website_postgres = secrets["postgres_dns"] + "gdkid_xyz"
+        lavalink_creds = secrets["lavalink"]
+
+    with open("config/spotify-creds.json", "r") as f:
+        spotify_auth: OAuthCreds = orjson.loads(f.read())
+
+    with open("config/andrew-creds.json", "r") as f:
+        andrew_auth: OAuthCreds = orjson.loads(f.read())
 
     def __init__(self):
         allowed_mentions = discord.AllowedMentions.all()
@@ -361,6 +362,9 @@ class NotGDKID(commands.Bot):
 
         with open("config/spotify-creds.json", "w") as f:
             f.write(orjson.dumps(self.spotify_auth, option=orjson.OPT_INDENT_2).decode())
+
+        with open("config/andrew-creds.json", "w") as f:
+            f.write(orjson.dumps(self.andrew_auth, option=orjson.OPT_INDENT_2).decode())
 
         self.status_task.cancel()
         await self.session.close()
