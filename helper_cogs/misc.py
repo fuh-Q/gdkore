@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Any, Dict, List, TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
+from discord import Member
 from discord.http import Route
 from discord.app_commands import ContextMenu, command, guild_only
 from discord.ext import commands
@@ -12,7 +13,7 @@ from discord.ext import commands
 from utils import BotEmojis
 
 if TYPE_CHECKING:
-    from discord import Interaction, Member, Message
+    from discord import Interaction, Message
 
     from helper_bot import NotGDKID
     from utils import NGKContext, OAuthCreds
