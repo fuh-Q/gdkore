@@ -1,7 +1,5 @@
 import json
-import os
 import pathlib
-import sys
 from typing import List
 
 import asyncpg
@@ -9,15 +7,26 @@ import asyncpg
 from discord.ext import commands
 from discord.app_commands import CheckFailure
 
-CHOICES = [
-    "no",
-    "its not your menu",
-    "don't think you can use this menu mate",
-    "you cant use that menu... but you *can* watch rick roll\n\nhttps://tenor.com/view/dance-moves-dancing-singer-groovy-gif-17029825",
-    "couldn't verify that you can use this menu!",
-    "roses are red\nviolets are blue\nay hol up you can't use this menu",
-    "can i see your non-existent proof that you have control over this paginator?",
-]
+no = f"[no](<https://discord.gg/ggZn8PaQed>)"
+CHOICES = (
+    f"***{no}.***",
+    f"absolutely ***{no}t.***",
+    f"eenie meenie miny moe,\n\n***{no}.***",
+    f"hell ***{no}.***",
+    f"***{no}pe.***",
+    f"***{no}t*** happening."
+    f"this is ***{no}t*** your menu.",
+    f"i ***can{no}t.***",
+    f"***{no}*** can do.",
+    f"you shall ***{no}t*** pass.",
+    f"***{no}h***",
+    f"~~mo~~***{no}***~~poly~~",
+    f"***{no}pe***, sorry.",
+    f"i ***dun{no}***",
+    f"roses are red\nviolets are blue\n\nthat's ***{no}t*** doing anything, since it wasn't for you.",
+    f"1 2 3 4 5 6 7,\n\nthat isn't for you, so ***{no}thing's*** gonna happen.",
+    f"a b c d e f g,\n\nit's ***{no}t*** happening, here's rick astley\n\nhttps://tenor.com/view/dance-moves-dancing-singer-groovy-gif-17029825"
+)
 
 
 class MaxConcurrencyReached(CheckFailure):
