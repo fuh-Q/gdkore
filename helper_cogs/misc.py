@@ -5,9 +5,9 @@ from datetime import datetime
 from typing import Any, Dict, List, TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
-from discord import Member
+from discord import Member, User
 from discord.http import Route
-from discord.app_commands import ContextMenu, command, guild_only
+from discord.app_commands import ContextMenu, command
 from discord.ext import commands
 
 from utils import BotEmojis
@@ -116,17 +116,16 @@ class Misc(commands.Cog):
                 task(), name=f"Reminder-{rn.hour}:{rn.minute}-{int(rn.timestamp())}"
             )
 
-    @guild_only()
-    async def invite_bot(self, interaction: Interaction, member: Member):
-        if not member.bot:
-            return await interaction.response.send_message(f"{member.mention} is not a bot", ephemeral=True)
+    async def invite_bot(self, interaction: Interaction, user: User):
+        if not user.bot:
+            return await interaction.response.send_message(f"{user.mention} is not a bot", ephemeral=True)
 
-        url = f"https://discord.com/oauth2/authorize?client_id={member.id}&permissions=543312838143&scope=bot%20applications.commands"
-        if member.id == self.client.user.id and interaction.user.id not in self.client.owner_ids:
+        url = f"https://discord.com/oauth2/authorize?client_id={user.id}&permissions=543312838143&scope=bot%20applications.commands"
+        if user.id == self.client.user.id and interaction.user.id not in self.client.owner_ids:
             url = "https://discord.gg/ggZn8PaQed"
 
         return await interaction.response.send_message(
-            f"[click here to invite {member.name}]({url}) (feel free to toggle the invite's permissions as needed)",
+            f"[click here to invite {user.name}]({url}) (feel free to toggle the invite's permissions as needed)",
             ephemeral=True,
         )
 
