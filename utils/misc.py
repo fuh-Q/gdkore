@@ -14,8 +14,7 @@ CHOICES = (
     f"eenie meenie miny moe,\n\n***{no}.***",
     f"hell ***{no}.***",
     f"***{no}pe.***",
-    f"***{no}t*** happening."
-    f"this is ***{no}t*** your menu.",
+    f"***{no}t*** happening." f"this is ***{no}t*** your menu.",
     f"i ***can{no}t.***",
     f"***{no}*** can do.",
     f"you shall ***{no}t*** pass.",
@@ -25,7 +24,7 @@ CHOICES = (
     f"i ***dun{no}***",
     f"roses are red\nviolets are blue\n\nthat's ***{no}t*** doing anything, since it wasn't for you.",
     f"1 2 3 4 5 6 7,\n\nthat isn't for you, so ***{no}thing's*** gonna happen.",
-    f"a b c d e f g,\n\nit's ***{no}t*** happening, here's rick astley\n\nhttps://tenor.com/view/dance-moves-dancing-singer-groovy-gif-17029825"
+    f"a b c d e f g,\n\nit's ***{no}t*** happening, here's rick astley\n\nhttps://tenor.com/view/dance-moves-dancing-singer-groovy-gif-17029825",
 )
 
 

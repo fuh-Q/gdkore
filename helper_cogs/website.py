@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime, timezone
-from typing import List, TYPE_CHECKING
+from typing import Annotated, List, TYPE_CHECKING
 
 import discord
 from discord.ext import commands
@@ -16,8 +16,10 @@ if TYPE_CHECKING:
     from helper_bot import NotGDKID
     from utils import NGKContext
 
+Date = Annotated[datetime, lambda x: datetime.fromisoformat(x)] | None
 
-class Notes(commands.Cog):
+
+class Website(commands.Cog):
     def __init__(self, client: NotGDKID) -> None:
         self.client = client
 
@@ -38,7 +40,7 @@ class Notes(commands.Cog):
 
         return ret
 
-    async def _add_note(self, content: str, attachments: List[discord.Attachment]) -> None:
+    async def _add_note(self, content: str, attachments: List[discord.Attachment]) -> str | None:
         if attachments:
             content += await self._convert_attachments(attachments)
 
@@ -46,7 +48,7 @@ class Notes(commands.Cog):
             return
 
         q = "INSERT INTO notes (timestamp, note) VALUES ($1, $2)"
-        await self.client.web_db.execute(q, datetime.now(tz=timezone.utc), content)
+        return await self.client.web_db.execute(q, datetime.now(tz=timezone.utc), content)
 
     async def _edit_note(self, id: int | None, content: str, attachments: List[discord.Attachment]) -> str:
         if attachments:
@@ -94,6 +96,48 @@ class Notes(commands.Cog):
 
         await ctx.try_react(emoji=BotEmojis.YES)
 
+    @commands.command(name="mark", aliases=["sm"])
+    @commands.is_owner()
+    async def set_mark_cmd(self, ctx: NGKContext, date: Date = datetime.now(), *, note: str | None = None):
+        q = "INSERT INTO screamdates VALUES ($1, $2) ON CONFLICT ON CONSTRAINT screamdates_pkey DO UPDATE SET notes = $2"
+        await self.client.web_db.execute(q, date, note)
+
+        await ctx.try_react(emoji=BotEmojis.YES)
+
+    @commands.command(name="editmark", aliases=["em"])
+    @commands.is_owner()
+    async def edit_mark_cmd(self, ctx: NGKContext, date: Date = datetime.now(), *, note: str | None = None):
+        assert date
+
+        q = """UPDATE screamdates SET notes = $2
+            WHERE EXTRACT(YEAR FROM day) = $1
+            AND EXTRACT(MONTH FROM day) = $2
+            AND EXTRACT(DAY FROM day) = $3
+        """
+
+        status = await self.client.web_db.execute(q, date.year, date.month, date.day, note)
+        if status[-1] == "0":
+            return await ctx.reply("that day wasn't marked", delete_after=5)
+
+        await ctx.try_react(emoji=BotEmojis.YES)
+
+    @commands.command(name="deletemark", aliases=["dm"])
+    @commands.is_owner()
+    async def delete_mark_cmd(self, ctx: NGKContext, date: Date = datetime.now()):
+        assert date
+
+        q = """DELETE FROM screamdates
+            WHERE EXTRACT(YEAR FROM day) = $1
+            AND EXTRACT(MONTH FROM day) = $2
+            AND EXTRACT(DAY FROM day) = $3
+        """
+
+        status = await self.client.web_db.execute(q, date.year, date.month, date.day)
+        if status[-1] == "0":
+            return await ctx.reply("that day wasn't marked", delete_after=5)
+
+        await ctx.try_react(emoji=BotEmojis.YES)
+
 
 async def setup(client: NotGDKID):
-    await client.add_cog(Notes(client=client))
+    await client.add_cog(Website(client=client))
