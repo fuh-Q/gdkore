@@ -7,7 +7,7 @@ import sys
 import time
 import traceback
 from datetime import datetime, timedelta, timezone
-from typing import Callable, List, Set, TYPE_CHECKING, Tuple
+from typing import Callable, Dict, List, Set, TYPE_CHECKING
 
 import asyncpg
 import aiohttp
@@ -104,7 +104,7 @@ class NotGDKID(commands.Bot):
         testing_token = secrets["testing_token"]
         postgres_dns = secrets["postgres_dns"] + "notgdkid"
         website_postgres = secrets["postgres_dns"] + "gdkid_xyz"
-        lavalink_creds = secrets["lavalink"]
+        lavalink_pass = secrets["lavalink_pass"]
 
     with open("config/spotify-creds.json", "r") as f:
         spotify_auth: OAuthCreds = orjson.loads(f.read())
@@ -181,10 +181,9 @@ class NotGDKID(commands.Bot):
         self._web_db = await asyncpg.create_pool(self.website_postgres)
         self.logger.info("%sdatabases connected", PrintColours.GREEN)
 
-        self.wavelink: wavelink.Node = await wavelink.NodePool.create_node(
-            bot=self, identifier="NGKLavalink", **self.lavalink_creds
-        )
-        self.logger.info("%swavelink server [%s] connected", PrintColours.GREEN, self.wavelink.identifier)
+        node = wavelink.Node(uri="http://144.172.70.155:1234", password=self.lavalink_pass)
+        self.wavelink: Dict[str, wavelink.Node] = await wavelink.NodePool.connect(client=self, nodes=[node])
+        self.logger.info("%swavelink server connected", PrintColours.GREEN)
 
         self.status_task = status_task.start(self)
         ready_task = self.loop.create_task(self.first_ready())
@@ -321,7 +320,7 @@ class NotGDKID(commands.Bot):
             and not member.guild.voice_client
         ):
             assert member.voice and member.voice.channel
-            await member.voice.channel.connect(cls=wavelink.Player)
+            await member.voice.channel.connect(cls=wavelink.Player)  # type: ignore
 
         elif member.guild.voice_client and (not member.voice or member.voice.self_deaf):
             cog: Music | None = self.get_cog("Music")  # type: ignore
@@ -370,7 +369,6 @@ class NotGDKID(commands.Bot):
         await self.session.close()
         await self.db.close()
         await self.web_db.close()
-        await self.wavelink.disconnect(force=True)
         await super().close()
 
     def add_commands(self):

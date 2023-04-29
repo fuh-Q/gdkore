@@ -74,14 +74,6 @@ class Resource(Protocol):
         ...
 
 
-class LavalinkNodeParams(TypedDict):
-    host: str
-    port: int
-    password: str
-    region: str
-    https: bool
-
-
 class Secrets(TypedDict):
     token: str
     testing_token: str
@@ -93,7 +85,7 @@ class Secrets(TypedDict):
     redis_password: str
     vps_ip: str
     topgg_auth: str
-    lavalink: LavalinkNodeParams
+    lavalink_pass: str
 
 
 class Announcement(TypedDict):

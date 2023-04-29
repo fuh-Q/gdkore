@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 class QueuePages(BasePages):
     TRACKS_PER_PAGE = 10
 
-    def __init__(self, interaction: Interaction, tracks: wavelink.WaitQueue):
+    def __init__(self, interaction: Interaction, tracks: wavelink.Queue):
         self._pages = []
         self._current = 0
         self._parent = False
@@ -34,7 +34,7 @@ class QueuePages(BasePages):
 
         super().__init__(timeout=self.TIMEOUT)
 
-    def tracks_to_pages(self, *, tracks: wavelink.WaitQueue):
+    def tracks_to_pages(self, *, tracks: wavelink.Queue):
         items: List[wavelink.YouTubeTrack] = [i for i in tracks]  # type: ignore
         offset = self.current_page * self.TRACKS_PER_PAGE
         interaction = self._interaction
@@ -69,7 +69,7 @@ class Music(commands.Cog):
     def __init__(self, client: NotGDKID):
         self.client = client
 
-        self.loops: Dict[int, wavelink.WaitQueue] = {}
+        self.loops: Dict[int, wavelink.Queue] = {}
 
     def _format_seconds(self, seconds: float | int, /) -> str:
         time: int = round(seconds)
@@ -105,19 +105,23 @@ class Music(commands.Cog):
         return e
 
     async def _wait_for_start(self, ctx: NGKContext, vc: wavelink.Player) -> None:
+        assert vc.channel and vc.guild
+        guild_id = vc.guild.id
+        vc_id = vc.channel.id
+
         try:
             await self.client.wait_for(
                 "wavelink_track_start",
                 timeout=self.INACTIVITY_TIMEOUT,
-                check=(lambda p, t, r: p.channel.id == vc.channel.id and p.guild.id == vc.guild.id),
+                check=(lambda p, t, r: p.channel.id == vc_id and p.guild.id == guild_id),
             )
         except asyncio.TimeoutError:
-            assert ctx.guild
             await vc.disconnect(force=True)
-            del self.loops[ctx.guild.id]
+            del self.loops[guild_id]
 
     @commands.Cog.listener()
-    async def on_wavelink_track_end(self, player: wavelink.Player, track: wavelink.Track, reason: str):
+    async def on_wavelink_track_end(self, payload: wavelink.TrackEventPayload):
+        player: wavelink.Player = payload.player
         ctx: NGKContext = player.ctx  # type: ignore
 
         try:
@@ -154,12 +158,12 @@ class Music(commands.Cog):
             and interaction.user.voice.channel
         )
 
-        vc = interaction.guild.voice_client or await interaction.user.voice.channel.connect(cls=wavelink.Player)
+        vc = interaction.guild.voice_client or await interaction.user.voice.channel.connect(cls=wavelink.Player)  # type: ignore
         assert isinstance(vc, wavelink.Player)
 
         await interaction.response.defer()
         ctx = await NGKContext.from_interaction(interaction)
-        results = await vc.node.get_tracks(wavelink.YouTubeTrack, f"ytsearch:{query}")
+        results = await vc.current_node.get_tracks(wavelink.YouTubeTrack, f"ytsearch:{query}")
         if not results:
             await ctx.send("track not found")
             return await self._wait_for_start(ctx, vc)
@@ -223,11 +227,11 @@ class Music(commands.Cog):
         vc: wavelink.Player = interaction.guild.voice_client  # type: ignore
         send = interaction.response.send_message
 
-        if not vc or not vc.is_playing() or not vc.source:
+        if not vc or not vc.is_playing() or not vc.current:
             return await send("im not playing anything rn")
 
-        assert isinstance(vc.source, wavelink.YouTubeTrack)
-        await send(embed=self._get_now_playing_embed(vc, vc.source, get_time=True))
+        assert isinstance(vc.current, wavelink.YouTubeTrack)
+        await send(embed=self._get_now_playing_embed(vc, vc.current, get_time=True))
 
     @command(name="queue")
     @voice_connected(owner_bypass=True)
