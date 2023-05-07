@@ -22,6 +22,7 @@ if TYPE_CHECKING:
 class Misc(commands.Cog):
     STUPIDLY_DECENT_ID = 890355226517860433
     ANDREW_ID = 603388080153559041
+    TASK_MINUTES = 58
 
     def __init__(self, client: NotGDKID) -> None:
         self.client = client
@@ -84,9 +85,9 @@ class Misc(commands.Cog):
     async def on_message(self, message: Message):
         async def task():
             assert message.interaction
-            await asyncio.sleep(3600)
+            await asyncio.sleep(60 * self.TASK_MINUTES)
 
-            msg = f"{message.interaction.user.mention} oi giveaway time"
+            msg = f"{message.interaction.user.mention} oi time to work"
             hour = datetime.now(tz=ZoneInfo("America/Toronto")).hour
             if hour < 7:
                 self._sleep_reminded = True
@@ -104,7 +105,7 @@ class Misc(commands.Cog):
         if message.interaction.user.id not in self.client.owner_ids:
             return
 
-        if message.interaction.name.startswith("giveaway"):
+        if message.interaction.name == "work shift":
             rn = datetime.now(tz=ZoneInfo("America/Toronto"))
             if rn.hour < 7 and self._sleep_reminded:
                 return
@@ -129,14 +130,14 @@ class Misc(commands.Cog):
             ephemeral=True,
         )
 
-    @commands.command(name="lastgaw", aliases=["lg"])
+    @commands.command(name="lastwork", aliases=["lw", "lg"])
     @commands.is_owner()
     async def _lastgaw(self, ctx: NGKContext):
         t = self._reminder_task
         if not t:
             return await ctx.send("none found")
 
-        await ctx.send(f"last giveaway done <t:{t.get_name().split('-')[-1]}:R>")
+        await ctx.send(f"you last worked <t:{t.get_name().split('-')[-1]}:R>")
 
     @commands.command(name="whitelist", aliases=["wl"], hidden=True)
     @commands.is_owner()
