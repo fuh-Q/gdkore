@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import asyncio
 import base64
-import json as std_json
 import random
 import sys
 from datetime import datetime, timedelta, timezone
+from functools import partial
 from typing import TYPE_CHECKING, Any, Coroutine, Dict, Generator, List, TypeVar
 from urllib.parse import quote
 
@@ -45,11 +45,8 @@ class Spotify(commands.Cog):
         self.creds = client.spotify_auth
 
     async def cog_load(self):
-        async def before_task():
-            await asyncio.sleep(60 - datetime.utcnow().second)
-
         self.spotify_task = tasks.loop(minutes=1)(self.update_name)
-        self.spotify_task.before_loop(before_task)
+        self.spotify_task.before_loop(partial(asyncio.sleep, 60 - datetime.utcnow().second))
         self.spotify_task.start()
 
     async def cog_unload(self):
