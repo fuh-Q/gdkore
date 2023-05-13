@@ -88,6 +88,12 @@ class Secrets(TypedDict):
     lavalink_pass: str
 
 
+class Tracks(TypedDict):
+    next: str
+    total: int
+    items: List[Dict[str, Any]]
+
+
 class Announcement(TypedDict):
     updateTime: str
     alternateLink: str

@@ -95,7 +95,7 @@ class NotGDKID(commands.Bot):
     get_channel: Callable[[int], discord.abc.Messageable]
     whitelist: Config[int]
     blacklist: Config[int]
-    session: aiohttp.ClientSession | None
+    session: aiohttp.ClientSession
 
     with open("config/secrets.json", "r") as f:
         secrets: Secrets = orjson.loads(f.read())
@@ -194,9 +194,7 @@ class NotGDKID(commands.Bot):
 
     async def first_ready(self):
         await self.wait_until_ready()
-        self.logger.info(
-            "%sLogged in as: %s#%s : %d", PrintColours.PURPLE, self.user.name, self.user.discriminator, self.user.id
-        )
+        self.logger.info("%sLogged in as: %s : %d", PrintColours.PURPLE, self.user, self.user.id)
 
         for guild in self.guilds:
             if guild.id not in self.whitelist:
@@ -356,7 +354,6 @@ class NotGDKID(commands.Bot):
         await super().start(self.token)
 
     async def close(self, restart: bool = False):
-        assert self.session is not None
         self._restart = restart
 
         with open("config/spotify-creds.json", "w") as f:
