@@ -135,17 +135,6 @@ class Spotify(commands.Cog):
 
                 return response_body
 
-    async def update_name(self) -> Response[None]:
-        _ = "#" if sys.platform == "win32" else "-"
-        hours = -4 if is_dst() else -5
-        now = datetime.now(timezone(timedelta(hours=hours)))
-        data = {
-            "name": now.strftime(f"%{_}I:%M %p").lower(),
-            "public": True,
-        }
-
-        return await self.request(Route("PUT", "/playlists/{playlist_id}", playlist_id=PLAYLIST_ID), json=data)
-
     def get_tracks(self, *, offset: int = 0) -> Response[Tracks]:
         r = Route("GET", "/playlists/{playlist_id}/tracks", playlist_id=PLAYLIST_ID)
         return self.request(r, fields="total,next,items(track(uri))", limit=100, offset=offset)
@@ -154,6 +143,17 @@ class Spotify(commands.Cog):
         r = Route("PUT", "/playlists/{playlist_id}/tracks", playlist_id=PLAYLIST_ID)
         payload = {"uris": tracks}
         return self.request(r, json=payload)
+
+    async def update_name(self) -> None:
+        _ = "#" if sys.platform == "win32" else "-"
+        hours = -4 if is_dst() else -5
+        now = datetime.now(timezone(timedelta(hours=hours)))
+        data = {
+            "name": now.strftime(f"%{_}I:%M %p").lower(),
+            "public": True,
+        }
+
+        await self.request(Route("PUT", "/playlists/{playlist_id}", playlist_id=PLAYLIST_ID), json=data)
 
     @commands.command(name="shuffletracks", aliases=["shuffle", "ss"])
     @commands.is_owner()
