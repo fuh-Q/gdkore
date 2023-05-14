@@ -116,7 +116,7 @@ class Spotify(commands.Cog):
 
                 if resp.status == 401:
                     new_creds = await self.do_refresh()
-                    headers["Authorization"] = new_creds["access_token"]
+                    headers["Authorization"] = f"Bearer {new_creds['access_token']}"
                     self.client.spotify_auth = self.creds = new_creds
                     continue
 
