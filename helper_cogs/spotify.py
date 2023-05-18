@@ -9,13 +9,13 @@ from functools import partial
 from typing import TYPE_CHECKING, Any, Coroutine, Dict, Generator, List, TypeVar
 from urllib.parse import quote
 
-from utils import PrintColours, is_dst
+from utils import Confirm, PrintColours, is_dst
 
 from discord.ext import commands, tasks
 
 if TYPE_CHECKING:
     from helper_bot import NotGDKID
-    from utils import OAuthCreds, NGKContext, Tracks
+    from utils import DevicesResponse, OAuthCreds, NGKContext, Tracks
 
     T = TypeVar("T")
     Response = Coroutine[Any, Any, T]
@@ -45,6 +45,9 @@ class Spotify(commands.Cog):
         self.creds = client.spotify_auth
 
     async def cog_load(self):
+        self._id = self.client.secrets["spotify_client_id"]
+        self._secret = self.client.secrets["spotify_client_secret"]
+
         self.spotify_task = tasks.loop(minutes=1)(self.update_name)
         self.spotify_task.before_loop(partial(asyncio.sleep, 60 - datetime.utcnow().second))
         self.spotify_task.start()
@@ -57,7 +60,7 @@ class Spotify(commands.Cog):
         return (iterable[i : i + size] for i in range(0, len(iterable), size))
 
     async def do_refresh(self) -> OAuthCreds:
-        AUTH = base64.b64encode(f"{CLIENT_ID}:{CLIENT_SECRET}".encode()).decode()
+        AUTH = base64.b64encode(f"{self._id}:{self._secret}".encode()).decode()
         token = self.creds["refresh_token"]
         headers = {
             "Authorization": f"Basic {AUTH}",
@@ -102,8 +105,18 @@ class Spotify(commands.Cog):
             ) as resp:
                 colour = PrintColours.RED if resp.status >= 400 else PrintColours.GREEN
                 self.client.logger.info(
-                    "Att %d/5 %s -- Spotify responded with: %s%d%s"
-                    % (tries + 1, route.endpoint, colour, resp.status, PrintColours.WHITE)
+                    "[%d/5] %s%s %s%s%s -- %s%d%s"
+                    % (
+                        tries + 1,
+                        PrintColours.CYAN,
+                        route.method,
+                        PrintColours.PURPLE,
+                        route.endpoint,
+                        PrintColours.WHITE,
+                        colour,
+                        resp.status,
+                        PrintColours.WHITE,
+                    )
                 )
 
                 try:
@@ -135,6 +148,21 @@ class Spotify(commands.Cog):
 
                 return response_body
 
+    def start_playback(
+        self,
+        device_id: str,
+        /,
+        *,
+        context_uri: str | None = None,
+        uris: List[str] | None = None,
+        offset: Dict[str, str | int] | None = None,
+    ) -> Response[None]:
+        json = {"context_uri": context_uri, "uris": uris, "offset": offset}
+        return self.request(Route("PUT", "/me/player/play"), json=json, device_id=device_id)
+
+    def get_devices(self) -> Response[DevicesResponse]:
+        return self.request(Route("GET", "/me/player/devices"))
+
     def get_tracks(self, *, offset: int = 0) -> Response[Tracks]:
         r = Route("GET", "/playlists/{playlist_id}/tracks", playlist_id=PLAYLIST_ID)
         return self.request(r, fields="total,next,items(track(uri))", limit=100, offset=offset)
@@ -158,6 +186,7 @@ class Spotify(commands.Cog):
     @commands.command(name="shuffletracks", aliases=["shuffle", "ss"])
     @commands.is_owner()
     async def _shuffletracks(self, ctx: NGKContext):
+        # <-- fetching tracks -->
         def get_uris(tracks: Tracks, /) -> List[str]:
             return [i["track"]["uri"] for i in tracks["items"]]
 
@@ -166,7 +195,7 @@ class Spotify(commands.Cog):
         payload = await self.get_tracks()
         total = payload["total"]
         tracks = get_uris(payload)
-        if payload["next"]:
+        if payload["next"] is not None:
             for i in range(100, total, 100):
                 await msg.edit(content=f"fetching tracks... ({i}-{min(i+100, total)} of {total})")
                 resp = await self.get_tracks(offset=i)
@@ -174,11 +203,38 @@ class Spotify(commands.Cog):
 
                 await asyncio.sleep(0.5)
 
+        # <-- shuffling -->
         await msg.edit(content="shuffling...")
         random.shuffle(tracks)
         await self.update_tracks(tracks=tracks)
 
         await msg.edit(content="done")
+        return  # forgot you needed Spotify premium to control the player via the api lol, maybe someday
+
+        # <-- start playback? -->
+        view = Confirm(ctx.author)
+        await msg.edit(content="done~ start playback?\n\u200b", view=view)
+        view.original_message = msg
+
+        expired = await view.wait()
+        if expired:
+            return
+
+        await view.interaction.response.edit_message(view=view)
+        if not view.choice:
+            return
+
+        # <-- fetching devices -->
+        devices = (await self.get_devices())["devices"]
+        device_id = None
+        for device in devices:
+            if device["name"] == "GDKOMPUTER":
+                device_id = device["id"]
+
+        if not device_id:
+            await msg.edit(content="device not found")
+        else:
+            await self.start_playback(device_id, context_uri=f"spotify:playlist:{PLAYLIST_ID}")
 
 
 async def setup(client: NotGDKID):

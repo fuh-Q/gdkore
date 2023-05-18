@@ -86,12 +86,28 @@ class Secrets(TypedDict):
     vps_ip: str
     topgg_auth: str
     lavalink_pass: str
+    spotify_client_id: str
+    spotify_client_secret: str
 
 
 class Tracks(TypedDict):
     next: str
     total: int
     items: List[Dict[str, Any]]
+
+
+class Device(TypedDict):
+    id: str
+    is_active: bool
+    is_private_session: bool
+    is_restricted: bool
+    name: str
+    type: str
+    volume_percent: int
+
+
+class DevicesResponse(TypedDict):
+    devices: List[Device]
 
 
 class Announcement(TypedDict):
