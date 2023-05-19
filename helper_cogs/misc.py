@@ -87,7 +87,7 @@ class Misc(commands.Cog):
             assert message.interaction
             await asyncio.sleep(60 * self.TASK_MINUTES)
 
-            msg = f"{message.interaction.user.mention} oi time to work"
+            msg = f"{message.interaction.user.mention} oi time to </work shift:1011560371267579942>"
             hour = datetime.now(tz=ZoneInfo("America/Toronto")).hour
             if hour < 7:
                 self._sleep_reminded = True
