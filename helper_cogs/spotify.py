@@ -172,6 +172,11 @@ class Spotify(commands.Cog):
         payload = {"uris": tracks}
         return self.request(r, json=payload)
 
+    def add_tracks(self, *, tracks: List[str]) -> Response[None]:
+        r = Route("POST", "/playlists/{playlist_id}/tracks", playlist_id=PLAYLIST_ID)
+        payload = {"uris": tracks}
+        return self.request(r, json=payload)
+
     async def update_name(self) -> None:
         _ = "#" if sys.platform == "win32" else "-"
         hours = -4 if is_dst() else -5
@@ -197,19 +202,28 @@ class Spotify(commands.Cog):
         tracks = get_uris(payload)
         if payload["next"] is not None:
             for i in range(100, total, 100):
-                await msg.edit(content=f"fetching tracks... ({i}-{min(i+100, total)} of {total})")
+                await msg.edit(content=f"fetching tracks... ({i+1}-{min(i+100, total)} of {total})")
                 resp = await self.get_tracks(offset=i)
                 tracks += get_uris(resp)
 
                 await asyncio.sleep(0.5)
 
         # <-- shuffling -->
-        await msg.edit(content="shuffling...")
+        await msg.edit(content=f"updating tracks... (1-{min(100, total)} of {total})")
         random.shuffle(tracks)
-        await self.update_tracks(tracks=tracks)
+
+        await self.update_tracks(tracks=tracks[:100])
+        if len(tracks) > 100:
+            for i in range(100, len(tracks), 100):
+                await msg.edit(content=f"updating tracks... ({i+1}-{min(i+100, total)} of {total})")
+                await self.add_tracks(tracks=tracks[i:i+100])
+                await asyncio.sleep(0.5)
 
         await msg.edit(content="done")
-        return  # forgot you needed Spotify premium to control the player via the api lol, maybe someday
+        return
+
+        # forgot you needed Spotify premium to control the player via the api lol
+        # maybe someday
 
         # <-- start playback? -->
         view = Confirm(ctx.author)
