@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 class Misc(commands.Cog):
     STUPIDLY_DECENT_ID = 890355226517860433
     ANDREW_ID = 603388080153559041
-    TASK_MINUTES = 58
+    TASK_MINUTES = 49
 
     def __init__(self, client: NotGDKID) -> None:
         self.client = client
