@@ -142,7 +142,7 @@ class Misc(commands.Cog):
             await asyncio.sleep(wait - 10)
 
             view = Delay(cog=self)
-            msg = await message.channel.send(f"purging in <t:{int(time.time()+10)}:R>", view=view)
+            msg = await message.channel.send(f"purging <t:{int(time.time()+10)}:R>", view=view)
             view.message = msg
 
             await asyncio.sleep(10)
