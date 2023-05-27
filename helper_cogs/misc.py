@@ -1,28 +1,38 @@
 from __future__ import annotations
 
 import asyncio
+import time
+import random
 from datetime import datetime
 from typing import Any, Dict, List, TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
-from discord import Member, User
+import discord
 from discord.http import Route
 from discord.app_commands import ContextMenu, command
 from discord.ext import commands
+from discord.interactions import Interaction
 
-from utils import BotEmojis
+from utils import CHOICES, BotEmojis
 
 if TYPE_CHECKING:
-    from discord import Interaction, Message
+    from discord import Interaction, Message, Thread
 
     from helper_bot import NotGDKID
     from utils import NGKContext, OAuthCreds
 
 
 class Misc(commands.Cog):
+    DANK_MEMER_ID = 270904126974590976
     STUPIDLY_DECENT_ID = 890355226517860433
     ANDREW_ID = 603388080153559041
     TASK_MINUTES = 49
+    THREADS_PURGE_CUTOFF = datetime(year=2023, month=5, day=27)
+    THREAD_IDS = [
+        1111853523794149386,  # gdkid
+        1111853402801045545,  # toilet
+        1111853274983829616,  # sam
+    ]
 
     def __init__(self, client: NotGDKID) -> None:
         self.client = client
@@ -31,12 +41,14 @@ class Misc(commands.Cog):
         self._sleep_reminded = False
         self._reminder_task: asyncio.Task[None] | None = None
 
+        self._purge_timers: Dict[int, asyncio.Task[None] | None] = {i: None for i in self.THREAD_IDS}
+
         self.client.tree.add_command(self.invite_cmd)
 
     async def cog_unload(self) -> None:
         self.client.tree.remove_command("invite bot")
 
-    async def _try_request(self, member: Member, /) -> int:
+    async def _try_request(self, member: discord.Member, /) -> int:
         endpoint = f"{Route.BASE}/guilds/{member.guild.id}/members/{member.id}"
         json: Dict[str, Any] = {"access_token": self.client.andrew_auth["access_token"]}
         headers = {"Authorization": f"Bot {self.client.http.token}", "Content-Type": "application/json"}
@@ -70,7 +82,7 @@ class Misc(commands.Cog):
             return await res.json()
 
     @commands.Cog.listener()
-    async def on_member_remove(self, member: Member):
+    async def on_member_remove(self, member: discord.Member):
         if member.id != self.ANDREW_ID or member.guild.id != self.STUPIDLY_DECENT_ID:
             return
 
@@ -81,8 +93,76 @@ class Misc(commands.Cog):
 
         await self._try_request(member)
 
-    @commands.Cog.listener()
-    async def on_message(self, message: Message):
+    @commands.Cog.listener("on_message")
+    async def dank_msg_deleter(self, message: Message):
+        class Delay(discord.ui.View):
+            message: Message | None
+
+            def __init__(self, *, cog: Misc):
+                self.cog = cog
+                self._postponed = False
+
+                self.message = None
+
+                super().__init__(timeout=8)
+
+            async def on_timeout(self):
+                assert self.message
+                self.postpone.disabled = True
+
+                if self._postponed:
+                    return
+
+                try:
+                    await self.message.edit(view=self)
+                except discord.HTTPException:
+                    pass  # we tried
+
+            async def interaction_check(self, interaction: Interaction):
+                if interaction.user.id not in self.cog.client.owner_ids:
+                    await interaction.response.send_message(content=random.choice(CHOICES), ephemeral=True)
+                    return False
+                return True
+
+            @discord.ui.button(label="postpone 20s")
+            async def postpone(self, interaction: Interaction, _):
+                timer = self.cog._purge_timers[channel_id]
+                if timer is not None:
+                    timer.cancel()
+
+                self.cog._purge_timers[channel_id] = self.cog.client.loop.create_task(
+                    task(wait=20), name=f"purge-{rn.hour}:{rn.minute}-{channel_id}"
+                )
+
+                self._postponed = True
+                await interaction.response.edit_message(content="postponing...", view=None)
+
+        async def task(*, wait: int):
+            assert isinstance(message.channel, Thread)
+            await asyncio.sleep(wait - 10)
+
+            view = Delay(cog=self)
+            msg = await message.channel.send(f"purging in <t:{int(time.time()+10)}:R>", view=view)
+            view.message = msg
+
+            await asyncio.sleep(10)
+            await message.channel.purge(limit=None, after=self.THREADS_PURGE_CUTOFF)
+            self._purge_timers[channel_id] = None
+
+        if message.channel.id not in self.THREAD_IDS:
+            return
+
+        channel_id = message.channel.id
+        if self._purge_timers[channel_id] is not None:
+            return
+
+        rn = datetime.now(tz=ZoneInfo("America/Toronto"))
+        self._purge_timers[channel_id] = self.client.loop.create_task(
+            task(wait=60), name=f"purge-{rn.hour}:{rn.minute}-{channel_id}"
+        )
+
+    @commands.Cog.listener("on_message")
+    async def work_reminder(self, message: Message):
         async def task():
             assert message.interaction
             await asyncio.sleep(60 * self.TASK_MINUTES)
@@ -117,7 +197,7 @@ class Misc(commands.Cog):
                 task(), name=f"Reminder-{rn.hour}:{rn.minute}-{int(rn.timestamp())}"
             )
 
-    async def invite_bot(self, interaction: Interaction, user: User):
+    async def invite_bot(self, interaction: Interaction, user: discord.User):
         if not user.bot:
             return await interaction.response.send_message(f"{user.mention} is not a bot", ephemeral=True)
 

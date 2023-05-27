@@ -216,7 +216,7 @@ class Spotify(commands.Cog):
         if len(tracks) > 100:
             for i in range(100, len(tracks), 100):
                 await msg.edit(content=f"updating tracks... ({i+1}-{min(i+100, total)} of {total})")
-                await self.add_tracks(tracks=tracks[i:i+100])
+                await self.add_tracks(tracks=tracks[i : i + 100])
                 await asyncio.sleep(0.5)
 
         await msg.edit(content="done")
