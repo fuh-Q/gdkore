@@ -127,7 +127,11 @@ class NotGDKID(commands.Bot):
                 name="Connecting...",
                 type=discord.ActivityType.watching,
             ),
-            owner_ids=[596481615253733408, 650882112655720468],
+            owner_ids=[
+                596481615253733408, # gdkid
+                650882112655720468, # toilet
+                1091888723060326470, # sam
+            ],
         )
 
         os.environ["JISHAKU_HIDE"] = "True"
