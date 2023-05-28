@@ -80,7 +80,7 @@ class Mod(commands.Cog):
             self._ignore_ids.remove(after.id)
             return
 
-        r = self.client.amaze_guild.get_role(self.client.AMAZE_GUILD_ID)
+        r = self.client.amaze_guild.get_role(self.client.MEMBER_ROLE_ID)
         added = tuple(set(after.roles) - set(before.roles) - {r})
         removed = tuple(set(before.roles) - set(after.roles) - {r})
 
@@ -100,16 +100,13 @@ class Mod(commands.Cog):
         if not member.guild.id == self.client.AMAZE_GUILD_ID:
             return
 
-        extra_roles: Set[discord.Role | None] = {member.guild.get_role(self.client.MEMBER_ROLE_ID)}
+        roles: Set[discord.Role | None] = {member.guild.get_role(self.client.MEMBER_ROLE_ID)}
 
         q = """SELECT role_id FROM stickyroles
                WHERE user_id = $1"""
-        roles: chain[discord.Role] = chain(
-            map(lambda rec: member.guild.get_role(rec["role_id"]), await self.client.db.fetch(q, member.id)),  # type: ignore
-            extra_roles,
-        )
 
-        await member.add_roles(*roles, reason="sticky roles", atomic=False)
+        roles.update(map(lambda rec: member.guild.get_role(rec["role_id"]), await self.client.db.fetch(q, member.id)))
+        await member.add_roles(*roles, reason="sticky roles", atomic=False) # type: ignore
 
     @commands.Cog.listener()
     async def on_guild_role_delete(self, role: discord.Role):

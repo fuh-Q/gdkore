@@ -139,9 +139,9 @@ class GClass(commands.Bot):
                 type=discord.ActivityType.playing,
             ),
             owner_ids=[
-                596481615253733408, # gdkid
-                650882112655720468, # toilet
-                1091888723060326470, # sam
+                596481615253733408,  # gdkid
+                650882112655720468,  # toilet
+                1091888723060326470,  # sam
             ],
         )
 
