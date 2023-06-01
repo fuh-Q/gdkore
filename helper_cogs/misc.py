@@ -107,8 +107,9 @@ class Misc(commands.Cog):
                 super().__init__(timeout=8)
 
             async def on_timeout(self):
-                assert self.message
+                assert self.message is not None
                 self.postpone.disabled = True
+                self.cancel.disabled = True
 
                 if self._postponed:
                     return
@@ -136,6 +137,16 @@ class Misc(commands.Cog):
 
                 self._postponed = True
                 await interaction.response.edit_message(content="postponing...", view=None)
+
+            @discord.ui.button(label="fuck off")
+            async def cancel(self, *_):
+                assert self.message is not None
+                timer = self.cog._purge_timers[channel_id]
+                if timer is not None:
+                    timer.cancel()
+
+                self.cog._purge_timers[channel_id] = None
+                await self.message.delete()
 
         async def task(*, wait: int):
             assert isinstance(message.channel, Thread)
