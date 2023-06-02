@@ -25,6 +25,7 @@ if TYPE_CHECKING:
 class Misc(commands.Cog):
     DANK_MEMER_ID = 270904126974590976
     STUPIDLY_DECENT_ID = 890355226517860433
+    PARALLEL_ID = 782041178489094154
     ANDREW_ID = 603388080153559041
     TASK_MINUTES = 49
     THREADS_PURGE_CUTOFF = datetime(year=2023, month=5, day=27)
@@ -190,7 +191,7 @@ class Misc(commands.Cog):
             self._reminder_task = None
 
         assert message.guild
-        if not message.interaction or message.guild.id != self.STUPIDLY_DECENT_ID:
+        if not message.interaction or message.guild.id not in (self.STUPIDLY_DECENT_ID, self.PARALLEL_ID):
             return
 
         if message.interaction.user.id not in self.client.owner_ids:
