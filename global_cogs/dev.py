@@ -99,8 +99,8 @@ class DirectoryView(BasePages):
         self._pages = [
             Embed(
                 title=f"{cap(discord.utils.escape_markdown(f.name, as_needed=True)):256}",
-                description=f"file size - `{size(os.path.getsize(resolved := f))}`\n"
-                f"file last modified - <t:{os.path.getmtime(str(resolved)):.0f}:R>",
+                description=f"file size - `{size(os.path.getsize(f))}`\n"
+                f"file last modified - <t:{os.path.getmtime(str(f)):.0f}:R>",
                 timestamp=datetime.now(tz=timezone.utc),
                 url=f"https://fileinfo.com/extension/{f.parts[-1].split('.')[-1]}",
             ).set_author(name=f"{cap(str(f)):256}")
@@ -115,7 +115,8 @@ class DirectoryView(BasePages):
         else:
             self._directory_slices = [directories]
 
-        if (slices := len(self._directory_slices)) > self.page_count:
+        slices = len(self._directory_slices)
+        if slices > self.page_count:
             diff = slices - self.page_count
             self._pages += [
                 Embed(description="no files to display").set_author(name=f"{cap(str(self.directory)):256}")
@@ -132,9 +133,9 @@ class DirectoryView(BasePages):
         opts = []
         values = set()
         for f in self._directory_slices[self.slice_index]:
-            if not f.name in self.EXCLUDED_DIRS and (r := str(f)) not in values:
-                values.add(r)
-                opts.append(discord.SelectOption(label=f"{cap(f.name):100}", value=r))
+            if not f.name in self.EXCLUDED_DIRS and str(f) not in values:
+                values.add(str(f))
+                opts.append(discord.SelectOption(label=f"{cap(f.name):100}", value=str(f)))
 
         opts.insert(0, discord.SelectOption(label="..", value=str(self.directory.parent)))
 
