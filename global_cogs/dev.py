@@ -291,7 +291,6 @@ class DirectoryView(BasePages):
             await view.original_message.edit(view=view)
             return
 
-        await view.interaction.response.defer()
         await interaction.followup.delete_message(msg.id)
         if not view.choice:
             return
@@ -302,10 +301,10 @@ class DirectoryView(BasePages):
             self._current -= 1
 
         if not self._actual_files:
-            return await interaction.response.edit_message(embed=Embed(description="no files to display"), view=self)
+            return await view.interaction.response.edit_message(embed=Embed(description="no files to display"), view=self)
 
         self.update_components()
-        await interaction.edit_original_response(**self.edit_kwargs)
+        await view.interaction.response.edit_message(**self.edit_kwargs)
 
 
 class RenameFile(Modal):
