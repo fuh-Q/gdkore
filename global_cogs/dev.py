@@ -302,7 +302,10 @@ class DirectoryView(BasePages):
             self._current -= 1
 
         if not self._actual_files:
-            return await interaction.edit_original_response(embed=Embed(description="no files to display"), view=self)
+            return await interaction.edit_original_response(
+                embed=Embed(description="no files to display").set_author(name=f"{cap(str(self.directory)):256}"),
+                view=self
+            )
 
         self.update_components()
         await interaction.edit_original_response(**self.edit_kwargs)
