@@ -7,7 +7,7 @@ import sys
 import time
 import traceback
 from datetime import datetime, timedelta, timezone
-from typing import Callable, Dict, List, Set, TYPE_CHECKING
+from typing import Callable, Dict, Generic, List, Set, TypeVar, TYPE_CHECKING
 
 import asyncpg
 import aiohttp
@@ -39,6 +39,9 @@ if TYPE_CHECKING:
     from helper_cogs.checkers import Game
     from helper_cogs.music import Music
     from utils import PostgresPool, OAuthCreds, Secrets
+
+    KT = TypeVar("KT")
+    VT = TypeVar("VT")
 
 try:
     import uvloop  # type: ignore
@@ -109,8 +112,8 @@ class NotGDKID(commands.Bot):
     with open("config/spotify-creds.json", "r") as f:
         spotify_auth: OAuthCreds = orjson.loads(f.read())
 
-    with open("config/andrew-creds.json", "r") as f:
-        andrew_auth: OAuthCreds = orjson.loads(f.read())
+    with open("config/serverjail.json", "r") as f:
+        serverjail: Dict[str, OAuthCreds] = orjson.loads(f.read())
 
     def __init__(self):
         allowed_mentions = discord.AllowedMentions.all()
@@ -363,8 +366,8 @@ class NotGDKID(commands.Bot):
         with open("config/spotify-creds.json", "w") as f:
             f.write(orjson.dumps(self.spotify_auth, option=orjson.OPT_INDENT_2).decode())
 
-        with open("config/andrew-creds.json", "w") as f:
-            f.write(orjson.dumps(self.andrew_auth, option=orjson.OPT_INDENT_2).decode())
+        with open("config/serverjail.json", "w") as f:
+            f.write(orjson.dumps(self.serverjail, option=orjson.OPT_INDENT_2).decode())
 
         self.status_task.cancel()
         await self.session.close()

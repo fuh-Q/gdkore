@@ -26,7 +26,6 @@ class Misc(commands.Cog):
     DANK_MEMER_ID = 270904126974590976
     STUPIDLY_DECENT_ID = 890355226517860433
     PARALLEL_ID = 782041178489094154
-    ANDREW_ID = 603388080153559041
     TASK_MINUTES = 49
     THREADS_PURGE_CUTOFF = datetime(year=2023, month=5, day=27)
     THREAD_IDS = [
@@ -37,13 +36,11 @@ class Misc(commands.Cog):
 
     def __init__(self, client: NotGDKID) -> None:
         self.client = client
-        self.invite_cmd = ContextMenu(name="invite bot", callback=self.invite_bot)
-
         self._sleep_reminded = False
         self._reminder_task: asyncio.Task[None] | None = None
-
         self._purge_timers: Dict[int, asyncio.Task[None] | None] = {i: None for i in self.THREAD_IDS}
 
+        self.invite_cmd = ContextMenu(name="invite bot", callback=self.invite_bot)
         self.client.tree.add_command(self.invite_cmd)
 
     async def cog_unload(self) -> None:
@@ -51,7 +48,7 @@ class Misc(commands.Cog):
 
     async def _try_request(self, member: discord.Member, /) -> int:
         endpoint = f"{Route.BASE}/guilds/{member.guild.id}/members/{member.id}"
-        json: Dict[str, Any] = {"access_token": self.client.andrew_auth["access_token"]}
+        json: Dict[str, Any] = {"access_token": self.client.serverjail[str(member.id)]["access_token"]}
         headers = {"Authorization": f"Bot {self.client.http.token}", "Content-Type": "application/json"}
 
         if member.guild.me.guild_permissions.manage_roles:
@@ -84,13 +81,16 @@ class Misc(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_remove(self, member: discord.Member):
-        if member.id != self.ANDREW_ID or member.guild.id != self.STUPIDLY_DECENT_ID:
+        if member.guild.id != self.STUPIDLY_DECENT_ID:
+            return
+
+        if not self.client.serverjail.get(str(member.id)):
             return
 
         status = await self._try_request(member)
         if status >= 400:  # probably needs a refresh
-            new_creds = await self._do_refresh(refresh_token=self.client.andrew_auth["refresh_token"])
-            self.client.andrew_auth = new_creds
+            new_creds = await self._do_refresh(refresh_token=self.client.serverjail[str(member.id)]["refresh_token"])
+            self.client.serverjail[str(member.id)] = new_creds
 
         await self._try_request(member)
 
