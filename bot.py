@@ -204,12 +204,6 @@ class GClass(commands.Bot):
                 )
                 await self.db.execute(q, user_id)
 
-        if not creds.valid:
-            try:
-                await asyncio.to_thread(creds.refresh, Request())
-            except RefreshError:
-                pass
-
         assert self.session is not None
         await self.session.post(
             "https://oauth2.googleapis.com/revoke",

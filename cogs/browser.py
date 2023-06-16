@@ -66,7 +66,7 @@ def get_due_date(assignment: CourseWork) -> datetime | None:
         kwargs = {"hour": time.get("hours", 0)}
         if m := time.get("minutes", None):
             kwargs["minute"] = m
-        due_date = due_date.replace(**kwargs)
+        due_date = due_date.replace(**kwargs) # type: ignore
 
     return due_date
 
