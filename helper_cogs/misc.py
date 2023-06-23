@@ -27,7 +27,7 @@ class Misc(commands.Cog):
     STUPIDLY_DECENT_ID = 890355226517860433
     PARALLEL_ID = 782041178489094154
     TASK_MINUTES = 49
-    THREADS_PURGE_CUTOFF = datetime(year=2023, month=5, day=27)
+    THREADS_PURGE_CUTOFF = datetime(year=2023, month=6, day=22)
     THREAD_IDS = [
         1111853523794149386,  # gdkid
         1111853402801045545,  # toilet
