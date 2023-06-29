@@ -66,7 +66,7 @@ def get_due_date(assignment: CourseWork) -> datetime | None:
         kwargs = {"hour": time.get("hours", 0)}
         if m := time.get("minutes", None):
             kwargs["minute"] = m
-        due_date = due_date.replace(**kwargs) # type: ignore
+        due_date = due_date.replace(**kwargs)  # type: ignore
 
     return due_date
 
@@ -119,9 +119,6 @@ class CoursePages(BasePages, auto_defer=False):  # type: ignore
     ):
         self._resource = service
 
-        self._pages = []
-        self._current = 0
-        self._parent = False
         self._interaction = interaction
 
         self._courses = []
@@ -376,9 +373,6 @@ class ClassMenu(BasePages, auto_defer=False):  # type: ignore
         self._resource = service
         self._course = course
 
-        self._pages = []
-        self._current = 0
-        self._parent = False
         self._interaction = interaction
 
         self._assignments = assignments

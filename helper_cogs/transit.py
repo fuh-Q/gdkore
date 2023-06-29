@@ -1,0 +1,923 @@
+from __future__ import annotations
+
+import asyncio
+import csv
+import io
+import logging
+import random
+import re
+import time
+from datetime import datetime, timedelta
+from enum import Enum
+from functools import partial
+from PIL import Image, ImageFont, ImageDraw
+from typing import TYPE_CHECKING, Any, Callable, Coroutine, Dict, Iterable, List, Tuple, TypeVar
+from zipfile import ZipFile
+
+import orjson
+
+import discord
+from discord import ui
+from discord.app_commands import Choice, command, describe, autocomplete
+from discord.ext import commands, tasks
+
+from utils import CHOICES, BotEmojis, View, cap
+
+if TYPE_CHECKING:
+    from discord import File, Interaction, InteractionMessage, Member, User
+
+    from helper_bot import NotGDKID
+    from utils import BusStopResponse, PostgresPool, RouteData, StopInfo, TripData
+
+    from typing_extensions import Self
+
+    T = TypeVar("T")
+    TripFetcher = Callable[[str], Coroutine[Any, Any, BusStopResponse | discord.Embed]]
+    EditFunc = Callable[..., Coroutine[Any, Any, InteractionMessage]]
+
+log = logging.getLogger(f"NotGDKID:{__name__}")
+_route_colour_cache: Dict[str, str]
+
+RAIL = ["1"]
+RELOAD_FAIL = "i couldn't reload that page, it's most likely that there were no trips left, therefore i've reset the menu to the landing screen"
+
+no_routes_at_stop: Callable[[str], discord.Embed] = lambda stop_code: discord.Embed(
+    description=f"no trips that are anytime soon found for stop **#{stop_code}**", timestamp=datetime.now()
+)
+
+no_such_stop: Callable[[str], discord.Embed] = lambda stop_code: discord.Embed(
+    description=f"stop **#{stop_code}** does not exist", timestamp=datetime.now()
+)
+
+stop_search_query: Callable[
+    [int], str
+] = (
+    lambda limit: f"SELECT stop_code, stop_name FROM stops ORDER BY SIMILARITY(LOWER(stop_name), LOWER($1)) DESC LIMIT {limit}"
+)
+
+
+def _slice(obj: List[T], /, *, size: int = 25) -> Tuple[List[T]]:
+    return tuple(obj[i : i + size] for i in range(0, len(obj), size))
+
+
+def _get_trips_and_routes(o: List[RouteData] | RouteData) -> Tuple[List[TripData], List[RouteData]]:
+    # for some reason, if there is only one route, OC Transpo will return just that single route object
+    # rather than putting it in an array first to maintain type consistency
+    # who the literal fuck designed this API lmao
+
+    trips = []
+    as_list = o if isinstance(o, list) else [o]
+    for item in as_list:
+        for trip in _get_trips(item):
+            trip["RouteNo"] = item["RouteNo"]
+            trips.append(trip)
+
+    return trips, as_list
+
+
+def _get_trips(o: RouteData) -> List[TripData]:
+    # for some reason, OC Transpo will sometimes return the "Trips" value as ANOTHER object
+    # containing a single key, "Trip", which has the actual list we want
+    # why.
+
+    if isinstance(o["Trips"], list):
+        return o["Trips"]
+    else:
+        if len(o["Trips"]) == 1:
+            return o["Trips"]["Trip"]  # type: ignore
+        else:
+            return [o["Trips"]]  # type: ignore
+
+
+def _sort_destinations(trips: List[TripData], /) -> List[str]:
+    return sorted(
+        {t["TripDestination"] for t in trips},
+        key=lambda x: x[0],
+    )
+
+
+def _sort_routes(routes: List[RouteData], /) -> List[Tuple[str, str, List[TripData]]]:
+    return sorted(
+        ((f"[{i['RouteNo']}] {i['RouteHeading']}", i["RouteNo"], _get_trips(i)) for i in routes),
+        key=lambda x: int(x[1]) if x[1].isnumeric() else 0,
+    )
+
+
+def generate_route_icon(route: str, /) -> File:
+    bg_colour, text_colour = _route_colour_cache[route]
+    font = ImageFont.truetype("assets/opensans.ttf", 72)
+
+    buffer = io.BytesIO()
+    img = Image.open(f"assets/{bg_colour}.png")
+    draw = ImageDraw.Draw(img)
+
+    textsize = font.getbbox(route)
+    x, y = (img.width - textsize[2]) // 2, 4
+    draw.text((x, y), route, fill="#" + text_colour, font=font)
+
+    img.save(buffer, "png")
+    buffer.seek(0)
+
+    f = discord.File(buffer, "penis.png", description="eat my balls")
+    return f
+
+
+def view_edit_kwargs(view: BusDisplay, /) -> Dict[str, Any]:
+    if view.sorting is Sorting.ROUTE:
+        attachments = [generate_route_icon(view.current_key.split(":")[-1])]
+    else:
+        attachments = [discord.File("assets/penis.png")]
+
+    return {
+        "embed": view.pages[view.current_key],
+        "attachments": attachments,
+        "view": view,
+    }
+
+
+class BadResponseError(Exception):
+    def __init__(self, *args: Any, raw: Any = "") -> None:
+        self.raw = raw
+        super().__init__(*args)
+
+
+class Sorting(Enum):
+    ROUTE = 1
+    DEST = 2
+
+
+class BusDisplay(View, auto_defer=False):
+    if TYPE_CHECKING:
+        _data: BusStopResponse
+        _stop_info: StopInfo
+        _db: PostgresPool
+        _destinations: Tuple[List[str]]
+        _routes: Tuple[List[Tuple[str, str]]]
+        _route_icons: Dict[str, File]
+        _num_destinations: int
+        _num_routes: int
+        _owner: User | Member
+        _trip_fetcher: TripFetcher
+
+        current_key: str
+
+    TIMEOUT = 120
+    _pages: Dict[str, discord.Embed] = {}
+    sorting: Sorting = Sorting.ROUTE
+    _group: int = 0
+
+    @classmethod
+    async def async_init(
+        cls,
+        *,
+        data: BusStopResponse,
+        db: PostgresPool,
+        owner: User | Member,
+        trip_fetcher: TripFetcher,
+    ) -> Self:
+        assert data["Routes"]["Route"] is not None
+        trips, routes_raw = _get_trips_and_routes(data["Routes"]["Route"])
+
+        destinations = _sort_destinations(trips)
+        routes = _sort_routes(routes_raw)
+
+        self = cls(timeout=cls.TIMEOUT)
+
+        query = "SELECT * FROM stops WHERE stop_code = $1"
+        self._stop_info: StopInfo = await db.fetchrow(query, data["StopNo"])  # type: ignore
+
+        self._owner = owner
+        self._data = data
+        self._db = db
+        self._destinations = _slice(destinations)
+        self._routes = _slice([r[:2] for r in routes])
+        self._num_destinations = len(destinations)
+        self._num_routes = len(routes)
+        self._trip_fetcher = trip_fetcher
+
+        fullroute, route_no, _ = routes[0]
+        self.current_key = f"r:{fullroute}:{route_no}"
+
+        self._build_route_pages(routes)
+        self._build_destination_pages(destinations)
+        self.update_components()
+
+        self.children[0].custom_id = self._make_custom_id()
+
+        return self
+
+    async def interaction_check(self, interaction: Interaction, item: ui.Item) -> bool:
+        interaction.extras["recieved"] = True
+        interaction.extras.setdefault("sender", interaction.response.send_message)
+        interaction.extras.setdefault("editor", interaction.response.edit_message)
+
+        if interaction.user.id != self._owner.id:
+            await interaction.response.send_message(content=random.choice(CHOICES), ephemeral=True)
+            return False
+
+        return True
+
+    @property
+    def pages(self) -> Dict[str, discord.Embed]:
+        return self._pages
+
+    @property
+    def _collection(self) -> Tuple[List[str]] | Tuple[List[Tuple[str, str]]]:
+        return self._routes if self.sorting is Sorting.ROUTE else self._destinations
+
+    def _make_custom_id(self) -> str:
+        return f"★;{self._stop_info['stop_code']};{self.current_key};{round(time.time())}"
+
+    def _add_trip_fields_to_embed(self, embed: discord.Embed, /, *, trips: List[TripData]) -> None:
+        for i in range(3):
+            name = f"Trip {i+1}"
+            if i >= len(trips):
+                embed.add_field(name=name, value="No data")
+                continue
+
+            trip = trips[i]
+            cums_at = round((datetime.now() + timedelta(minutes=int(trip["AdjustedScheduleTime"]))).timestamp())
+
+            arrives = f"**<t:{cums_at}:R>**"
+            gps = f"GPS-adjusted? {BotEmojis.NO}"
+            last_adjusted = "Last updated - N/A"
+
+            assert embed.footer.text is not None
+            if "destination" in embed.footer.text:
+                mid = f"__Via Route__\n**`{trip['RouteNo']} {trip['TripDestination']}`**"
+            else:
+                mid = f"__Destination__\n**`{trip['TripDestination']}`**"
+
+            if trips[i]["AdjustmentAge"] != "-1":
+                gps = f"GPS-adjusted? {BotEmojis.YES}"
+                last_adjusted = f"Updated {round(60*float(trip['AdjustmentAge']))}s ago"
+
+            last_trip = f"Last trip? - {BotEmojis.YES if trip['LastTripOfSchedule'] else BotEmojis.NO}"
+            embed.add_field(name=name, value=f"{arrives}\n\n{mid}\n\n{last_adjusted}\n{gps}\n{last_trip}\n\u200b")
+
+    def _get_base_embed(self, item: str, value: str, /, *, route_no: str | None = None) -> discord.Embed:
+        e = discord.Embed(
+            title=f"Next 3 trips for {item} {value}",
+            timestamp=datetime.now(),
+        )
+        e.set_author(name=Transit.title(f"Bus Arrivals - {self._stop_info['stop_name']} [#{self._stop_info['stop_code']}]"))
+        e.set_footer(text=f"Sorting by {item}", icon_url=getattr(self._owner.avatar, "url", None))
+        e.set_thumbnail(url="attachment://penis.png")
+
+        if item == "route" and route_no is not None:
+            today = datetime.now().strftime("%Y%m%d")
+            e.url = f"https://octranspo.com/plan-your-trip/schedules-maps?sched-lang=en&date={today}&rte={route_no}"
+        else:
+            e.url = "https://cdn.discordapp.com/attachments/860182093811417158/1124050953692250224/image.png"
+
+        return e
+
+    def _build_route_pages(self, routes: List[Tuple[str, str, List[TripData]]], /) -> None:
+        BASE = "r"
+
+        for fullroute, route_no, trips in routes:
+            key = f"{BASE}:{fullroute}:{route_no}"
+
+            e = self._get_base_embed("route", fullroute, route_no=route_no)
+            self._add_trip_fields_to_embed(e, trips=trips)
+            self._pages[key] = e
+
+    def _build_destination_pages(self, destinations: List[str], /) -> None:
+        assert self._data["Routes"]["Route"] is not None
+        BASE = "d"
+
+        for dest in destinations:
+            key = f"{BASE}:{dest}"
+
+            e = self._get_base_embed("destination", dest)
+            trips = sorted(
+                (t for t in _get_trips_and_routes(self._data["Routes"]["Route"])[0] if t["TripDestination"] == dest),
+                key=lambda x: int(x["AdjustedScheduleTime"]),
+            )[:3]
+
+            self._add_trip_fields_to_embed(e, trips=trips)
+            self._pages[key] = e
+
+    def _count_shown(self) -> str:
+        start = 25 * self._group + 1
+        total = self._num_routes if self.sorting is Sorting.ROUTE else self._num_destinations
+        stop = min(total, start + len(self._collection[self._group]))
+
+        return f"{start}-{stop} of {total}"
+
+    def _prepare_select(self) -> None:
+        if self.sorting is Sorting.ROUTE:
+            item = "Bus routes"
+            opts = [
+                discord.SelectOption(
+                    label=fullroute,
+                    value=f"r:{fullroute}:{route_no}",
+                    description="Bus route" if route_no not in RAIL else "LRT line",
+                )
+                for (fullroute, route_no) in self._routes[self._group]
+                if f"r:{fullroute}:{route_no}" != self.current_key
+            ]
+        else:
+            item = "Destinations"
+            opts = [
+                discord.SelectOption(label=dest, value=f"d:{dest}", description="Destination")
+                for dest in self._destinations[self._group]
+                if f"d:{dest}" != self.current_key
+            ]
+
+        self.mode_entity_select.placeholder = f"{item} [{self._count_shown()}]"
+        self.mode_entity_select.disabled = not bool(opts)
+
+        if opts:
+            self.mode_entity_select.options = opts
+        else:
+            self.mode_entity_select.options = [discord.SelectOption(label="suck my balls")]
+
+    def update_components(self) -> None:
+        self.children[0].custom_id = self._make_custom_id()
+        self.previous_25.disabled = self._group == 0
+        self.next_25.disabled = self._group == len(self._collection) - 1
+
+        self.shown_counter.label = self._count_shown()
+        self._prepare_select()
+
+    # <-- actual components now lmfao -->
+
+    @ui.button(label="❮", row=0, disabled=True, custom_id="prev25")
+    async def previous_25(self, interaction: Interaction, item: ui.Button):
+        if self._group > 0:
+            self._group -= 1
+
+        self.update_components()
+        await interaction.extras["editor"](view=self)
+
+    @ui.button(row=0, disabled=True, custom_id="counter")
+    async def shown_counter(self, interaction: Interaction, item: ui.Button):
+        await interaction.response.defer()
+
+    @ui.button(label="❯", row=0, disabled=True, custom_id="next25")
+    async def next_25(self, interaction: Interaction, item: ui.Button):
+        if self._group < len(self._collection) - 1:
+            self._group += 1
+
+        self.update_components()
+        await interaction.extras["editor"](view=self)
+
+    @ui.button(emoji=BotEmojis.REFRESH, row=0, custom_id="refresh")
+    async def refresh(self, interaction: Interaction, item: ui.Button):
+        if not interaction.response.is_done():
+            await interaction.response.defer()
+
+        new_data = await self._trip_fetcher(self._stop_info["stop_code"])
+        if isinstance(new_data, discord.Embed):
+            return await interaction.response.send_message(embed=new_data, ephemeral=True)
+
+        assert new_data["Routes"]["Route"] is not None
+        trips, routes_raw = _get_trips_and_routes(new_data["Routes"]["Route"])
+
+        destinations = _sort_destinations(trips)
+        routes = _sort_routes(routes_raw)
+
+        self._data = new_data
+        self._destinations = _slice(destinations)
+        self._routes = _slice([r[:2] for r in routes])
+        self._num_destinations = len(destinations)
+        self._num_routes = len(routes)
+
+        self._pages = {}
+        self._build_route_pages(routes)
+        self._build_destination_pages(destinations)
+
+        kwargs: Dict[str, Any] = {"view": self}
+
+        page = self._pages.get(self.current_key, None)
+        if not page:
+            fullroute, route_no, _ = routes[0]
+            self.current_key = f"r:{fullroute}:{route_no}"
+            self.sorting = Sorting.ROUTE
+            page = self._pages[self.current_key]
+
+            kwargs["attachments"] = [generate_route_icon(route_no)]
+
+            await interaction.followup.send(RELOAD_FAIL, ephemeral=True)
+
+        kwargs["embed"] = page
+        self.update_components()
+        await interaction.edit_original_response(**kwargs)
+
+    @ui.select(row=1, custom_id="selector")
+    async def mode_entity_select(self, interaction: Interaction, item: ui.Select):
+        key = item.values[0]
+        self.current_key = key
+        new_page = self._pages[key]
+
+        if self.sorting is Sorting.ROUTE:
+            attachments = [generate_route_icon(key.split(":")[-1])]
+        else:
+            attachments = [discord.File("assets/penis.png")]
+
+        self.update_components()
+        await interaction.extras["editor"](embed=new_page, attachments=attachments, view=self)
+
+    @ui.button(label="Sort by destination", row=2, custom_id="swap_sorting")
+    async def swap_sorting(self, interaction: Interaction, item: ui.Button):
+        if self.sorting is Sorting.ROUTE:
+            self.sorting = Sorting.DEST
+            self.current_key = f"d:{self._destinations[0][0]}"
+
+            new_label = "Sort by route"
+            attachments = [discord.File("assets/penis.png")]
+        else:
+            fullroute, route_no = self._routes[0][0]
+            self.sorting = Sorting.ROUTE
+            self.current_key = f"r:{fullroute}:{route_no}"
+
+            new_label = "Sort by destination"
+            attachments = [generate_route_icon(self.current_key.split(":")[-1])]
+
+        self._group = 0
+        item.label = new_label
+
+        self.update_components()
+        await interaction.extras["editor"](embed=self._pages[self.current_key], attachments=attachments, view=self)
+
+    @ui.button(label="New lookup", row=2, style=discord.ButtonStyle.primary, custom_id="new_lookup")
+    async def new_lookup(self, interaction: Interaction, item: ui.Button):
+        self.update_components()
+        if interaction.response.is_done():
+            # responded in on_interaction
+            return
+
+        await interaction.response.send_modal(
+            NewLookupModal(
+                og_view=self,
+                db=self._db,
+                trip_fetcher=self._trip_fetcher,
+            )
+        )
+
+
+class ResultSelector(View):
+    def __init__(
+        self,
+        results: List[StopInfo],
+        /,
+        *,
+        db: PostgresPool,
+        trip_fetcher: TripFetcher,
+        message_editor: EditFunc,
+        owner: User | Member,
+        og_view: BusDisplay | None = None,
+    ) -> None:
+        self._results = results
+        self._db = db
+        self._message_editor = message_editor
+        self._trip_fetcher = trip_fetcher
+        self._owner = owner
+        self._og_view = og_view
+
+        super().__init__(timeout=self.TIMEOUT)
+        self._prepare_select()
+
+        if not og_view:
+            self.go_back.disabled = True
+
+    async def on_timeout(self) -> None:
+        if not self._og_view:
+            self.disable_all()
+            coro = self._message_editor(view=self)
+        else:
+            coro = self._message_editor(**view_edit_kwargs(self._og_view))
+
+        try:
+            await coro
+        except discord.HTTPException:
+            pass  # we tried
+
+    async def interaction_check(self, interaction: Interaction, item: ui.Item) -> bool:
+        if interaction.user.id != self._owner.id:
+            await interaction.response.send_message(content=random.choice(CHOICES), ephemeral=True)
+            return False
+        return True
+
+    def _prepare_select(self) -> None:
+        transitway = []
+        stops = []
+        for r in self._results:
+            if r["stop_name"].endswith(" Stn."):
+                transitway.append(
+                    discord.SelectOption(
+                        label=f"★  [{r['stop_code']}] {r['stop_name']}",
+                        description="Transitway station",
+                        value=r["stop_code"],
+                    )
+                )
+            else:
+                stops.append(
+                    discord.SelectOption(
+                        label=f"[{r['stop_code']}] {r['stop_name']}", description="Bus stop", value=r["stop_code"]
+                    )
+                )
+
+        self.selector.options = transitway + stops
+
+    @ui.select(row=0, placeholder="Choose an option...")
+    async def selector(self, interaction: Interaction, item: ui.Select):
+        await interaction.response.defer()
+        search = item.values[0]
+
+        data = await self._trip_fetcher(search)
+        if isinstance(data, discord.Embed):
+            return await interaction.response.send_message(embed=data, ephemeral=True)
+
+        assert data["Routes"]["Route"] is not None
+        view = await BusDisplay.async_init(
+            data=data,
+            db=self._db,
+            owner=interaction.user,
+            trip_fetcher=self._trip_fetcher,
+        )
+
+        self.stop()
+        if self._og_view:
+            self._og_view.stop()
+
+        await interaction.edit_original_response(**view_edit_kwargs(view))
+
+    @ui.button(row=1, label="Go back")
+    async def go_back(self, interaction: Interaction, item: ui.Button):
+        assert self._og_view is not None
+
+        self.stop()
+        view = self._og_view
+        await interaction.response.edit_message(**view_edit_kwargs(view))
+
+
+class NewLookupModal(ui.Modal, title="Bus Stop Lookup"):
+    search = ui.TextInput(label="Search")
+
+    def __init__(self, *, og_view: BusDisplay | None = None, db: PostgresPool, trip_fetcher: TripFetcher) -> None:
+        self._og_view = og_view
+        self._db = db
+        self._trip_fetcher = trip_fetcher
+        super().__init__()
+
+    async def on_submit(self, interaction: Interaction):
+        search = self.search.value
+        if search.isnumeric() and len(search) == 4:
+            data = await self._trip_fetcher(search)
+            if isinstance(data, discord.Embed):
+                return await interaction.response.send_message(embed=data, ephemeral=True)
+
+            assert data["Routes"]["Route"] is not None
+            view = await BusDisplay.async_init(
+                data=data,
+                db=self._db,
+                owner=interaction.user,
+                trip_fetcher=self._trip_fetcher,
+            )
+
+            if self._og_view:
+                self._og_view.stop()
+
+            return await interaction.response.edit_message(**view_edit_kwargs(view))
+
+        top_results: List[StopInfo] = await self._db.fetch(stop_search_query(10), search)
+        if not top_results:
+            return await interaction.response.send_message("nothing found...?", ephemeral=True)
+
+        embed = discord.Embed(
+            title=f"Results for Search '{cap(search):100}'",
+            description="\n".join(f"— [`{r['stop_code']}`] {r['stop_name']}" for r in top_results),
+            timestamp=datetime.now(),
+        ).set_footer(icon_url=getattr(interaction.user.avatar, "url", None))
+
+        view = ResultSelector(
+            top_results,
+            og_view=self._og_view,
+            db=self._db,
+            trip_fetcher=self._trip_fetcher,
+            message_editor=interaction.edit_original_response,
+            owner=interaction.user,
+        )
+        await interaction.response.edit_message(embed=embed, attachments=[], view=view)
+
+
+class Transit(commands.Cog):
+    _icon_file_closers: List[Callable[[], None]]
+
+    STN_PATTERN = re.compile(r"(?: \d?[A-Z]$)| O-TRAIN(?:$| (?:WEST|EAST|NORTH|SOUTH) / (?:OUEST$|EST$|NORD$|SUD$))")
+    TITLECASE_PATTERN = re.compile(r"^\w| d'\w| \w|-\w")
+    LRT_STATION_HINTS = (
+        "O-TRAIN",
+        "PARLIAMENT",
+    )
+
+    def __init__(self, client: NotGDKID):
+        self.client = client
+
+    @commands.Cog.listener()
+    async def on_interaction(self, interaction: Interaction):
+        if (
+            not interaction.message
+            or "recieved" in interaction.extras
+            or interaction.type is not discord.InteractionType.component
+            or not interaction.message.components
+            or not interaction.message.interaction
+            or not interaction.data
+        ):
+            return
+
+        items = interaction.message.components
+        first = items[0].children[0] if isinstance(items[0], discord.ActionRow) else items[0]
+        if not first.custom_id or not first.custom_id.startswith("★"):
+            return
+
+        stop_code, current_key, last_active_str = first.custom_id.split(";")[-3:]
+
+        view_expired = int(last_active_str) + BusDisplay.TIMEOUT < time.time()
+        bot_restarted = int(last_active_str) < self.client.uptime.timestamp() < int(last_active_str) + BusDisplay.TIMEOUT
+        if not view_expired and not bot_restarted:
+            # the view hasn't yet expired; handle interaction check in there
+            return
+
+        if interaction.user.id != interaction.message.interaction.user.id:
+            return await interaction.response.send_message(random.choice(CHOICES), ephemeral=True)
+
+        custom_id = interaction.data["custom_id"]  # type: ignore
+        mapping = {"counter": 1, "next25": 2, "refresh": 3, "selector": 4, "swap_sorting": 5, "new_lookup": 6}
+
+        if custom_id.startswith("★"):
+            child_idx = 0
+        else:
+            child_idx = mapping[custom_id]
+
+        interaction.extras["sender"] = interaction.followup.send
+        interaction.extras["editor"] = interaction.edit_original_response
+        if child_idx == 6:
+            # we can only send one response, and we can only send modals in a response
+            await interaction.response.send_modal(
+                NewLookupModal(
+                    db=self.client.db,
+                    trip_fetcher=self.fetch_trips,
+                )
+            )
+        else:
+            await interaction.response.defer()
+
+        new_data = await self.fetch_trips(stop_code)
+        if isinstance(new_data, discord.Embed):
+            return await interaction.response.send_message(embed=new_data, ephemeral=True)
+
+        assert new_data["Routes"]["Route"] is not None
+        view = await BusDisplay.async_init(
+            data=new_data,
+            db=self.client.db,
+            owner=interaction.user,
+            trip_fetcher=self.fetch_trips,
+        )
+
+        page = view.pages.get(current_key, None)
+        if page is not None:
+            view.current_key = current_key
+            if current_key.startswith("d:"):
+                view.sorting = Sorting.DEST
+                view.swap_sorting.label = "Sort by route"
+            else:
+                view.sorting = Sorting.ROUTE
+                view.swap_sorting.label = "Sort by destination"
+
+        if child_idx == 3:
+            # this entire event handler is inherently a refresh, we don't need to do it twice
+            view.update_components()
+            await interaction.edit_original_response(**view_edit_kwargs(view))
+
+            if not page:
+                await interaction.followup.send(RELOAD_FAIL, ephemeral=True)
+
+            return
+
+        item = view.children[child_idx]
+        await view._scheduled_task(item, interaction)
+
+        if child_idx == 6:
+            # the new lookup button only sends the modal and calls it done
+            # we need to actually edit the new view onto the message still
+            # to prevent excessive calls to the API
+
+            await interaction.edit_original_response(view=view)
+
+    @classmethod
+    def title(cls, s: str):
+        """
+        Problem with `str.title()` is that it misinterprets apostrophes as string boundaries, so we gotta fix that
+        """
+
+        return (
+            cls.TITLECASE_PATTERN.sub(lambda m: m.group().upper(), s.lower())
+            .replace("Uottawa", "uOttawa")
+            .replace("H.s", "H.S")
+            .replace("toh", "T.O.H.")
+            .replace("Toh", "T.O.H.")
+        )
+
+    async def cog_load(self):
+        now = datetime.now()
+        midnight = now.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
+        until_midnight = midnight - now
+
+        self.gtfs_task = tasks.loop(hours=24)(self._build_gtfs_tables)
+        self.gtfs_task.before_loop(partial(asyncio.sleep, until_midnight.total_seconds()))
+        self.gtfs_task.start(
+            include={
+                "routes": ("route_short_name", "route_color", "route_text_color"),
+                "stops": ("stop_code", "stop_name", "stop_lat", "stop_lon"),
+            }
+        )
+
+        query = "SELECT * FROM routes"
+        route_colour_map = {r["route_short_name"]: r[1:] for r in await self.client.db.fetch(query)}
+
+        global _route_colour_cache
+        _route_colour_cache = route_colour_map
+
+    async def cog_unload(self):
+        self.gtfs_task.cancel()
+
+    async def fetch_trips(self, stop_code: str, /) -> BusStopResponse | discord.Embed:
+        url = "https://api.octranspo1.com/v2.0/GetNextTripsForStopAllRoutes"
+        params = {
+            "appID": self.client.transit_id,
+            "apiKey": self.client.transit_token,
+            "stopNo": stop_code,
+            "format": "json",
+        }
+
+        async with self.client.session.get(url, params=params) as res:
+            raw = await res.text()
+
+        try:
+            data = orjson.loads(raw)["GetRouteSummaryForStopResult"]
+        except orjson.JSONDecodeError:
+            # when the API errors out, it spews XML
+            # heck, even when you specify json as a format in your request
+            # the response content-type is plain text/html nonetheless
+            # great job with that OC
+
+            maybe_json = raw.split("\n")[-1].split(">")[-1]
+            try:
+                data = orjson.loads(maybe_json)["GetRouteSummaryForStopResult"]
+            except (orjson.JSONDecodeError, KeyError):
+                raise BadResponseError(
+                    "something went wrong, it's beyond my capabilities to handle, so here's the raw request output",
+                    raw=raw,
+                )
+
+        if not data["StopDescription"] or not data["Routes"]["Route"]:
+            return no_such_stop(stop_code) if not data["StopDescription"] else no_routes_at_stop(stop_code)
+        else:
+            return data
+
+    async def _do_bulk_insert(self, table: str, buffer: io.BytesIO, *columns: str) -> None:
+        sql_columns = ", ".join(f"{c} TEXT" for c in columns)
+
+        # we do like a shit ton of string interpolation in our queries here...
+        # but it's okay in this specific case since the end user never has access to the parameters being injected
+        async with self.client.db.acquire() as conn:
+            tr = conn.transaction()
+            await tr.start()
+            try:
+                await conn.execute(f"DELETE FROM {table}; CREATE TEMP TABLE tmp ({sql_columns}) ON COMMIT DROP")
+                await conn.copy_to_table("tmp", source=buffer, columns=columns, header=False, format="csv")
+
+                query = f"""
+                    INSERT INTO {table}
+                    SELECT * FROM tmp
+                    ON CONFLICT DO NOTHING
+                """
+                await conn.execute(query)
+            except Exception as e:
+                await tr.rollback()
+                raise RuntimeError("failed rebuilding gtfs table '%s': %s" % (table, e))
+            else:
+                await tr.commit()
+
+    def _parse_csv_to_bytesio(self, zipfile: ZipFile, table: str, *columns: str) -> io.BytesIO:
+        raw = zipfile.read(table + ".txt")
+        reader = csv.reader(io.StringIO(raw.decode()))
+        buffer = io.BytesIO()
+
+        # first line contains column names
+        colnames = next(reader)
+        colindexes = [i for i, column in enumerate(colnames) if column in columns]
+
+        if len(colindexes) < len(columns):
+            diff = len(colindexes) - len(columns)
+            log.warn("%d column(s) were not found whilst building table '%s'", diff, table)
+
+        new_content = ""
+        for row in reader:
+            filtered = [row[i] for i in colindexes]
+
+            # transitway stations such as Lincoln Fields often have their different bus stands listed as separate stops
+            # yet they're associated with the same 4-digit stop code, so we're disambiguating it down to one stop
+            # (e.g Lincoln Fields 1A, Lincoln Fields 2A, and Lincoln Fields 4B all share stop code #3014)
+            # since when we request trips from the API, that single 4-digit code will cover every route serving the whole station
+            if "stop_name" in columns:
+
+                if "/" not in filtered[1] or any(i in filtered[1] for i in self.LRT_STATION_HINTS):
+                    filtered[1] = self.STN_PATTERN.sub(" stn.", filtered[1])
+
+                filtered[1] = self.title(filtered[1])
+
+            if all(i for i in filtered):
+                new_content += f"{','.join(filtered)}\n"
+
+        buffer.write(new_content.strip().encode())
+        buffer.seek(0)
+        return buffer
+
+    def _handle_zipfile(self, the_zip: io.BytesIO, *tables: str, **columns: Iterable[str]) -> Dict[str, io.BytesIO]:
+        buffers = {}
+        with ZipFile(the_zip, "r") as zipfile:
+            for table in tables:
+                if table + ".txt" in zipfile.namelist():
+                    buffers[table] = self._parse_csv_to_bytesio(zipfile, table, *columns[table])
+                else:
+                    log.warn("%s table not found in gtfs data", table)
+
+        return buffers
+
+    async def _build_gtfs_tables(self, *, include: Dict[str, Iterable[str]]) -> None:
+        url = "https://www.octranspo.com/files/google_transit.zip"
+
+        async with self.client.session.get(url) as res:
+            if res.status == 200:
+                buffer = io.BytesIO(await res.read())
+            else:
+                raise RuntimeError("could not build gtfs tables atm, try again later")
+
+        tables = tuple(include)
+        buffers = await asyncio.to_thread(self._handle_zipfile, buffer, *tables, **include)
+        for filename, buffer in buffers.items():
+            await self._do_bulk_insert(filename, buffer, *include[filename])
+
+    async def stop_or_station_autocomplete(self, interaction: Interaction, current: str) -> List[Choice[str]]:
+        if not current:
+            return [Choice(name="Enter a stop name...", value="")]
+
+        results: List[StopInfo] = await self.client.db.fetch(stop_search_query(25), current)
+        return [
+            Choice(
+                name=f"{'★  ' if r['stop_name'].endswith(' Stn.') else ''}[{r['stop_code']}] {r['stop_name']}",
+                value=r["stop_code"],
+            )
+            for r in results
+        ]
+
+    @command(name="busarrivals", description="OC Transpo bus arrivals")
+    @describe(stop_or_station="the station or bus stop to view arrivals for")
+    @autocomplete(stop_or_station=stop_or_station_autocomplete)
+    async def bus(self, interaction: Interaction, stop_or_station: str):
+        if not stop_or_station:
+            return await interaction.response.send_message("?", ephemeral=True)
+
+        if not stop_or_station.isnumeric() or not len(stop_or_station) == 4:
+            top_results: List[StopInfo] = await self.client.db.fetch(stop_search_query(10), stop_or_station)
+            if not top_results:
+                return await interaction.response.send_message("nothing found...?", ephemeral=True)
+
+            embed = discord.Embed(
+                title=f"Results for Search '{cap(stop_or_station):100}'",
+                description="\n".join(f"— [`{r['stop_code']}`] {r['stop_name']}" for r in top_results),
+                timestamp=datetime.now(),
+            ).set_footer(icon_url=getattr(interaction.user.avatar, "url", None))
+
+            view = ResultSelector(
+                top_results,
+                db=self.client.db,
+                trip_fetcher=self.fetch_trips,
+                message_editor=interaction.edit_original_response,
+                owner=interaction.user,
+            )
+            return await interaction.response.send_message(embed=embed, view=view)
+
+        data = await self.fetch_trips(stop_or_station)
+        if isinstance(data, discord.Embed):
+            return await interaction.response.send_message(embed=data, ephemeral=True)
+
+        assert data["Routes"]["Route"] is not None
+        view = await BusDisplay.async_init(
+            data=data,
+            db=self.client.db,
+            owner=interaction.user,
+            trip_fetcher=self.fetch_trips,
+        )
+
+        embed = view.pages[view.current_key]
+        file = generate_route_icon(view.current_key.split(":")[-1])
+        await interaction.response.send_message(embed=embed, file=file, view=view)
+
+
+async def setup(client: NotGDKID):
+    await client.add_cog(Transit(client=client))

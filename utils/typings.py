@@ -88,6 +88,43 @@ class Secrets(TypedDict):
     lavalink_pass: str
     spotify_client_id: str
     spotify_client_secret: str
+    transit_id: str
+    transit_token: str
+
+
+class StopInfo(TypedDict):
+    stop_code: str
+    stop_name: str
+    stop_lat: str
+    stop_lon: str
+
+
+class TripData(TypedDict):
+    Longitude: str
+    Latitude: str
+    GPSSpeed: str
+    TripDestination: str
+    TripStartTime: str
+    AdjustedScheduleTime: str
+    AdjustmentAge: str
+    LastTripOfSchedule: bool
+    BusType: str
+    RouteNo: str | None
+
+
+class RouteData(TypedDict):
+    RouteNo: str
+    RouteHeading: str
+    DirectionID: int
+    Direction: str
+    Trips: List[TripData] | TripData | Dict[Literal["Trip"], List[TripData]]
+
+
+class BusStopResponse(TypedDict):
+    StopNo: str
+    Error: str
+    StopDescription: str
+    Routes: Dict[Literal["Route"], List[RouteData] | None] | Dict[Literal["Route"], RouteData | None]
 
 
 class Tracks(TypedDict):

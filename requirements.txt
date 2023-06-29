@@ -1,5 +1,5 @@
 discord.py[speed,voice]
-jishaku
+jishaku==2.5.0
 wavelink
 topggpy
 

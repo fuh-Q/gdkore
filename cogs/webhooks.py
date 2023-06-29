@@ -318,9 +318,6 @@ class WebhookPages(BasePages, auto_defer=False):  # type: ignore
     WEBHOOKS_PER_PAGE = 12
 
     def __init__(self, interaction: Interaction, webhooks: List[WebhookData]):
-        self._pages = []
-        self._current = 0
-        self._parent = False
         self._interaction = interaction
 
         self._webhooks: List[List[WebhookData]] = []

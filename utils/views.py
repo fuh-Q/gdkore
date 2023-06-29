@@ -15,6 +15,7 @@ if TYPE_CHECKING:
     from discord.ext.commands import Context
 
     from bot import GClass
+    from helper_bot import NotGDKID
 
 
 class Confirm(DPYView):
@@ -114,15 +115,7 @@ class Confirm(DPYView):
         return self._callback(interaction, btn)
 
 
-class _ViewMeta(type):
-    def __new__(cls, *args, **kwargs):
-        name, bases, attrs = args
-        attrs["__discord_auto_defer__"] = kwargs.pop("auto_defer", True)
-
-        return super().__new__(cls, name, bases, attrs)
-
-
-class View(DPYView, metaclass=_ViewMeta):
+class View(DPYView):
     """
     A subclass of `View` that reworks the timeout logic.
     """
@@ -147,6 +140,10 @@ class View(DPYView, metaclass=_ViewMeta):
         Whether we will defer interactions should they not complete in the dispatched item's callback.
         """
         return self.__discord_auto_defer__
+
+    def __init_subclass__(cls, *, auto_defer: bool = True) -> None:
+        cls.__discord_auto_defer__ = auto_defer
+        return super().__init_subclass__()
 
     async def _scheduled_task(self, item: Item, interaction: Interaction):
         try:
@@ -227,13 +224,13 @@ class BasePages(View):
 
     TIMEOUT = 180  # default timeout
 
-    _current: int  # current page
-    _pages: List[discord.Embed]  # pages are comprised of embeds
+    _current: int = 0  # current page
+    _pages: List[discord.Embed] = []  # pages are comprised of embeds
     _interaction: Interaction  # typically the initial interaction from the user
-    _ctx: Context[GClass] | None = None  # instance of context if this is being used in a prefixed command
+    _ctx: Context[GClass | NotGDKID] | None = None  # instance of context if this is being used in a prefixed command
 
     _home: BasePages  # homepage
-    _parent: bool  # currently focused in a "sub-view"
+    _parent: bool = False  # currently focused in a "sub-view"
 
     async def interaction_check(self, interaction: Interaction, item: Item) -> bool:
         uid = self._ctx.author.id if self._ctx else self._interaction.user.id
@@ -261,7 +258,7 @@ class BasePages(View):
         raise error
 
     @property
-    def client(self) -> GClass:
+    def client(self) -> GClass | NotGDKID:
         """
         Returns the main bot object.
         """

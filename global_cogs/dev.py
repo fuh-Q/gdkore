@@ -62,10 +62,7 @@ class DirectoryView(BasePages):
         self.directory = directory.resolve()
         self.items = sorted(map(lambda item: item.resolve(), directory.iterdir()), key=lambda k: k.name.lower())
 
-        self._pages = []
         self._directory_slices = []
-        self._current = 0
-        self._parent = False
         if ctx:
             self._ctx = ctx
         elif interaction:
@@ -247,11 +244,11 @@ class DirectoryView(BasePages):
         )
 
         try:
-            await method(**kwargs)
+            await method(**kwargs)  # type: ignore
         except discord.HTTPException as e:
             if e.status == 413:
                 extras = {"embed": None} if ephemeral is True else {}
-                await method(content="entity exceeds file upload limit", **extras)
+                await method(content="entity exceeds file upload limit", **extras)  # type: ignore
                 return
 
             raise e
@@ -303,8 +300,7 @@ class DirectoryView(BasePages):
 
         if not self._actual_files:
             return await interaction.edit_original_response(
-                embed=Embed(description="no files to display").set_author(name=f"{cap(str(self.directory)):256}"),
-                view=self
+                embed=Embed(description="no files to display").set_author(name=f"{cap(str(self.directory)):256}"), view=self
             )
 
         self.update_components()

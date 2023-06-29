@@ -69,7 +69,7 @@ class GClassLogging(logging.Formatter):
         log_fmt = self.COLOURS[record.levelno]
         colour = PrintColours.WHITE if record.levelno < logging.ERROR else PrintColours.RED
         formatter = logging.Formatter(
-            log_fmt + self._fmt + "{asctime}" + colour + "{message}" + PrintColours.WHITE,
+            log_fmt + self._fmt + "{asctime}" + PrintColours.RED + "{name} " + colour + "{message}" + PrintColours.WHITE,
             datefmt="{0} [{1}] ".format(PrintColours.YELLOW, datetime.now().strftime(self.FMT)),
             style="{",
         )
@@ -109,7 +109,7 @@ class cap:
         if len(self.string) <= size:
             return self.string
 
-        return self.string[:-3] + "..."
+        return self.string[:-1] + "\N{HORIZONTAL ELLIPSIS}"
 
 
 def all_casings(input_string: str) -> Generator[str, None, None]:

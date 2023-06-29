@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import logging
 import random
 import sys
 from datetime import datetime, timedelta, timezone
@@ -20,9 +21,7 @@ if TYPE_CHECKING:
     T = TypeVar("T")
     Response = Coroutine[Any, Any, T]
 
-PLAYLIST_ID = "6NHn4X5wsSpeClsptOIycY"
-CLIENT_ID = "38727f6c28b44b4fb9dd3e661ecba1b7"
-CLIENT_SECRET = "40d954892817442cbad09f828412c0dd"
+log = logging.getLogger(f"NotGDKID:{__name__}")
 
 
 class Route:
@@ -38,10 +37,11 @@ class Route:
 
 
 class Spotify(commands.Cog):
+    PLAYLIST_ID = "6NHn4X5wsSpeClsptOIycY"
+
     def __init__(self, client: NotGDKID):
         self.client = client
         self.session = client.session
-        self.logger = client.logger
         self.creds = client.spotify_auth
 
     async def cog_load(self):
@@ -53,7 +53,7 @@ class Spotify(commands.Cog):
         self.spotify_task.start()
 
     async def cog_unload(self):
-        self.spotify_task.stop()
+        self.spotify_task.cancel()
 
     @staticmethod
     def partition(iterable: List[T], /, *, size: int) -> Generator[List[T], Any, Any]:
@@ -72,9 +72,7 @@ class Spotify(commands.Cog):
             headers=headers,
         ) as resp:
             colour = PrintColours.RED if resp.status >= 400 else PrintColours.GREEN
-            self.logger.info(
-                "Refreshing access token... Spotify responded with: %s%d%s" % (colour, resp.status, PrintColours.WHITE)
-            )
+            log.info("Refreshing access token... Spotify responded with: %s%d%s" % (colour, resp.status, PrintColours.WHITE))
 
             data: OAuthCreds = await resp.json()
             data["refresh_token"] = token
@@ -104,7 +102,7 @@ class Spotify(commands.Cog):
                 headers=headers,
             ) as resp:
                 colour = PrintColours.RED if resp.status >= 400 else PrintColours.GREEN
-                self.client.logger.info(
+                log.info(
                     "[%d/5] %s%s %s%s%s -- %s%d%s"
                     % (
                         tries + 1,
@@ -125,7 +123,7 @@ class Spotify(commands.Cog):
                     response_body = await resp.text()
 
                 if resp.status >= 400:
-                    self.logger.warning(response_body)
+                    log.warning(response_body)
 
                 if resp.status == 401:
                     new_creds = await self.do_refresh()
@@ -135,9 +133,7 @@ class Spotify(commands.Cog):
 
                 if resp.status == 429:
                     retry_after = resp.headers["Retry-After"]
-                    self.logger.warning(
-                        "Spotify ratelimit hit for %s %s, waiting %ss" % (route.method, route.endpoint, retry_after)
-                    )
+                    log.warning("Spotify ratelimit hit for %s %s, waiting %ss" % (route.method, route.endpoint, retry_after))
 
                     await asyncio.sleep(float(retry_after))
                     continue
@@ -164,16 +160,16 @@ class Spotify(commands.Cog):
         return self.request(Route("GET", "/me/player/devices"))
 
     def get_tracks(self, *, offset: int = 0) -> Response[Tracks]:
-        r = Route("GET", "/playlists/{playlist_id}/tracks", playlist_id=PLAYLIST_ID)
+        r = Route("GET", "/playlists/{playlist_id}/tracks", playlist_id=self.PLAYLIST_ID)
         return self.request(r, fields="total,next,items(track(uri))", limit=100, offset=offset)
 
     def update_tracks(self, *, tracks: List[str]) -> Response[None]:
-        r = Route("PUT", "/playlists/{playlist_id}/tracks", playlist_id=PLAYLIST_ID)
+        r = Route("PUT", "/playlists/{playlist_id}/tracks", playlist_id=self.PLAYLIST_ID)
         payload = {"uris": tracks}
         return self.request(r, json=payload)
 
     def add_tracks(self, *, tracks: List[str]) -> Response[None]:
-        r = Route("POST", "/playlists/{playlist_id}/tracks", playlist_id=PLAYLIST_ID)
+        r = Route("POST", "/playlists/{playlist_id}/tracks", playlist_id=self.PLAYLIST_ID)
         payload = {"uris": tracks}
         return self.request(r, json=payload)
 
@@ -186,7 +182,7 @@ class Spotify(commands.Cog):
             "public": True,
         }
 
-        await self.request(Route("PUT", "/playlists/{playlist_id}", playlist_id=PLAYLIST_ID), json=data)
+        await self.request(Route("PUT", "/playlists/{playlist_id}", playlist_id=self.PLAYLIST_ID), json=data)
 
     @commands.command(name="shuffletracks", aliases=["shuffle", "ss"])
     @commands.is_owner()

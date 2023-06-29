@@ -85,7 +85,7 @@ class NotGDKID(commands.Bot):
 
     init_extensions = (*get_extensions("helper"), "utils")
 
-    logger = logging.getLogger(__name__)
+    log = logging.getLogger("NotGDKID:main")
 
     AMAZE_GUILD_ID = 996435988194791614
     ADMIN_ROLE_ID = 996437815619489922
@@ -108,6 +108,8 @@ class NotGDKID(commands.Bot):
         postgres_dns = secrets["postgres_dns"] + "notgdkid"
         website_postgres = secrets["postgres_dns"] + "gdkid_xyz"
         lavalink_pass = secrets["lavalink_pass"]
+        transit_id = secrets["transit_id"]
+        transit_token = secrets["transit_token"]
 
     with open("config/spotify-creds.json", "r") as f:
         spotify_auth: OAuthCreds = orjson.loads(f.read())
@@ -168,17 +170,17 @@ class NotGDKID(commands.Bot):
     async def load_extension(self, name: str) -> None:
         await super().load_extension(name)
 
-        self.logger.info("%sloaded%s %s", PrintColours.GREEN, PrintColours.WHITE, name)
+        self.log.info("%sloaded%s %s", PrintColours.GREEN, PrintColours.WHITE, name)
 
     async def unload_extension(self, name: str) -> None:
         await super().unload_extension(name)
 
-        self.logger.info("%sunloaded%s %s", PrintColours.RED, PrintColours.WHITE, name)
+        self.log.info("%sunloaded%s %s", PrintColours.RED, PrintColours.WHITE, name)
 
     async def reload_extension(self, name: str) -> None:
         await super().reload_extension(name)
 
-        self.logger.info("%sreloaded%s %s", PrintColours.YELLOW, PrintColours.WHITE, name)
+        self.log.info("%sreloaded%s %s", PrintColours.YELLOW, PrintColours.WHITE, name)
 
     async def setup_hook(self) -> None:
         self.session = aiohttp.ClientSession()
@@ -186,11 +188,11 @@ class NotGDKID(commands.Bot):
         self.blacklist = Config("dbs/blacklisted.json")
         self._db = await asyncpg.create_pool(self.postgres_dns)
         self._web_db = await asyncpg.create_pool(self.website_postgres)
-        self.logger.info("%sdatabases connected", PrintColours.GREEN)
+        self.log.info("%sdatabases connected", PrintColours.GREEN)
 
         node = wavelink.Node(uri="http://144.172.70.155:1234", password=self.lavalink_pass)
         self.wavelink: Dict[str, wavelink.Node] = await wavelink.NodePool.connect(client=self, nodes=[node])
-        self.logger.info("%swavelink server connected", PrintColours.GREEN)
+        self.log.info("%swavelink server connected", PrintColours.GREEN)
 
         self.status_task = status_task.start(self)
         ready_task = self.loop.create_task(self.first_ready())
@@ -201,7 +203,7 @@ class NotGDKID(commands.Bot):
 
     async def first_ready(self):
         await self.wait_until_ready()
-        self.logger.info("%sLogged in as: %s : %d", PrintColours.PURPLE, self.user, self.user.id)
+        self.log.info("%sLogged in as: %s : %d", PrintColours.PURPLE, self.user, self.user.id)
 
         for guild in self.guilds:
             if guild.id not in self.whitelist:
@@ -255,7 +257,7 @@ class NotGDKID(commands.Bot):
 
         tr = traceback.format_exc()
 
-        self.logger.error("\n%s%s" + PrintColours.RED + tr)
+        self.log.error("\n%s%s" + PrintColours.RED + tr)
 
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
         if payload.user_id in self.owner_ids and payload.emoji.name == "❌":
@@ -352,7 +354,7 @@ class NotGDKID(commands.Bot):
             # and `self.start` closes all sockets and the HTTPClient instance.
             return
         finally:
-            self.logger.info("%ssuccessfully logged out :D", PrintColours.PURPLE)
+            self.log.info("%ssuccessfully logged out :D", PrintColours.PURPLE)
 
             if self._restart:
                 sys.exit(69)

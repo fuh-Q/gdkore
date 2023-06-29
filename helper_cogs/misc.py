@@ -190,7 +190,9 @@ class Misc(commands.Cog):
             await message.reply(msg)
             self._reminder_task = None
 
-        assert message.guild
+        if not message.guild:
+            return
+
         if not message.interaction or message.guild.id not in (self.STUPIDLY_DECENT_ID, self.PARALLEL_ID):
             return
 
