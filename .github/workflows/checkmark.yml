@@ -9,4 +9,4 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Acquire Checkmark
-        run: echo "Checkmark acquireds"
+        run: echo "Checkmark acquired"
