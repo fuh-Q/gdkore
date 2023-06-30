@@ -117,7 +117,7 @@ class RouteData(TypedDict):
     RouteHeading: str
     DirectionID: int
     Direction: str
-    Trips: List[TripData] | TripData | Dict[Literal["Trip"], List[TripData]]
+    Trips: List[TripData] | TripData | Dict[Literal["Trip"], List[TripData]] | Dict[Literal["Trip"], TripData]
 
 
 class BusStopResponse(TypedDict):

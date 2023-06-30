@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 from enum import Enum
 from functools import partial
 from PIL import Image, ImageFont, ImageDraw
-from typing import TYPE_CHECKING, Any, Callable, Coroutine, Dict, Iterable, List, Tuple, TypeVar
+from typing import TYPE_CHECKING, Any, Callable, Coroutine, Dict, Iterable, List, Literal, Tuple, TypeVar
 from zipfile import ZipFile
 
 import orjson
@@ -32,6 +32,7 @@ if TYPE_CHECKING:
     from typing_extensions import Self
 
     T = TypeVar("T")
+    TripField = List[TripData] | TripData | Dict[Literal["Trip"], List[TripData]] | Dict[Literal["Trip"], TripData]
     TripFetcher = Callable[[str], Coroutine[Any, Any, BusStopResponse]]
     EditFunc = Callable[..., Coroutine[Any, Any, InteractionMessage]]
 
@@ -68,25 +69,24 @@ def _get_trips_and_routes(o: List[RouteData] | RouteData) -> Tuple[List[TripData
     trips = []
     as_list = o if isinstance(o, list) else [o]
     for item in as_list:
-        for trip in _get_trips(item):
+        for trip in _parse_trips(item["Trips"]):
             trip["RouteNo"] = item["RouteNo"]
             trips.append(trip)
 
     return trips, as_list
 
 
-def _get_trips(o: RouteData) -> List[TripData]:
+def _parse_trips(o: TripField) -> List[TripData]:
     # for some reason, OC Transpo will sometimes return the "Trips" value as ANOTHER object
     # containing a single key, "Trip", which has the actual list we want
     # why.
 
-    if isinstance(o["Trips"], list):
-        return o["Trips"]
-    else:
-        if len(o["Trips"]) == 1:
-            return o["Trips"]["Trip"]  # type: ignore
-        else:
-            return [o["Trips"]]  # type: ignore
+    if isinstance(o, list):
+        return o
+    if "Trip" not in o:
+        return [o] # type: ignore
+
+    return _parse_trips(o["Trip"]) # type: ignore
 
 
 def _sort_destinations(trips: List[TripData], /) -> List[str]:
@@ -98,7 +98,7 @@ def _sort_destinations(trips: List[TripData], /) -> List[str]:
 
 def _sort_routes(routes: List[RouteData], /) -> List[Tuple[str, str, List[TripData]]]:
     return sorted(
-        ((f"[{i['RouteNo']}] {i['RouteHeading']}", i["RouteNo"], _get_trips(i)) for i in routes),
+        ((f"[{i['RouteNo']}] {i['RouteHeading']}", i["RouteNo"], _parse_trips(i["Trips"])) for i in routes),
         key=lambda x: int(x[1]) if x[1].isnumeric() else 0,
     )
 
@@ -672,8 +672,8 @@ class Transit(commands.Cog):
         interaction.extras["sender"] = interaction.followup.send
         interaction.extras["editor"] = interaction.edit_original_response
         if child_idx == 6:
-            # we can only send one response, and we can only send modals in a response
-            await interaction.response.send_modal(
+            # we can only send modals in responses, so we've gotta do it here
+            return await interaction.response.send_modal(
                 NewLookupModal(
                     db=self.client.db,
                     trip_fetcher=self.fetch_trips,
