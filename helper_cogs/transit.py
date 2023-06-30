@@ -32,7 +32,7 @@ if TYPE_CHECKING:
     from typing_extensions import Self
 
     T = TypeVar("T")
-    TripFetcher = Callable[[str], Coroutine[Any, Any, BusStopResponse | discord.Embed]]
+    TripFetcher = Callable[[str], Coroutine[Any, Any, BusStopResponse]]
     EditFunc = Callable[..., Coroutine[Any, Any, InteractionMessage]]
 
 log = logging.getLogger(f"NotGDKID:{__name__}")
@@ -139,6 +139,12 @@ class BadResponseError(Exception):
     def __init__(self, *args: Any, raw: Any = "") -> None:
         self.raw = raw
         super().__init__(*args)
+
+
+class OCTranspoError(Exception):
+    def __init__(self, error_embed: discord.Embed, /) -> None:
+        self.display = error_embed
+        super().__init__()
 
 
 class Sorting(Enum):
@@ -368,9 +374,10 @@ class BusDisplay(View, auto_defer=False):
         if not interaction.response.is_done():
             await interaction.response.defer()
 
-        new_data = await self._trip_fetcher(self._stop_info["stop_code"])
-        if isinstance(new_data, discord.Embed):
-            return await interaction.response.send_message(embed=new_data, ephemeral=True)
+        try:
+            new_data = await self._trip_fetcher(self._stop_info["stop_code"])
+        except OCTranspoError as e:
+            return await interaction.response.send_message(embed=e.display, ephemeral=True)
 
         assert new_data["Routes"]["Route"] is not None
         trips, routes_raw = _get_trips_and_routes(new_data["Routes"]["Route"])
@@ -526,9 +533,10 @@ class ResultSelector(View):
         await interaction.response.defer()
         search = item.values[0]
 
-        data = await self._trip_fetcher(search)
-        if isinstance(data, discord.Embed):
-            return await interaction.response.send_message(embed=data, ephemeral=True)
+        try:
+            data = await self._trip_fetcher(search)
+        except OCTranspoError as e:
+            return await interaction.response.send_message(embed=e.display, ephemeral=True)
 
         assert data["Routes"]["Route"] is not None
         view = await BusDisplay.async_init(
@@ -565,9 +573,10 @@ class NewLookupModal(ui.Modal, title="Bus Stop Lookup"):
     async def on_submit(self, interaction: Interaction):
         search = self.search.value
         if search.isnumeric() and len(search) == 4:
-            data = await self._trip_fetcher(search)
-            if isinstance(data, discord.Embed):
-                return await interaction.response.send_message(embed=data, ephemeral=True)
+            try:
+                data = await self._trip_fetcher(search)
+            except OCTranspoError as e:
+                return await interaction.response.send_message(embed=e.display, ephemeral=True)
 
             assert data["Routes"]["Route"] is not None
             view = await BusDisplay.async_init(
@@ -665,9 +674,10 @@ class Transit(commands.Cog):
         else:
             await interaction.response.defer()
 
-        new_data = await self.fetch_trips(stop_code)
-        if isinstance(new_data, discord.Embed):
-            return await interaction.response.send_message(embed=new_data, ephemeral=True)
+        try:
+            new_data = await self.fetch_trips(stop_code)
+        except OCTranspoError as e:
+            return await interaction.response.send_message(embed=e.display, ephemeral=True)
 
         assert new_data["Routes"]["Route"] is not None
         view = await BusDisplay.async_init(
@@ -744,7 +754,7 @@ class Transit(commands.Cog):
     async def cog_unload(self):
         self.gtfs_task.cancel()
 
-    async def fetch_trips(self, stop_code: str, /) -> BusStopResponse | discord.Embed:
+    async def fetch_trips(self, stop_code: str, /) -> BusStopResponse:
         url = "https://api.octranspo1.com/v2.0/GetNextTripsForStopAllRoutes"
         params = {
             "appID": self.client.transit_id,
@@ -774,7 +784,9 @@ class Transit(commands.Cog):
                 )
 
         if not data["StopDescription"] or not data["Routes"]["Route"]:
-            return no_such_stop(stop_code) if not data["StopDescription"] else no_routes_at_stop(stop_code)
+            embed = no_such_stop(stop_code) if not data["StopDescription"] else no_routes_at_stop(stop_code)
+            raise OCTranspoError(embed)
+
         else:
             return data
 
@@ -902,9 +914,10 @@ class Transit(commands.Cog):
             )
             return await interaction.response.send_message(embed=embed, view=view)
 
-        data = await self.fetch_trips(stop_or_station)
-        if isinstance(data, discord.Embed):
-            return await interaction.response.send_message(embed=data, ephemeral=True)
+        try:
+            data = await self.fetch_trips(stop_or_station)
+        except OCTranspoError as e:
+            return await interaction.response.send_message(embed=e.display, ephemeral=True)
 
         assert data["Routes"]["Route"] is not None
         view = await BusDisplay.async_init(
