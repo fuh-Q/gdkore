@@ -532,7 +532,9 @@ class ResultSelector(View):
 
     @ui.select(row=0, placeholder="Choose an option...")
     async def selector(self, interaction: Interaction, item: ui.Select):
-        await interaction.response.defer()
+        self.disable_all()
+        item.placeholder = "just a sec..."
+        await interaction.response.edit_message(view=self)
         search = item.values[0]
 
         try:
