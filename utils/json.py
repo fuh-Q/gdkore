@@ -4,9 +4,9 @@ Original from RoboDanny, source below
 https://github.com/Rapptz/RoboDanny/blob/28f41d0371d0caffa524a0db8dca061c44a8b946/cogs/utils/config.py
 """
 
-import json
+import orjson
 import os
-from typing import Any, Callable, Dict, Generic, Type, TypeVar, overload
+from typing import Any, Callable, Dict, Generic, TypeVar, overload
 import uuid
 import asyncio
 
@@ -22,13 +22,9 @@ class Config(Generic[T]):
         self,
         name: str,
         *,
-        object_hook: ObjectHook | None = None,
-        encoder: Type[json.JSONEncoder] | None = None,
         load_later: bool = False,
     ):
         self.name = name
-        self.object_hook = object_hook
-        self.encoder = encoder
         self.loop = asyncio.get_running_loop()
         self.lock = asyncio.Lock()
         self._db: Dict[str, T | Any] = {}
@@ -39,8 +35,8 @@ class Config(Generic[T]):
 
     def load_from_file(self):
         try:
-            with open(self.name, "r", encoding="utf-8") as f:
-                self._db = json.load(f, object_hook=self.object_hook)
+            with open(self.name, "rb") as f:
+                self._db = orjson.loads(f.read())
         except FileNotFoundError:
             self._db = {}
 
@@ -50,8 +46,8 @@ class Config(Generic[T]):
 
     def _dump(self):
         temp = f"{uuid.uuid4()}-{self.name.replace('/', '-')}.tmp"
-        with open(temp, "w", encoding="utf-8") as tmp:
-            json.dump(self._db.copy(), tmp, indent=4, ensure_ascii=True, cls=self.encoder, separators=(",", ": "))
+        with open(temp, "wb") as tmp:
+            tmp.write(orjson.dumps(self._db.copy(), option=orjson.OPT_INDENT_2))
 
         # atomically move the file
         os.replace(temp, self.name)

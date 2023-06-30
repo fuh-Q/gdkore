@@ -100,7 +100,7 @@ class NotGDKID(commands.Bot):
     blacklist: Config[int]
     session: aiohttp.ClientSession
 
-    with open("config/secrets.json", "r") as f:
+    with open("config/secrets.json", "rb") as f:
         secrets: Secrets = orjson.loads(f.read())
 
         token = secrets["helper_token"]
@@ -111,10 +111,10 @@ class NotGDKID(commands.Bot):
         transit_id = secrets["transit_id"]
         transit_token = secrets["transit_token"]
 
-    with open("config/spotify-creds.json", "r") as f:
+    with open("config/spotify-creds.json", "rb") as f:
         spotify_auth: OAuthCreds = orjson.loads(f.read())
 
-    with open("config/serverjail.json", "r") as f:
+    with open("config/serverjail.json", "rb") as f:
         serverjail: Dict[str, OAuthCreds] = orjson.loads(f.read())
 
     def __init__(self):
@@ -365,11 +365,11 @@ class NotGDKID(commands.Bot):
     async def close(self, restart: bool = False):
         self._restart = restart
 
-        with open("config/spotify-creds.json", "w") as f:
-            f.write(orjson.dumps(self.spotify_auth, option=orjson.OPT_INDENT_2).decode())
+        with open("config/spotify-creds.json", "wb") as f:
+            f.write(orjson.dumps(self.spotify_auth, option=orjson.OPT_INDENT_2))
 
-        with open("config/serverjail.json", "w") as f:
-            f.write(orjson.dumps(self.serverjail, option=orjson.OPT_INDENT_2).decode())
+        with open("config/serverjail.json", "wb") as f:
+            f.write(orjson.dumps(self.serverjail, option=orjson.OPT_INDENT_2))
 
         self.status_task.cancel()
         await self.session.close()
