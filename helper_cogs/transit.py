@@ -377,7 +377,7 @@ class BusDisplay(View, auto_defer=False):
         try:
             new_data = await self._trip_fetcher(self._stop_info["stop_code"])
         except OCTranspoError as e:
-            return await interaction.response.send_message(embed=e.display, ephemeral=True)
+            return await interaction.followup.send(embed=e.display, ephemeral=True)
 
         assert new_data["Routes"]["Route"] is not None
         trips, routes_raw = _get_trips_and_routes(new_data["Routes"]["Route"])
@@ -536,7 +536,7 @@ class ResultSelector(View):
         try:
             data = await self._trip_fetcher(search)
         except OCTranspoError as e:
-            return await interaction.response.send_message(embed=e.display, ephemeral=True)
+            return await interaction.followup.send(embed=e.display, ephemeral=True)
 
         assert data["Routes"]["Route"] is not None
         view = await BusDisplay.async_init(
@@ -573,10 +573,12 @@ class NewLookupModal(ui.Modal, title="Bus Stop Lookup"):
     async def on_submit(self, interaction: Interaction):
         search = self.search.value
         if search.isnumeric() and len(search) == 4:
+            await interaction.response.defer()
+
             try:
                 data = await self._trip_fetcher(search)
             except OCTranspoError as e:
-                return await interaction.response.send_message(embed=e.display, ephemeral=True)
+                return await interaction.followup.send(embed=e.display, ephemeral=True)
 
             assert data["Routes"]["Route"] is not None
             view = await BusDisplay.async_init(
@@ -589,7 +591,7 @@ class NewLookupModal(ui.Modal, title="Bus Stop Lookup"):
             if self._og_view:
                 self._og_view.stop()
 
-            return await interaction.response.edit_message(**_view_edit_kwargs(view))
+            return await interaction.edit_original_response(**_view_edit_kwargs(view))
 
         top_results: List[StopInfo] = await self._db.fetch(stop_search_query(10), search)
         if not top_results:
@@ -677,7 +679,7 @@ class Transit(commands.Cog):
         try:
             new_data = await self.fetch_trips(stop_code)
         except OCTranspoError as e:
-            return await interaction.response.send_message(embed=e.display, ephemeral=True)
+            return await interaction.followup.send(embed=e.display, ephemeral=True)
 
         assert new_data["Routes"]["Route"] is not None
         view = await BusDisplay.async_init(
@@ -914,10 +916,12 @@ class Transit(commands.Cog):
             )
             return await interaction.response.send_message(embed=embed, view=view)
 
+        await interaction.response.defer()
+
         try:
             data = await self.fetch_trips(stop_or_station)
         except OCTranspoError as e:
-            return await interaction.response.send_message(embed=e.display, ephemeral=True)
+            return await interaction.followup.send(embed=e.display, ephemeral=True)
 
         assert data["Routes"]["Route"] is not None
         view = await BusDisplay.async_init(
@@ -929,7 +933,7 @@ class Transit(commands.Cog):
 
         embed = view.pages[view.current_key]
         file = _generate_route_icon(view.current_key.split(":")[-1])
-        await interaction.response.send_message(embed=embed, file=file, view=view)
+        await interaction.followup.send(embed=embed, file=file, view=view)
 
 
 async def setup(client: NotGDKID):
