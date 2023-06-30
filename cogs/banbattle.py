@@ -468,7 +468,6 @@ class BanBattle(BattlerCog):
     async def get_all_bansettings(
         self, ctx: ApplicationContext, key: int = None
     ) -> discord.Embed:
-
         """
         Returns all the ban battle configurations for the given context
         """
@@ -513,7 +512,6 @@ class BanBattle(BattlerCog):
         return embed
 
     async def end_game(self, guild: discord.Guild) -> None:
-
         """
         Ends the Ban Battle game in the given guild [:param:`discord.Guild`]
         Parameters
@@ -543,7 +541,6 @@ class BanBattle(BattlerCog):
             )
 
             if gamemode in ["classic", "selfban"]:
-
                 guild_bans = await guild.bans()
 
                 for ban in guild_bans:
@@ -556,7 +553,6 @@ class BanBattle(BattlerCog):
                         await guild.unban(ban.user, reason="Ban battle unban")
 
                 for member in guild.members:
-
                     if gamer_role in member.roles:
                         await member.remove_roles(gamer_role)
 
@@ -565,9 +561,7 @@ class BanBattle(BattlerCog):
                 )
 
             elif gamemode == "passive":
-
                 for member in guild.members:
-
                     if gamer_role in member.roles:
                         await member.remove_roles(gamer_role)
 
@@ -636,7 +630,6 @@ class BanBattle(BattlerCog):
 
     @BattlerCog.listener()
     async def on_member_remove(self, member: discord.Member):
-
         try:
             self.players[member.guild.id]
             self.players[member.guild.id].index(member)
@@ -1045,9 +1038,7 @@ class BanBattle(BattlerCog):
                 return m.content.lower() == "cancel" and m.channel == channel
 
             while True:
-
                 try:
-
                     cancel = await self.client.wait_for(
                         "message", timeout=the_time_to_join, check=check
                     )
@@ -1104,7 +1095,6 @@ class BanBattle(BattlerCog):
             counter = 0
 
             for user in participants:
-
                 try:
                     member = await self.MemberConverter.convert(ctx, str(user.id))
                 except commands.BadArgument:
@@ -1242,15 +1232,12 @@ class BanBattle(BattlerCog):
                 )
 
             while True:
-
                 try:
-
                     the_ban_message: discord.Message = await self.client.wait_for(
                         "message", timeout=the_game_timeout, check=check
                     )
 
                     if the_ban_message:
-
                         try:
                             macth = re.search(
                                 r"(<@!?[^&])?\d{17,}>?", the_ban_message.content

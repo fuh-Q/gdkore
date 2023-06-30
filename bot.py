@@ -42,7 +42,6 @@ asyncio.BaseEventLoop.call_soon = new_call_soon
 
 
 async def get_prefix(client: commands.Bot, message: discord.Message) -> list:
-
     if client.user.id != 865596669999054910:  # Fixed prefix on the testing bot
         if not message.guild:  # DMs
             prefixes = list(all_casings("b!"))
@@ -73,7 +72,6 @@ class BanBattler(commands.Bot):
     """The ultimate ban battle bot itself"""
 
     def __init__(self):
-
         allowed_mentions = discord.AllowedMentions(
             roles=True, everyone=False, users=True, replied_user=True
         )

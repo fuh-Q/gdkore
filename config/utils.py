@@ -51,7 +51,6 @@ def humanize_timedelta(
     timedelta: Optional[datetime.timedelta] = None,
     seconds: Optional[SupportsInt] = None,
 ) -> str:
-
     try:
         obj = seconds if seconds is not None else timedelta.total_seconds()
     except AttributeError:

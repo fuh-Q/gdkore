@@ -15,7 +15,6 @@ class HelpCommand(commands.HelpCommand):
     """Our very smegc help command"""
 
     def __init__(self):
-
         super().__init__(
             verify_checks=False,
             command_attrs={
