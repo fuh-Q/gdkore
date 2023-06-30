@@ -566,6 +566,17 @@ class ResultSelector(View):
         view = self._og_view
         await interaction.response.edit_message(**_view_edit_kwargs(view))
 
+    @ui.button(label="New lookup", row=1, style=discord.ButtonStyle.primary, custom_id="new_lookup")
+    async def new_lookup(self, interaction: Interaction, item: ui.Button):
+        self.stop()
+        await interaction.response.send_modal(
+            NewLookupModal(
+                og_view=self._og_view,
+                db=self._db,
+                trip_fetcher=self._trip_fetcher,
+            )
+        )
+
 
 class NewLookupModal(ui.Modal, title="Bus Stop Lookup"):
     search = ui.TextInput(label="Search")
