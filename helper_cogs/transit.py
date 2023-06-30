@@ -169,8 +169,8 @@ class BusDisplay(View, auto_defer=False):
 
     TIMEOUT = 120
     _pages: Dict[str, discord.Embed] = {}
-    sorting: Sorting = Sorting.ROUTE
     _group: int = 0
+    sorting: Sorting = Sorting.ROUTE
 
     @classmethod
     async def async_init(
@@ -634,8 +634,6 @@ class NewLookupModal(ui.Modal, title="Bus Stop Lookup"):
 
 
 class Transit(commands.Cog):
-    _icon_file_closers: List[Callable[[], None]]
-
     STN_PATTERN = re.compile(r"(?: \d?[A-Z]$)| O-TRAIN(?:$| (?:WEST|EAST|NORTH|SOUTH) / (?:OUEST$|EST$|NORD$|SUD$))")
     TITLECASE_PATTERN = re.compile(r"^\w| d'\w| \w|-\w")
     LRT_STATION_HINTS = (
