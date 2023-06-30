@@ -103,7 +103,7 @@ def _sort_routes(routes: List[RouteData], /) -> List[Tuple[str, str, List[TripDa
     )
 
 
-def generate_route_icon(route: str, /) -> File:
+def _generate_route_icon(route: str, /) -> File:
     bg_colour, text_colour = _route_colour_cache[route]
     font = ImageFont.truetype("assets/opensans.ttf", 72)
 
@@ -122,9 +122,9 @@ def generate_route_icon(route: str, /) -> File:
     return f
 
 
-def view_edit_kwargs(view: BusDisplay, /) -> Dict[str, Any]:
+def _view_edit_kwargs(view: BusDisplay, /) -> Dict[str, Any]:
     if view.sorting is Sorting.ROUTE:
-        attachments = [generate_route_icon(view.current_key.split(":")[-1])]
+        attachments = [_generate_route_icon(view.current_key.split(":")[-1])]
     else:
         attachments = [discord.File("assets/penis.png")]
 
@@ -397,7 +397,7 @@ class BusDisplay(View, auto_defer=False):
             self.sorting = Sorting.ROUTE
             page = self._pages[self.current_key]
 
-            kwargs["attachments"] = [generate_route_icon(route_no)]
+            kwargs["attachments"] = [_generate_route_icon(route_no)]
 
             await interaction.followup.send(RELOAD_FAIL, ephemeral=True)
 
@@ -412,7 +412,7 @@ class BusDisplay(View, auto_defer=False):
         new_page = self._pages[key]
 
         if self.sorting is Sorting.ROUTE:
-            attachments = [generate_route_icon(key.split(":")[-1])]
+            attachments = [_generate_route_icon(key.split(":")[-1])]
         else:
             attachments = [discord.File("assets/penis.png")]
 
@@ -433,7 +433,7 @@ class BusDisplay(View, auto_defer=False):
             self.current_key = f"r:{fullroute}:{route_no}"
 
             new_label = "Sort by destination"
-            attachments = [generate_route_icon(self.current_key.split(":")[-1])]
+            attachments = [_generate_route_icon(self.current_key.split(":")[-1])]
 
         self._group = 0
         item.label = new_label
@@ -487,7 +487,7 @@ class ResultSelector(View):
             self.disable_all()
             coro = self._message_editor(view=self)
         else:
-            coro = self._message_editor(**view_edit_kwargs(self._og_view))
+            coro = self._message_editor(**_view_edit_kwargs(self._og_view))
 
         try:
             await coro
@@ -542,7 +542,7 @@ class ResultSelector(View):
         if self._og_view:
             self._og_view.stop()
 
-        await interaction.edit_original_response(**view_edit_kwargs(view))
+        await interaction.edit_original_response(**_view_edit_kwargs(view))
 
     @ui.button(row=1, label="Go back")
     async def go_back(self, interaction: Interaction, item: ui.Button):
@@ -550,7 +550,7 @@ class ResultSelector(View):
 
         self.stop()
         view = self._og_view
-        await interaction.response.edit_message(**view_edit_kwargs(view))
+        await interaction.response.edit_message(**_view_edit_kwargs(view))
 
 
 class NewLookupModal(ui.Modal, title="Bus Stop Lookup"):
@@ -580,7 +580,7 @@ class NewLookupModal(ui.Modal, title="Bus Stop Lookup"):
             if self._og_view:
                 self._og_view.stop()
 
-            return await interaction.response.edit_message(**view_edit_kwargs(view))
+            return await interaction.response.edit_message(**_view_edit_kwargs(view))
 
         top_results: List[StopInfo] = await self._db.fetch(stop_search_query(10), search)
         if not top_results:
@@ -690,7 +690,7 @@ class Transit(commands.Cog):
         if child_idx == 3:
             # this entire event handler is inherently a refresh, we don't need to do it twice
             view.update_components()
-            await interaction.edit_original_response(**view_edit_kwargs(view))
+            await interaction.edit_original_response(**_view_edit_kwargs(view))
 
             if not page:
                 await interaction.followup.send(RELOAD_FAIL, ephemeral=True)
@@ -915,7 +915,7 @@ class Transit(commands.Cog):
         )
 
         embed = view.pages[view.current_key]
-        file = generate_route_icon(view.current_key.split(":")[-1])
+        file = _generate_route_icon(view.current_key.split(":")[-1])
         await interaction.response.send_message(embed=embed, file=file, view=view)
 
 
