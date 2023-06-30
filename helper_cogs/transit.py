@@ -799,8 +799,7 @@ class Transit(commands.Cog):
             embed = no_such_stop(stop_code) if not data["StopDescription"] else no_routes_at_stop(stop_code)
             raise OCTranspoError(embed)
 
-        else:
-            return data
+        return data
 
     async def _do_bulk_insert(self, table: str, buffer: io.BytesIO, *columns: str) -> None:
         sql_columns = ", ".join(f"{c} TEXT" for c in columns)
