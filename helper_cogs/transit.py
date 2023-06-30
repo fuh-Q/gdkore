@@ -135,7 +135,7 @@ def _view_edit_kwargs(view: BusDisplay, /) -> Dict[str, Any]:
     }
 
 
-class BadResponseError(Exception):
+class BadResponse(Exception):
     def __init__(self, *args: Any, raw: Any = "") -> None:
         self.raw = raw
         super().__init__(*args)
@@ -378,6 +378,8 @@ class BusDisplay(View, auto_defer=False):
             new_data = await self._trip_fetcher(self._stop_info["stop_code"])
         except OCTranspoError as e:
             return await interaction.followup.send(embed=e.display, ephemeral=True)
+        except BadResponse as e:
+            return await interaction.followup.send(f"{str(e)}\n```{e.raw!r}```", ephemeral=True)
 
         assert new_data["Routes"]["Route"] is not None
         trips, routes_raw = _get_trips_and_routes(new_data["Routes"]["Route"])
@@ -537,6 +539,8 @@ class ResultSelector(View):
             data = await self._trip_fetcher(search)
         except OCTranspoError as e:
             return await interaction.followup.send(embed=e.display, ephemeral=True)
+        except BadResponse as e:
+            return await interaction.followup.send(f"{str(e)}\n```{e.raw!r}```", ephemeral=True)
 
         assert data["Routes"]["Route"] is not None
         view = await BusDisplay.async_init(
@@ -579,6 +583,8 @@ class NewLookupModal(ui.Modal, title="Bus Stop Lookup"):
                 data = await self._trip_fetcher(search)
             except OCTranspoError as e:
                 return await interaction.followup.send(embed=e.display, ephemeral=True)
+            except BadResponse as e:
+                return await interaction.followup.send(f"{str(e)}\n```{e.raw!r}```", ephemeral=True)
 
             assert data["Routes"]["Route"] is not None
             view = await BusDisplay.async_init(
@@ -680,6 +686,8 @@ class Transit(commands.Cog):
             new_data = await self.fetch_trips(stop_code)
         except OCTranspoError as e:
             return await interaction.followup.send(embed=e.display, ephemeral=True)
+        except BadResponse as e:
+            return await interaction.followup.send(f"{str(e)}\n```{e.raw!r}```", ephemeral=True)
 
         assert new_data["Routes"]["Route"] is not None
         view = await BusDisplay.async_init(
@@ -780,7 +788,7 @@ class Transit(commands.Cog):
             try:
                 data = orjson.loads(maybe_json)["GetRouteSummaryForStopResult"]
             except (orjson.JSONDecodeError, KeyError):
-                raise BadResponseError(
+                raise BadResponse(
                     "something went wrong, it's beyond my capabilities to handle, so here's the raw request output",
                     raw=raw,
                 )
@@ -922,6 +930,8 @@ class Transit(commands.Cog):
             data = await self.fetch_trips(stop_or_station)
         except OCTranspoError as e:
             return await interaction.followup.send(embed=e.display, ephemeral=True)
+        except BadResponse as e:
+            return await interaction.followup.send(f"{str(e)}\n```{e.raw!r}```", ephemeral=True)
 
         assert data["Routes"]["Route"] is not None
         view = await BusDisplay.async_init(
