@@ -21,7 +21,7 @@ from discord import ui
 from discord.app_commands import Choice, command, describe, autocomplete
 from discord.ext import commands, tasks
 
-from utils import CHOICES, BotEmojis, View, cap
+from utils import CHOICES, BotEmojis, PrintColours, View, cap
 
 if TYPE_CHECKING:
     from discord import File, Interaction, InteractionMessage, Member, User
@@ -84,9 +84,9 @@ def _parse_trips(o: TripField) -> List[TripData]:
     if isinstance(o, list):
         return o
     if "Trip" not in o:
-        return [o] # type: ignore
+        return [o]  # type: ignore
 
-    return _parse_trips(o["Trip"]) # type: ignore
+    return _parse_trips(o["Trip"])  # type: ignore
 
 
 def _sort_destinations(trips: List[TripData], /) -> List[str]:
@@ -821,7 +821,7 @@ class Transit(commands.Cog):
                 await conn.execute(query)
             except Exception as e:
                 await tr.rollback()
-                raise RuntimeError("failed rebuilding gtfs table '%s': %s" % (table, e))
+                log.error("failed rebuilding gtfs table '%s': %s", table, e)
             else:
                 await tr.commit()
 
@@ -874,16 +874,23 @@ class Transit(commands.Cog):
     async def _build_gtfs_tables(self, *, include: Dict[str, Iterable[str]]) -> None:
         url = "https://www.octranspo.com/files/google_transit.zip"
 
-        async with self.client.session.get(url) as res:
-            if res.status == 200:
-                buffer = io.BytesIO(await res.read())
+        log.info("attempting to build gtfs tables...")
+
+        async with self.client.session.get(url) as resp:
+            if resp.status == 200:
+                buffer = io.BytesIO(await resp.read())
             else:
-                raise RuntimeError("could not build gtfs tables atm, try again later")
+                colour = PrintColours.RED if resp.status >= 400 else PrintColours.GREEN
+                return log.error(
+                    "could not build gtfs tables (response code: %s%d%s)", colour, resp.status, PrintColours.WHITE
+                )
 
         tables = tuple(include)
         buffers = await asyncio.to_thread(self._handle_zipfile, buffer, *tables, **include)
         for filename, buffer in buffers.items():
             await self._do_bulk_insert(filename, buffer, *include[filename])
+
+        log.info("gtfs build complete")
 
     async def stop_or_station_autocomplete(self, interaction: Interaction, current: str) -> List[Choice[str]]:
         if not current:

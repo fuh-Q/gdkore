@@ -72,7 +72,7 @@ class Spotify(commands.Cog):
             headers=headers,
         ) as resp:
             colour = PrintColours.RED if resp.status >= 400 else PrintColours.GREEN
-            log.info("Refreshing access token... Spotify responded with: %s%d%s" % (colour, resp.status, PrintColours.WHITE))
+            log.info("Refreshing access token... Spotify responded with: %s%d%s", colour, resp.status, PrintColours.WHITE)
 
             data: OAuthCreds = await resp.json()
             data["refresh_token"] = token
@@ -103,18 +103,16 @@ class Spotify(commands.Cog):
             ) as resp:
                 colour = PrintColours.RED if resp.status >= 400 else PrintColours.GREEN
                 log.info(
-                    "[%d/5] %s%s %s%s%s -- %s%d%s"
-                    % (
-                        tries + 1,
-                        PrintColours.CYAN,
-                        route.method,
-                        PrintColours.PURPLE,
-                        route.endpoint,
-                        PrintColours.WHITE,
-                        colour,
-                        resp.status,
-                        PrintColours.WHITE,
-                    )
+                    "[%d/5] %s%s %s%s%s -- %s%d%s",
+                    tries + 1,
+                    PrintColours.CYAN,
+                    route.method,
+                    PrintColours.PURPLE,
+                    route.endpoint,
+                    PrintColours.WHITE,
+                    colour,
+                    resp.status,
+                    PrintColours.WHITE,
                 )
 
                 try:
@@ -123,7 +121,7 @@ class Spotify(commands.Cog):
                     response_body = await resp.text()
 
                 if resp.status >= 400:
-                    log.warning(response_body)
+                    log.warn(response_body)
 
                 if resp.status == 401:
                     new_creds = await self.do_refresh()
@@ -133,7 +131,7 @@ class Spotify(commands.Cog):
 
                 if resp.status == 429:
                     retry_after = resp.headers["Retry-After"]
-                    log.warning("Spotify ratelimit hit for %s %s, waiting %ss" % (route.method, route.endpoint, retry_after))
+                    log.warn("Spotify ratelimit hit for %s %s, waiting %ss", route.method, route.endpoint, retry_after)
 
                     await asyncio.sleep(float(retry_after))
                     continue
