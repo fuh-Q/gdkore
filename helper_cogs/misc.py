@@ -46,10 +46,10 @@ class Misc(commands.Cog):
     async def cog_unload(self) -> None:
         self.client.tree.remove_command("invite bot")
 
-    async def _try_request(self, member: discord.Member, /) -> int:
+    async def _try_request(self, member: discord.Member, /, *, token: str) -> int:
         endpoint = f"{Route.BASE}/guilds/{member.guild.id}/members/{member.id}"
-        json: Dict[str, Any] = {"access_token": self.client.serverjail[str(member.id)]["access_token"]}
         headers = {"Authorization": f"Bot {self.client.http.token}", "Content-Type": "application/json"}
+        json: Dict[str, Any] = {"access_token": token}
 
         if member.guild.me.guild_permissions.manage_roles:
             roles_to_add: List[str] = []
@@ -64,16 +64,14 @@ class Misc(commands.Cog):
             return res.status
 
     async def _do_refresh(self, *, refresh_token: str) -> OAuthCreds:
-        CLIENT_SECRET = "TICeRRfeHKL2JVATrcE-dgwwjLJVmyqQ"
-
         endpoint = f"{Route.BASE}/oauth2/token"
-        data: Dict[str, Any] = {
+        headers = {"Content-Type": "application/x-www-form-urlencoded"}
+        data = {
             "client_id": self.client.user.id,
-            "client_secret": CLIENT_SECRET,
+            "client_secret": self.client.oauth_secret,
             "grant_type": "refresh_token",
             "refresh_token": refresh_token,
         }
-        headers = {"Content-Type": "application/x-www-form-urlencoded"}
 
         assert self.client.session
         async with self.client.session.post(endpoint, data=data, headers=headers) as res:
@@ -84,15 +82,16 @@ class Misc(commands.Cog):
         if member.guild.id != self.STUPIDLY_DECENT_ID:
             return
 
-        if not self.client.serverjail.get(str(member.id)):
+        member_creds = self.client.serverjail.get(str(member.id))
+        if not member_creds:
             return
 
-        status = await self._try_request(member)
+        status = await self._try_request(member, token=member_creds["access_token"])
         if status >= 400:  # probably needs a refresh
-            new_creds = await self._do_refresh(refresh_token=self.client.serverjail[str(member.id)]["refresh_token"])
+            new_creds = await self._do_refresh(refresh_token=member_creds["refresh_token"])
             self.client.serverjail[str(member.id)] = new_creds
 
-        await self._try_request(member)
+        await self._try_request(member, token=member_creds["access_token"])
 
     @commands.Cog.listener("on_message")
     async def dank_msg_deleter(self, message: Message):
@@ -236,7 +235,7 @@ class Misc(commands.Cog):
     @commands.command(name="whitelist", aliases=["wl"], hidden=True)
     @commands.is_owner()
     async def wl(self, ctx: NGKContext, guild_id: int):
-        await self.client.whitelist.put(guild_id, None)
+        await self.client.whitelist.put(guild_id, -1)
 
         await ctx.try_react(emoji=BotEmojis.YES)
 

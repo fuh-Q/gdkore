@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 from datetime import datetime, timezone
 from typing import Annotated, List, TYPE_CHECKING
 
@@ -63,13 +62,8 @@ class Website(commands.Cog):
 
     @is_owner()
     async def add_note_msg(self, interaction: Interaction, message: discord.Message):
-        await interaction.response.defer(ephemeral=True)
-
         await self._add_note(message.content, message.attachments)
-        await interaction.followup.send("note added")
-
-        await asyncio.sleep(3)
-        await interaction.delete_original_response()
+        await interaction.response.send_message("note added", ephemeral=True, delete_after=3)
 
     @commands.command(name="addnote", aliases=["an", "sn"])
     @commands.is_owner()

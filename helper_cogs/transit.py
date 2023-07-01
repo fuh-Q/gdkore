@@ -213,6 +213,11 @@ class BusDisplay(View, auto_defer=False):
         return self
 
     async def interaction_check(self, interaction: Interaction, item: ui.Item) -> bool:
+        assert isinstance(interaction.client, NotGDKID)
+        if interaction.client.is_blacklisted(interaction.user):
+            await interaction.response.send_message("you're blacklisted \N{CLOWN FACE}", ephemeral=True)
+            return False
+
         interaction.extras["recieved"] = True
         interaction.extras.setdefault("sender", interaction.response.send_message)
         interaction.extras.setdefault("editor", interaction.response.edit_message)
@@ -655,6 +660,9 @@ class Transit(commands.Cog):
             or not interaction.data
         ):
             return
+
+        if self.client.is_blacklisted(interaction.user):
+            return await interaction.response.send_message("you're blacklisted \N{CLOWN FACE}", ephemeral=True)
 
         items = interaction.message.components
         first = items[0].children[0] if isinstance(items[0], discord.ActionRow) else items[0]

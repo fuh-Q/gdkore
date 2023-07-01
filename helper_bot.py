@@ -7,7 +7,7 @@ import sys
 import time
 import traceback
 from datetime import datetime, timedelta, timezone
-from typing import Callable, Dict, Generic, List, Set, TypeVar, TYPE_CHECKING
+from typing import Callable, Dict, List, Set, TypeVar, TYPE_CHECKING
 
 import asyncpg
 import aiohttp
@@ -15,7 +15,7 @@ import orjson
 import wavelink
 
 import discord
-from discord.app_commands import AppCommandError
+from discord.app_commands import AppCommandError, Choice
 from discord.gateway import DiscordWebSocket
 from discord.ext import commands, tasks
 
@@ -96,14 +96,15 @@ class NotGDKID(commands.Bot):
     owner_ids: List[int]
     get_guild: Callable[[int], discord.Guild]
     get_channel: Callable[[int], discord.abc.Messageable]
-    whitelist: Config[int]
-    blacklist: Config[int]
+    whitelist: Config[str | int]
+    blacklist: Config[bool]
     session: aiohttp.ClientSession
 
     with open("config/secrets.json", "rb") as f:
         secrets: Secrets = orjson.loads(f.read())
 
         token = secrets["helper_token"]
+        oauth_secret = secrets["helper_oauth_secret"]
         testing_token = secrets["testing_token"]
         postgres_dns = secrets["postgres_dns"] + "notgdkid"
         website_postgres = secrets["postgres_dns"] + "gdkid_xyz"
@@ -152,11 +153,11 @@ class NotGDKID(commands.Bot):
         self.description = self.__doc__ or ""
         self.uptime = datetime.now(tz=timezone(timedelta(hours=-4 if is_dst() else -5)))
 
-        self.tree.interaction_check = self.on_app_command
-        self.tree.on_error = self.on_app_command_error
+        self.tree.interaction_check = self.tree_interaction_check
+        self.tree.on_error = self.on_tree_error
         self.add_commands()
 
-    def _is_blacklisted(self, obj: Snowflake) -> bool:
+    def is_blacklisted(self, obj: Snowflake, /) -> bool:
         return obj.id in self.blacklist
 
     @property
@@ -224,11 +225,11 @@ class NotGDKID(commands.Bot):
         await self.invoke(ctx)
 
     async def on_message(self, message: discord.Message):
-        if message.author.bot or self._is_blacklisted(message.author):
+        if message.author.bot or self.is_blacklisted(message.author):
             return
 
         if message.guild is not None and message.author.id not in self.owner_ids:
-            if self._is_blacklisted(message.guild):
+            if self.is_blacklisted(message.guild):
                 return
 
             if message.guild.id in self._pending_verification:
@@ -239,25 +240,31 @@ class NotGDKID(commands.Bot):
 
         await self.process_commands(message)
 
-    async def on_app_command(self, interaction: Interaction) -> bool:
-        if g := interaction.guild:
-            if g.id in self._pending_verification:
+    async def tree_interaction_check(self, interaction: Interaction) -> bool:
+        if self.is_blacklisted(interaction.user):
+            if interaction.type is discord.InteractionType.autocomplete:
+                await interaction.response.autocomplete([Choice(name="you're blacklisted L", value="")])
+            else:
+                await interaction.response.send_message("you're blacklisted \N{CLOWN FACE}", ephemeral=True)
+
+            return False
+
+        guild = interaction.guild
+        if guild is not None:
+            if guild.id in self._pending_verification:
                 await interaction.response.send_message("server is not whitelisted", ephemeral=True)
                 return False
-
-            elif self._is_blacklisted(g):
-                await interaction.response.send_message("server is blacklisted", ephemeral=True)
+            elif self.is_blacklisted(guild):
+                await interaction.response.send_message("server is blacklisted \N{CLOWN FACE}", ephemeral=True)
                 return False
 
-        return True  # i only really care about servers here
+        return True
 
-    async def on_app_command_error(self, interaction: Interaction, error: AppCommandError):
+    async def on_tree_error(self, interaction: Interaction, error: AppCommandError):
         if interaction.response.is_done():  # interaction already responded to
             return
 
-        tr = traceback.format_exc()
-
-        self.log.error("\n%s%s" + PrintColours.RED + tr)
+        self.log.error("\n%s%s" + PrintColours.RED + traceback.format_exc())
 
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
         if payload.user_id in self.owner_ids and payload.emoji.name == "❌":
@@ -271,14 +278,15 @@ class NotGDKID(commands.Bot):
                 pass
 
     async def on_guild_join(self, guild: discord.Guild):
-        if self._is_blacklisted(guild):
+        if self.is_blacklisted(guild):
             return await guild.leave()
 
-        if not (name := self.whitelist.get(guild.id, 0)):
-            if name is None:
-                return await self.whitelist.put(guild.id, guild.name)
+        name = self.whitelist.get(guild.id)
+        if name == -1:
+            return await self.whitelist.put(guild.id, guild.name)
 
-        if not (gdkid := guild.get_member(self.owner.id)):
+        gdkid = guild.get_member(self.owner.id)
+        if not gdkid:
             await self.whitelist.remove(guild.id, missing_ok=True)
             return await guild.leave()
 
@@ -290,24 +298,28 @@ class NotGDKID(commands.Bot):
             timestamp=datetime.now(tz=timezone.utc),
         )
 
-        view = Confirm(self.owner)
-        view.original_message = await gdkid.send(embed=embed, view=view)
+        try:
+            view = Confirm(self.owner)
+            view.original_message = await gdkid.send(embed=embed, view=view)
 
-        expired = await view.wait()
-        if expired:
-            return await guild.leave()
+            expired = await view.wait()
+            if expired:
+                return await guild.leave()
 
-        await view.interaction.response.edit_message(view=view)
-        if not view.choice:
-            return await guild.leave()
+            await view.interaction.response.edit_message(view=view)
+            if not view.choice:
+                return await guild.leave()
 
-        await self.whitelist.put(guild.id, guild.name)
-        self._pending_verification.remove(guild.id)
+            await self.whitelist.put(guild.id, guild.name)
+        finally:
+            self._pending_verification.discard(guild.id)
 
-    async def on_voice_state_update(self, member: discord.Member, *args: discord.VoiceState):
-        if vc := member.guild.voice_client:
+    async def on_voice_state_update(self, member: discord.Member, *_):
+        vc = member.guild.voice_client
+        if vc is not None:
             assert isinstance(vc, wavelink.Player) and isinstance(vc.channel, discord.VoiceChannel)
-            if len(vc.channel.members) == 1:
+
+            if len(vc.channel.members) == 1:  # no one in vc besides the bot
                 await vc.disconnect(force=True)
 
                 cog: Music | None = self.get_cog("Music")  # type: ignore
@@ -315,26 +327,6 @@ class NotGDKID(commands.Bot):
                     del cog.loops[member.guild.id]
 
                 return
-
-        if member.id not in self.owner_ids:
-            return
-
-        if (
-            member.voice
-            and not args[0].channel  # before.channel
-            and member.voice.self_mute
-            and not member.voice.self_deaf
-            and not member.guild.voice_client
-        ):
-            assert member.voice and member.voice.channel
-            await member.voice.channel.connect(cls=wavelink.Player)  # type: ignore
-
-        elif member.guild.voice_client and (not member.voice or member.voice.self_deaf):
-            cog: Music | None = self.get_cog("Music")  # type: ignore
-            if cog and cog.loops.get(member.guild.id, None):
-                return
-
-            await member.guild.voice_client.disconnect(force=True)
 
     def run(self) -> None:
         async def runner():

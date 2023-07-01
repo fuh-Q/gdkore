@@ -78,6 +78,7 @@ class Secrets(TypedDict):
     token: str
     testing_token: str
     helper_token: str
+    helper_oauth_secret: str
     rickroll_token: str
     other_rickroll_token: str
     github_token: str
