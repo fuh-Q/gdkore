@@ -24,7 +24,7 @@ from discord.ext import commands, tasks
 from utils import CHOICES, BotEmojis, PrintColours, View, cap
 
 if TYPE_CHECKING:
-    from discord import File, Interaction, InteractionMessage, Member, User
+    from discord import Embed, File, Interaction, InteractionMessage, Member, User
 
     from helper_bot import NotGDKID
     from utils import BusStopResponse, PostgresPool, RouteData, StopInfo, TripData
@@ -36,24 +36,23 @@ if TYPE_CHECKING:
     TripFetcher = Callable[[str], Coroutine[Any, Any, BusStopResponse]]
     EditFunc = Callable[..., Coroutine[Any, Any, InteractionMessage]]
 
+    _route_colour_cache: Dict[str, str]
+
 log = logging.getLogger(f"NotGDKID:{__name__}")
-_route_colour_cache: Dict[str, str]
 
 RAIL = ["1"]
 RELOAD_FAIL = "i couldn't reload that page, it's most likely that there were no trips left, therefore i've reset the menu to the landing screen"
 
-no_routes_at_stop: Callable[[str], discord.Embed] = lambda stop_code: discord.Embed(
+no_routes_at_stop: Callable[[str], Embed] = lambda stop_code: discord.Embed(
     description=f"no trips that are anytime soon found for stop **#{stop_code}**", timestamp=datetime.now()
 )
 
-no_such_stop: Callable[[str], discord.Embed] = lambda stop_code: discord.Embed(
+no_such_stop: Callable[[str], Embed] = lambda stop_code: discord.Embed(
     description=f"stop **#{stop_code}** does not exist", timestamp=datetime.now()
 )
 
-stop_search_query: Callable[
-    [int], str
-] = (
-    lambda limit: f"SELECT stop_code, stop_name FROM stops ORDER BY SIMILARITY(LOWER(stop_name), LOWER($1)) DESC LIMIT {limit}"
+stop_search_query: Callable[[int], str] = lambda limit: (
+    f"SELECT stop_code, stop_name FROM stops ORDER BY SIMILARITY(LOWER(stop_name), LOWER($1)) DESC LIMIT {limit}"
 )
 
 
@@ -103,34 +102,38 @@ def _sort_routes(routes: List[RouteData], /) -> List[Tuple[str, str, List[TripDa
     )
 
 
-def _generate_route_icon(route: str, /) -> File:
-    bg_colour, text_colour = _route_colour_cache[route]
-    font = ImageFont.truetype("assets/opensans.ttf", 72)
+def _generate_route_icon(route: str, /) -> Coroutine[Any, Any, File]:
+    def runner():
+        bg_colour, text_colour = _route_colour_cache[route]
+        font = ImageFont.truetype("assets/opensans.ttf", 72)
 
-    buffer = io.BytesIO()
-    img = Image.open(f"assets/{bg_colour}.png")
-    draw = ImageDraw.Draw(img)
+        buffer = io.BytesIO()
+        img = Image.open(f"assets/{bg_colour}.png")
+        draw = ImageDraw.Draw(img)
 
-    textsize = font.getbbox(route)
-    x, y = (img.width - textsize[2]) // 2, 4
-    draw.text((x, y), route, fill="#" + text_colour, font=font)
+        textsize = font.getbbox(route)
+        x, y = (img.width - textsize[2]) // 2, 4
+        draw.text((x, y), route, fill="#" + text_colour, font=font)
 
-    img.save(buffer, "png")
-    buffer.seek(0)
+        img.save(buffer, "png")
+        buffer.seek(0)
 
-    f = discord.File(buffer, "penis.png", description="eat my balls")
-    return f
+        return discord.File(buffer, "penis.png", description="eat my balls")
+
+    return asyncio.to_thread(runner)
 
 
-def _view_edit_kwargs(view: BusDisplay, /) -> Dict[str, Any]:
+async def _view_edit_kwargs(view: BusDisplay, *, as_send: bool = False) -> Dict[str, Any]:
     if view.sorting is Sorting.ROUTE:
-        attachments = [_generate_route_icon(view.current_key.split(":")[-1])]
+        attachments = [await _generate_route_icon(view.current_key.split(":")[-1])]
     else:
         attachments = [discord.File("assets/penis.png")]
 
+    file_key = "files" if as_send else "attachments"
+
     return {
+        file_key: attachments,
         "embed": view.pages[view.current_key],
-        "attachments": attachments,
         "view": view,
     }
 
@@ -142,7 +145,7 @@ class BadResponse(Exception):
 
 
 class OCTranspoError(Exception):
-    def __init__(self, error_embed: discord.Embed, /) -> None:
+    def __init__(self, error_embed: Embed, /) -> None:
         self.display = error_embed
         super().__init__()
 
@@ -168,7 +171,7 @@ class BusDisplay(View, auto_defer=False):
         current_key: str
 
     TIMEOUT = 120
-    _pages: Dict[str, discord.Embed] = {}
+    _pages: Dict[str, Embed] = {}
     _group: int = 0
     sorting: Sorting = Sorting.ROUTE
 
@@ -229,7 +232,7 @@ class BusDisplay(View, auto_defer=False):
         return True
 
     @property
-    def pages(self) -> Dict[str, discord.Embed]:
+    def pages(self) -> Dict[str, Embed]:
         return self._pages
 
     @property
@@ -239,7 +242,7 @@ class BusDisplay(View, auto_defer=False):
     def _make_custom_id(self) -> str:
         return f"★;{self._stop_info['stop_code']};{self.current_key};{round(time.time())}"
 
-    def _add_trip_fields_to_embed(self, embed: discord.Embed, /, *, trips: List[TripData]) -> None:
+    def _add_trip_fields_to_embed(self, embed: Embed, /, *, trips: List[TripData]) -> None:
         for i in range(3):
             name = f"Trip {i+1}"
             if i >= len(trips):
@@ -266,7 +269,7 @@ class BusDisplay(View, auto_defer=False):
             last_trip = f"Last trip? - {BotEmojis.YES if trip['LastTripOfSchedule'] else BotEmojis.NO}"
             embed.add_field(name=name, value=f"{arrives}\n\n{mid}\n\n{last_adjusted}\n{gps}\n{last_trip}\n\u200b")
 
-    def _get_base_embed(self, item: str, value: str, /, *, route_no: str | None = None) -> discord.Embed:
+    def _get_base_embed(self, item: str, value: str, /, *, route_no: str | None = None) -> Embed:
         e = discord.Embed(
             title=f"Next 3 trips for {item} {value}",
             timestamp=datetime.now(),
@@ -402,36 +405,26 @@ class BusDisplay(View, auto_defer=False):
         self._build_route_pages(routes)
         self._build_destination_pages(destinations)
 
-        kwargs: Dict[str, Any] = {"view": self}
-
         page = self._pages.get(self.current_key, None)
         if not page:
             fullroute, route_no, _ = routes[0]
             self.current_key = f"r:{fullroute}:{route_no}"
             self.sorting = Sorting.ROUTE
-            page = self._pages[self.current_key]
-
-            kwargs["attachments"] = [_generate_route_icon(route_no)]
 
             await interaction.followup.send(RELOAD_FAIL, ephemeral=True)
 
-        kwargs["embed"] = page
         self.update_components()
+        kwargs = await _view_edit_kwargs(self)
         await interaction.edit_original_response(**kwargs)
 
     @ui.select(row=1, custom_id="selector")
     async def mode_entity_select(self, interaction: Interaction, item: ui.Select):
         key = item.values[0]
         self.current_key = key
-        new_page = self._pages[key]
-
-        if self.sorting is Sorting.ROUTE:
-            attachments = [_generate_route_icon(key.split(":")[-1])]
-        else:
-            attachments = [discord.File("assets/penis.png")]
 
         self.update_components()
-        await interaction.extras["editor"](embed=new_page, attachments=attachments, view=self)
+        kwargs = await _view_edit_kwargs(self)
+        await interaction.extras["editor"](**kwargs)
 
     @ui.button(label="Sort by destination", row=2, custom_id="swap_sorting")
     async def swap_sorting(self, interaction: Interaction, item: ui.Button):
@@ -440,20 +433,19 @@ class BusDisplay(View, auto_defer=False):
             self.current_key = f"d:{self._destinations[0][0]}"
 
             new_label = "Sort by route"
-            attachments = [discord.File("assets/penis.png")]
         else:
             fullroute, route_no = self._routes[0][0]
             self.sorting = Sorting.ROUTE
             self.current_key = f"r:{fullroute}:{route_no}"
 
             new_label = "Sort by destination"
-            attachments = [_generate_route_icon(self.current_key.split(":")[-1])]
 
         self._group = 0
         item.label = new_label
 
         self.update_components()
-        await interaction.extras["editor"](embed=self._pages[self.current_key], attachments=attachments, view=self)
+        kwargs = await _view_edit_kwargs(self)
+        await interaction.extras["editor"](**kwargs)
 
     @ui.button(label="New lookup", row=2, style=discord.ButtonStyle.primary, custom_id="new_lookup")
     async def new_lookup(self, interaction: Interaction, item: ui.Button):
@@ -501,7 +493,8 @@ class ResultSelector(View):
             self.disable_all()
             coro = self._message_editor(view=self)
         else:
-            coro = self._message_editor(**_view_edit_kwargs(self._og_view))
+            kwargs = await _view_edit_kwargs(self._og_view)
+            coro = self._message_editor(**kwargs)
 
         try:
             await coro
@@ -561,15 +554,16 @@ class ResultSelector(View):
         if self._og_view:
             self._og_view.stop()
 
-        await interaction.edit_original_response(**_view_edit_kwargs(view))
+        kwargs = await _view_edit_kwargs(view)
+        await interaction.edit_original_response(**kwargs)
 
     @ui.button(row=1, label="Go back")
     async def go_back(self, interaction: Interaction, item: ui.Button):
         assert self._og_view is not None
 
         self.stop()
-        view = self._og_view
-        await interaction.response.edit_message(**_view_edit_kwargs(view))
+        kwargs = await _view_edit_kwargs(self._og_view)
+        await interaction.response.edit_message(**kwargs)
 
     @ui.button(label="New lookup", row=1, style=discord.ButtonStyle.primary, custom_id="new_lookup")
     async def new_lookup(self, interaction: Interaction, item: ui.Button):
@@ -615,7 +609,8 @@ class NewLookupModal(ui.Modal, title="Bus Stop Lookup"):
             if self._og_view:
                 self._og_view.stop()
 
-            return await interaction.edit_original_response(**_view_edit_kwargs(view))
+            kwargs = await _view_edit_kwargs(view)
+            return await interaction.edit_original_response(**kwargs)
 
         top_results: List[StopInfo] = await self._db.fetch(stop_search_query(10), search)
         if not top_results:
@@ -729,7 +724,8 @@ class Transit(commands.Cog):
         if child_idx == 3:
             # this entire event handler is inherently a refresh, we don't need to do it twice
             view.update_components()
-            await interaction.edit_original_response(**_view_edit_kwargs(view))
+            kwargs = await _view_edit_kwargs(view)
+            await interaction.edit_original_response(**kwargs)
 
             if not page:
                 await interaction.followup.send(RELOAD_FAIL, ephemeral=True)
@@ -966,9 +962,8 @@ class Transit(commands.Cog):
             trip_fetcher=self.fetch_trips,
         )
 
-        embed = view.pages[view.current_key]
-        file = _generate_route_icon(view.current_key.split(":")[-1])
-        await interaction.followup.send(embed=embed, file=file, view=view)
+        kwargs = await _view_edit_kwargs(view, as_send=True)
+        await interaction.followup.send(**kwargs)
 
 
 async def setup(client: NotGDKID):
