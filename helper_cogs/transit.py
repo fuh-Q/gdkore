@@ -24,7 +24,7 @@ from discord.ext import commands, tasks
 from utils import CHOICES, BotEmojis, PrintColours, View, cap
 
 if TYPE_CHECKING:
-    from discord import Embed, File, Interaction, InteractionMessage, Member, User
+    from discord import Embed, File, InteractionMessage, Member, User
 
     from helper_bot import NotGDKID
     from utils import BusStopResponse, PostgresPool, RouteData, StopInfo, TripData
@@ -32,6 +32,7 @@ if TYPE_CHECKING:
     from typing_extensions import Self
 
     T = TypeVar("T")
+    Interaction = discord.Interaction[NotGDKID]
     TripField = List[TripData] | TripData | Dict[Literal["Trip"], List[TripData]] | Dict[Literal["Trip"], TripData]
     TripFetcher = Callable[[str], Coroutine[Any, Any, BusStopResponse]]
     EditFunc = Callable[..., Coroutine[Any, Any, InteractionMessage]]
@@ -216,7 +217,6 @@ class BusDisplay(View, auto_defer=False):
         return self
 
     async def interaction_check(self, interaction: Interaction, item: ui.Item) -> bool:
-        assert isinstance(interaction.client, NotGDKID)
         if interaction.client.is_blacklisted(interaction.user):
             await interaction.response.send_message("you're blacklisted \N{CLOWN FACE}", ephemeral=True)
             return False
