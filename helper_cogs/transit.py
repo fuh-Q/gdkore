@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     from discord import Embed, File, InteractionMessage, Member, User
 
     from helper_bot import NotGDKID
-    from utils import BusStopResponse, PostgresPool, RouteData, StopInfo, TripData
+    from utils import BusStopResponse, NGKContext, PostgresPool, RouteData, StopInfo, TripData
 
     from typing_extensions import Self
 
@@ -641,6 +641,11 @@ class Transit(commands.Cog):
         "PARLIAMENT",
     )
 
+    GTFS_BUILD_INCLUDE = {
+        "routes": ("route_short_name", "route_color", "route_text_color"),
+        "stops": ("stop_code", "stop_name", "stop_lat", "stop_lon"),
+    }
+
     def __init__(self, client: NotGDKID):
         self.client = client
 
@@ -763,12 +768,7 @@ class Transit(commands.Cog):
 
         self.gtfs_task = tasks.loop(hours=24)(self._build_gtfs_tables)
         self.gtfs_task.before_loop(partial(asyncio.sleep, until_midnight.total_seconds()))
-        self.gtfs_task.start(
-            include={
-                "routes": ("route_short_name", "route_color", "route_text_color"),
-                "stops": ("stop_code", "stop_name", "stop_lat", "stop_lon"),
-            }
-        )
+        self.gtfs_task.start(include=self.GTFS_BUILD_INCLUDE)
 
         query = "SELECT * FROM routes"
         route_colour_map = {r["route_short_name"]: r[1:] for r in await self.client.db.fetch(query)}
@@ -835,6 +835,8 @@ class Transit(commands.Cog):
             except Exception as e:
                 await tr.rollback()
                 log.error("failed rebuilding gtfs table '%s': %s", table, e)
+
+                raise
             else:
                 await tr.commit()
 
@@ -884,8 +886,9 @@ class Transit(commands.Cog):
 
         return buffers
 
-    async def _build_gtfs_tables(self, *, include: Dict[str, Iterable[str]]) -> None:
+    async def _build_gtfs_tables(self, *, include: Dict[str, Iterable[str]]) -> bool:
         url = "https://www.octranspo.com/files/google_transit.zip"
+        successful = True
 
         log.info("attempting to build gtfs tables...")
 
@@ -894,16 +897,22 @@ class Transit(commands.Cog):
                 buffer = io.BytesIO(await resp.read())
             else:
                 colour = PrintColours.RED if resp.status >= 400 else PrintColours.GREEN
-                return log.error(
+                log.error(
                     "could not build gtfs tables (response code: %s%d%s)", colour, resp.status, PrintColours.WHITE
                 )
+
+                return False
 
         tables = tuple(include)
         buffers = await asyncio.to_thread(self._handle_zipfile, buffer, *tables, **include)
         for filename, buffer in buffers.items():
-            await self._do_bulk_insert(filename, buffer, *include[filename])
+            try:
+                await self._do_bulk_insert(filename, buffer, *include[filename])
+            except Exception:
+                successful = False
 
         log.info("gtfs build complete")
+        return successful
 
     async def stop_or_station_autocomplete(self, interaction: Interaction, current: str) -> List[Choice[str]]:
         if not current:
@@ -918,7 +927,7 @@ class Transit(commands.Cog):
             for r in results
         ]
 
-    @command(name="busarrivals", description="OC Transpo bus arrivals")
+    @command(name="busarrivals", description="oc transpo bus arrivals")
     @describe(stop_or_station="the station or bus stop to view arrivals for")
     @autocomplete(stop_or_station=stop_or_station_autocomplete)
     async def bus(self, interaction: Interaction, stop_or_station: str):
@@ -964,6 +973,15 @@ class Transit(commands.Cog):
 
         kwargs = await _view_edit_kwargs(view, as_send=True)
         await interaction.followup.send(**kwargs)
+
+    @commands.command(name="gtfs")
+    @commands.is_owner()
+    async def gtfs(self, ctx: NGKContext):
+        successful = await self._build_gtfs_tables(include=self.GTFS_BUILD_INCLUDE)
+        if not successful:
+            return await ctx.reply("build errored, check logs")
+
+        await ctx.try_react(emoji=BotEmojis.YES)
 
 
 async def setup(client: NotGDKID):

@@ -27,11 +27,12 @@ class Misc(commands.Cog):
     STUPIDLY_DECENT_ID = 890355226517860433
     PARALLEL_ID = 782041178489094154
     TASK_MINUTES = 49
-    THREADS_PURGE_CUTOFF = datetime(year=2023, month=6, day=23)
+    THREADS_PURGE_CUTOFF = datetime(year=2023, month=7, day=3)
     THREAD_IDS = [
-        1111853523794149386,  # gdkid
-        1111853402801045545,  # toilet
-        1111853274983829616,  # sam
+        1125273011201785987,  # gdkid
+        1125273798397141034,  # toilet
+        1125273927564918816,  # sam
+        1125274051116535858,  # little shit
     ]
 
     def __init__(self, client: NotGDKID) -> None:
@@ -45,6 +46,13 @@ class Misc(commands.Cog):
 
     async def cog_unload(self) -> None:
         self.client.tree.remove_command("invite bot")
+
+        if self._reminder_task is not None:
+            self._reminder_task.cancel()
+
+        for timer in self._purge_timers.values():
+            if timer is not None:
+                timer.cancel()
 
     async def _try_request(self, member: discord.Member, /, *, token: str) -> int:
         endpoint = f"{Route.BASE}/guilds/{member.guild.id}/members/{member.id}"
