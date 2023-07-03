@@ -137,6 +137,7 @@ class NotGDKID(commands.Bot):
                 596481615253733408,  # gdkid
                 650882112655720468,  # toilet
                 1091888723060326470,  # sam
+                1124467072907350026,  # little shit
             ],
         )
 
