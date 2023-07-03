@@ -9,7 +9,9 @@ if TYPE_CHECKING:
     from helper_bot import NotGDKID
 
 
-class NGKContext(commands.Context["NotGDKID"]):
+class NGKContext(commands.Context):
+    bot: NotGDKID
+
     async def try_react(self, *, emoji: str | discord.PartialEmoji):
         try:
             await self.message.add_reaction(emoji)
