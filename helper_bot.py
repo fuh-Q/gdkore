@@ -29,7 +29,6 @@ from utils import (
     get_extensions,
     mobile,
     is_dst,
-    new_call_soon,
 )
 
 if TYPE_CHECKING:
@@ -51,7 +50,7 @@ else:
     uvloop.install()
 
 start = time.monotonic()
-asyncio.BaseEventLoop.call_soon = new_call_soon
+# asyncio.BaseEventLoop.call_soon = new_call_soon
 DiscordWebSocket.identify = mobile
 
 
@@ -198,7 +197,7 @@ class NotGDKID(commands.Bot):
 
         self.status_task = status_task.start(self)
         ready_task = self.loop.create_task(self.first_ready())
-        ready_task.add_done_callback(lambda exc: print(traceback.format_exc()) if exc.exception() else ...)
+        ready_task.add_done_callback(lambda exc: traceback.print_exc() if exc.exception() else ...)
 
         for extension in self.init_extensions:
             await self.load_extension(extension)
