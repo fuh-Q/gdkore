@@ -11,10 +11,11 @@ from discord.ui import Button, Select, button
 from utils import BotEmojis, BotColours, Confirm, MaxConcurrencyReached, View
 
 if TYPE_CHECKING:
-    from discord import Interaction
     from discord.ui import Item
 
     from helper_bot import NotGDKID
+
+    Interaction = discord.Interaction[NotGDKID]
 
 __all__ = ("CheckersGame",)
 
@@ -468,6 +469,10 @@ class Game(View):
             await self.original_message.edit(**kwargs)
 
     async def interaction_check(self, interaction: Interaction, item: Item) -> bool | None:
+        if self.client.is_blacklisted(interaction.user) and item is not self.forfeit:
+            await interaction.response.send_message("you're blacklisted \N{CLOWN FACE}", ephemeral=True)
+            return False
+
         if interaction.user not in self.logic.users:
             await interaction.response.send_message("its not your game", ephemeral=True)
             return False
