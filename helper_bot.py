@@ -50,7 +50,6 @@ else:
     uvloop.install()
 
 start = time.monotonic()
-# asyncio.BaseEventLoop.call_soon = new_call_soon
 DiscordWebSocket.identify = mobile
 
 
