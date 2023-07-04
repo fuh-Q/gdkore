@@ -911,7 +911,7 @@ class Transit(commands.Cog):
             except Exception:
                 successful = False
 
-        log.info("gtfs build complete")
+        log.info("gtfs build %s", 'complete' if successful else 'errored')
         return successful
 
     async def stop_or_station_autocomplete(self, interaction: Interaction, current: str) -> List[Choice[str]]:
