@@ -981,7 +981,7 @@ class Transit(commands.Cog):
         kwargs = await _view_edit_kwargs(view, as_send=True)
         await interaction.followup.send(**kwargs)
 
-    @command(name="map", description="view a bus route's map")
+    @command(name="routemap", description="view a bus route's map")
     @describe(route="the route number")
     async def routemap(self, interaction: Interaction, route: str):
         route = route.upper()
