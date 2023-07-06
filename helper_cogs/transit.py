@@ -981,6 +981,22 @@ class Transit(commands.Cog):
         kwargs = await _view_edit_kwargs(view, as_send=True)
         await interaction.followup.send(**kwargs)
 
+    @command(name="map", description="view a bus route's map")
+    @describe(route="the route number")
+    async def routemap(self, interaction: Interaction, route: str):
+        route = route.upper()
+
+        if route not in _route_colour_cache:
+            msg = f"route **{route}** does not exist"
+            return await interaction.response.send_message(msg, ephemeral=True)
+
+        today = datetime.now().strftime("%Y%m%d")
+        title_url = f"https://octranspo.com/plan-your-trip/schedules-maps?sched-lang=en&date={today}&rte={route}"
+        url = f"https://octranspo.com/images/files/routes/{route.zfill(3)}map.gif"
+
+        embed = discord.Embed(title=f"Route map for route {route}", url=title_url).set_image(url=url)
+        await interaction.response.send_message(embed=embed)
+
     @commands.command(name="gtfs")
     @commands.is_owner()
     async def gtfs(self, ctx: NGKContext):
