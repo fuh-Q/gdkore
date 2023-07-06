@@ -648,6 +648,7 @@ class Transit(commands.Cog):
 
     def __init__(self, client: NotGDKID):
         self.client = client
+        self._debug = False
 
     @commands.Cog.listener()
     async def on_interaction(self, interaction: Interaction):
@@ -790,6 +791,9 @@ class Transit(commands.Cog):
 
         async with self.client.session.get(url, params=params) as res:
             raw = await res.text()
+
+        if self._debug:
+            log.info(raw)
 
         try:
             data = orjson.loads(raw)["GetRouteSummaryForStopResult"]
@@ -985,6 +989,12 @@ class Transit(commands.Cog):
             return await ctx.reply("build errored, check logs")
 
         await ctx.try_react(emoji=BotEmojis.YES)
+
+    @commands.command(name="busdebug", aliases=["bdg"])
+    @commands.is_owner()
+    async def busdebug(self, ctx: NGKContext):
+        self._debug = not self._debug
+        await ctx.reply(f"api debugging {'enabled' if self._debug else 'disabled'}")
 
 
 async def setup(client: NotGDKID):
