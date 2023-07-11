@@ -24,7 +24,7 @@ from discord.ext import commands, tasks
 from utils import CHOICES, BotEmojis, PrintColours, View, cap
 
 if TYPE_CHECKING:
-    from discord import Embed, File, InteractionMessage, Member, User
+    from discord import Embed, File, InteractionMessage, Member, SelectOption, User
 
     from helper_bot import NotGDKID
     from utils import BusStopResponse, NGKContext, PostgresPool, RouteData, StopInfo, TripData
@@ -319,33 +319,34 @@ class BusDisplay(View, auto_defer=False):
 
         return f"{start}-{stop} of {total}"
 
+    @property
+    def _bus_route_opts(self) -> List[SelectOption]:
+        return [
+            discord.SelectOption(label=f, value=f"r:{f}:{n}", description="Bus route" if n not in RAIL else "LRT line")
+            for (f, n) in self._routes[self._group] # (full route + destination, just the route number)
+            if f"r:{f}:{n}" != self.current_key
+        ]
+
+    @property
+    def _destination_opts(self) -> List[SelectOption]:
+        return [
+            discord.SelectOption(label=dest, value=f"d:{dest}", description="Destination")
+            for dest in self._destinations[self._group]
+            if f"d:{dest}" != self.current_key
+        ]
+
     def _prepare_select(self) -> None:
         if self.sorting is Sorting.ROUTE:
             item = "Bus routes"
-            opts = [
-                discord.SelectOption(
-                    label=fullroute,
-                    value=f"r:{fullroute}:{route_no}",
-                    description="Bus route" if route_no not in RAIL else "LRT line",
-                )
-                for (fullroute, route_no) in self._routes[self._group]
-                if f"r:{fullroute}:{route_no}" != self.current_key
-            ]
+            opts = self._bus_route_opts
         else:
             item = "Destinations"
-            opts = [
-                discord.SelectOption(label=dest, value=f"d:{dest}", description="Destination")
-                for dest in self._destinations[self._group]
-                if f"d:{dest}" != self.current_key
-            ]
+            opts = self._destination_opts
 
         self.mode_entity_select.placeholder = f"{item} [{self._count_shown()}]"
         self.mode_entity_select.disabled = not bool(opts)
 
-        if opts:
-            self.mode_entity_select.options = opts
-        else:
-            self.mode_entity_select.options = [discord.SelectOption(label="suck my balls")]
+        self.mode_entity_select.options = opts or [discord.SelectOption(label="suck my balls")]
 
     def update_components(self) -> None:
         self.children[0].custom_id = self._make_custom_id()
@@ -512,19 +513,15 @@ class ResultSelector(View):
         stops = []
         for r in self._results:
             if r["stop_name"].endswith(" Stn."):
-                transitway.append(
-                    discord.SelectOption(
-                        label=f"★  [{r['stop_code']}] {r['stop_name']}",
-                        description="Transitway station",
-                        value=r["stop_code"],
-                    )
-                )
+                label = f"★  [{r['stop_code']}] {r['stop_name']}"
+                description = "Transitway station"
+                store = transitway
             else:
-                stops.append(
-                    discord.SelectOption(
-                        label=f"[{r['stop_code']}] {r['stop_name']}", description="Bus stop", value=r["stop_code"]
-                    )
-                )
+                label = f"[{r['stop_code']}] {r['stop_name']}"
+                description = "Bus stop"
+                store = stops
+
+            store.append(discord.SelectOption(label=label, description=description, value=r["stop_code"]))
 
         self.selector.options = transitway + stops
 
@@ -904,9 +901,7 @@ class Transit(commands.Cog):
                 buffer = io.BytesIO(await resp.read())
             else:
                 colour = PrintColours.RED if resp.status >= 400 else PrintColours.GREEN
-                log.error(
-                    "could not build gtfs tables (response code: %s%d%s)", colour, resp.status, PrintColours.WHITE
-                )
+                log.error("could not build gtfs tables (response code: %s%d%s)", colour, resp.status, PrintColours.WHITE)
 
                 return False
 
@@ -918,7 +913,7 @@ class Transit(commands.Cog):
             except Exception:
                 successful = False
 
-        log.info("gtfs build %s", 'complete' if successful else 'errored')
+        log.info("gtfs build %s", "complete" if successful else "errored")
         return successful
 
     async def stop_or_station_autocomplete(self, interaction: Interaction, current: str) -> List[Choice[str]]:
