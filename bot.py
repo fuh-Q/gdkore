@@ -21,7 +21,6 @@ from discord.ext import commands
 from google_auth_oauthlib.flow import Flow
 from google.auth.exceptions import RefreshError
 from google.oauth2.credentials import Credentials
-from google.auth.transport.requests import Request
 
 # <-- database imports -->
 import asyncpg

@@ -37,7 +37,7 @@ if TYPE_CHECKING:
     TripFetcher = Callable[[str], Coroutine[Any, Any, BusStopResponse]]
     EditFunc = Callable[..., Coroutine[Any, Any, InteractionMessage]]
 
-    _route_colour_cache: Dict[str, str]
+    route_colour_cache: Dict[str, str]
 
 log = logging.getLogger(f"NotGDKID:{__name__}")
 
@@ -105,7 +105,7 @@ def _sort_routes(routes: List[RouteData], /) -> List[Tuple[str, str, List[TripDa
 
 def _generate_route_icon(route: str, /) -> Coroutine[Any, Any, File]:
     def runner():
-        bg_colour, text_colour = _route_colour_cache[route]
+        bg_colour, text_colour = route_colour_cache[route]
         font = ImageFont.truetype("assets/opensans.ttf", 72)
 
         buffer = io.BytesIO()
@@ -323,7 +323,7 @@ class BusDisplay(View, auto_defer=False):
     def _bus_route_opts(self) -> List[SelectOption]:
         return [
             discord.SelectOption(label=f, value=f"r:{f}:{n}", description="Bus route" if n not in RAIL else "LRT line")
-            for (f, n) in self._routes[self._group] # (full route + destination, just the route number)
+            for (f, n) in self._routes[self._group]  # (full route + destination, just the route number)
             if f"r:{f}:{n}" != self.current_key
         ]
 
@@ -771,8 +771,8 @@ class Transit(commands.Cog):
         query = "SELECT * FROM routes"
         route_colour_map = {r["route_short_name"]: r[1:] for r in await self.client.db.fetch(query)}
 
-        global _route_colour_cache
-        _route_colour_cache = route_colour_map
+        global route_colour_cache
+        route_colour_cache = route_colour_map
 
     async def cog_unload(self):
         self.gtfs_task.cancel()
@@ -830,11 +830,7 @@ class Transit(commands.Cog):
                 await conn.execute(f"DELETE FROM {table}; CREATE TEMP TABLE tmp ({sql_columns}) ON COMMIT DROP")
                 await conn.copy_to_table("tmp", source=buffer, columns=columns, header=False, format="csv")
 
-                query = f"""
-                    INSERT INTO {table}
-                    SELECT * FROM tmp
-                    ON CONFLICT DO NOTHING
-                """
+                query = f"INSERT INTO {table} SELECT * FROM tmp ON CONFLICT DO NOTHING"
                 await conn.execute(query)
             except Exception as e:
                 await tr.rollback()
@@ -844,6 +840,22 @@ class Transit(commands.Cog):
             else:
                 await tr.commit()
 
+    def _parse_csv_line(self, row: List[str], /, columns: Tuple[str], colindexes: Tuple[int]) -> List[str]:
+        filtered = [row[i] for i in colindexes]
+
+        # special casing for the stops table, for transitway stations
+        # essentially there are separate records of all the individual bus stands at a station that all share one stop code
+        # that are all being amalgamated into one single entity
+
+        if "stop_name" in columns:
+            i = columns.index("stop_name")
+            if "/" not in filtered[i] or any(n in filtered[i] for n in self.LRT_STATION_HINTS):
+                filtered[i] = self.STN_PATTERN.sub(" stn.", filtered[i])
+
+            filtered[i] = self.title(filtered[i])
+
+        return filtered
+
     def _parse_csv_to_bytesio(self, zipfile: ZipFile, table: str, *columns: str) -> io.BytesIO:
         raw = zipfile.read(table + ".txt")
         reader = csv.reader(io.StringIO(raw.decode()))
@@ -851,27 +863,16 @@ class Transit(commands.Cog):
 
         # first line contains column names
         colnames = next(reader)
-        colindexes = [i for i, column in enumerate(colnames) if column in columns]
+        colindexes = tuple(i for i, column in enumerate(colnames) if column in columns)
 
         if len(colindexes) < len(columns):
             diff = len(colindexes) - len(columns)
             log.warn("%d column(s) were not found whilst building table '%s'", diff, table)
 
         new_content = ""
+
         for row in reader:
-            filtered = [row[i] for i in colindexes]
-
-            # transitway stations such as Lincoln Fields often have their different bus stands listed as separate stops
-            # yet they're associated with the same 4-digit stop code, so we're disambiguating it down to one stop
-            # (e.g Lincoln Fields 1A, Lincoln Fields 2A, and Lincoln Fields 4B all share stop code #3014)
-            # since when we request trips from the API, that single 4-digit code will cover every route serving the whole station
-            if "stop_name" in columns:
-
-                if "/" not in filtered[1] or any(i in filtered[1] for i in self.LRT_STATION_HINTS):
-                    filtered[1] = self.STN_PATTERN.sub(" stn.", filtered[1])
-
-                filtered[1] = self.title(filtered[1])
-
+            filtered = self._parse_csv_line(row, columns, colindexes)
             if all(i for i in filtered):
                 new_content += f"{','.join(filtered)}\n"
 
@@ -981,7 +982,7 @@ class Transit(commands.Cog):
     async def routemap(self, interaction: Interaction, route: str):
         route = route.upper()
 
-        if route not in _route_colour_cache:
+        if route not in route_colour_cache:
             msg = f"route **{route}** does not exist"
             return await interaction.response.send_message(msg, ephemeral=True)
 

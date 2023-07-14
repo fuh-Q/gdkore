@@ -353,7 +353,7 @@ class ExtensionButton(Button[DirectoryView]):
 
         label, method = button_action.value
         super().__init__(label=label, style=discord.ButtonStyle.success, row=3)
-        self.method: partial[ExtCoro] = partial(method, view.client)  # type: ignore
+        self.method: partial[ExtCoro] = partial(method, view.client)
 
     async def callback(self, interaction: Interaction) -> None:
         folder, name = self.view._actual_files[self.view.current_page].parts[-2:]
@@ -450,7 +450,7 @@ class Dev(commands.Cog):
         command = self.client.get_command("repl exec")
         await ctx.invoke(
             command,  # type: ignore
-            code='"".join(["\\n".join(["{0.name}: {1} members | {0.id}".format(g, len([m for m in g.members if not m.bot])) for g in client.guilds]), f"\\n\\n{len(client.guilds):.2f} servers"])',  # type: ignore
+            code='"".join(["\\n".join(["{0.name}: {1} members | {0.id}".format(g, len([m for m in g.members if not m.bot])) for g in client.guilds]), f"\\n\\n{len(client.guilds):.2f} servers"])',
         )
 
     @commands.command(name="shutdown", hidden=True, brief="Shut down the bot")

@@ -7,7 +7,7 @@ import sys
 import time
 import traceback
 from datetime import datetime, timedelta, timezone
-from typing import Callable, Dict, List, Set, TypeVar, TYPE_CHECKING
+from typing import Any, Callable, Coroutine, Dict, List, Set, TypeVar, TYPE_CHECKING
 
 import asyncpg
 import aiohttp
@@ -41,6 +41,7 @@ if TYPE_CHECKING:
 
     KT = TypeVar("KT")
     VT = TypeVar("VT")
+    Coro = Coroutine[Any, Any, None]
 
 try:
     import uvloop  # type: ignore
@@ -240,21 +241,23 @@ class NotGDKID(commands.Bot):
         await self.process_commands(message)
 
     async def tree_interaction_check(self, interaction: Interaction) -> bool:
-        if self.is_blacklisted(interaction.user):
-            if interaction.type is discord.InteractionType.autocomplete:
-                await interaction.response.autocomplete([Choice(name="you're blacklisted L", value="")])
-            else:
-                await interaction.response.send_message("you're blacklisted \N{CLOWN FACE}", ephemeral=True)
+        respond: Callable[[str], Coro] = lambda msg: (
+            interaction.response.autocomplete([Choice(name=msg, value="")])
+            if interaction.type is discord.InteractionType.autocomplete
+            else interaction.response.send_message(msg, ephemeral=True)
+        )
 
+        if self.is_blacklisted(interaction.user):
+            await respond("you're blacklisted L")
             return False
 
         guild = interaction.guild
         if guild is not None:
-            if guild.id in self._pending_verification:
-                await interaction.response.send_message("server is not whitelisted", ephemeral=True)
+            if self.is_blacklisted(guild):
+                await respond("server is blacklisted")
                 return False
-            elif self.is_blacklisted(guild):
-                await interaction.response.send_message("server is blacklisted \N{CLOWN FACE}", ephemeral=True)
+            elif guild.id in self._pending_verification:
+                await respond("server is not whitelisted")
                 return False
 
         return True

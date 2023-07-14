@@ -105,7 +105,7 @@ class GoBack(Generic[HomeT], View):
         await self._home.start(edit_existing=True, interaction=interaction)
 
 
-class CoursePages(BasePages, auto_defer=False):  # type: ignore
+class CoursePages(BasePages, auto_defer=False):
     COURSES_PER_PAGE = 12
     credentials: Credentials
 
