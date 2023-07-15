@@ -356,7 +356,7 @@ class ClassHome(GoBack[CoursePages]):
                 menu._pages.append(await menu.make_embed(assignment))
 
 
-class ClassMenu(BasePages, auto_defer=False):  # type: ignore
+class ClassMenu(BasePages, auto_defer=False):
     _home: CoursePages
     _resource: Resource
     _course: Course

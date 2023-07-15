@@ -314,7 +314,7 @@ class WebhookPicker(Select):
         await interaction.edit_original_response(**self.view.edit_kwargs)
 
 
-class WebhookPages(BasePages, auto_defer=False):  # type: ignore
+class WebhookPages(BasePages, auto_defer=False):
     WEBHOOKS_PER_PAGE = 12
 
     def __init__(self, interaction: Interaction, webhooks: List[WebhookData]):
@@ -357,7 +357,7 @@ class WebhookPages(BasePages, auto_defer=False):  # type: ignore
     def select_options(self):
         return [
             discord.SelectOption(
-                label=w["course_name"],  # type: ignore
+                label=w["course_name"],
                 value=str(idx),
             )
             for idx, w in enumerate(self._webhooks[self.current_page])
