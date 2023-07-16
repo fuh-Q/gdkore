@@ -42,7 +42,20 @@ if TYPE_CHECKING:
 log = logging.getLogger(f"NotGDKID:{__name__}")
 
 RAIL = ["1"]
+LRT_STATION_HINTS = (
+    "O-TRAIN",
+    "PARLIAMENT",
+)
+
 RELOAD_FAIL = "i couldn't reload that page, it's most likely that there were no trips left, therefore i've reset the menu to the landing screen"
+
+STN_PATTERN = re.compile(r"(?: \d?[A-Z]$)| O-TRAIN(?:$| (?:WEST|EAST|NORTH|SOUTH) / (?:OUEST$|EST$|NORD$|SUD$))")
+TITLECASE_PATTERN = re.compile(r"^\w| d'\w| \w|-\w")
+
+GTFS_BUILD_INCLUDE = {
+    "routes": ("route_short_name", "route_color", "route_text_color"),
+    "stops": ("stop_code", "stop_name", "stop_lat", "stop_lon"),
+}
 
 no_routes_at_stop: Callable[[str], Embed] = lambda stop_code: discord.Embed(
     description=f"no trips that are anytime soon found for stop **#{stop_code}**", timestamp=datetime.now()
@@ -631,18 +644,6 @@ class NewLookupModal(ui.Modal, title="Bus Stop Lookup"):
 
 
 class Transit(commands.Cog):
-    STN_PATTERN = re.compile(r"(?: \d?[A-Z]$)| O-TRAIN(?:$| (?:WEST|EAST|NORTH|SOUTH) / (?:OUEST$|EST$|NORD$|SUD$))")
-    TITLECASE_PATTERN = re.compile(r"^\w| d'\w| \w|-\w")
-    LRT_STATION_HINTS = (
-        "O-TRAIN",
-        "PARLIAMENT",
-    )
-
-    GTFS_BUILD_INCLUDE = {
-        "routes": ("route_short_name", "route_color", "route_text_color"),
-        "stops": ("stop_code", "stop_name", "stop_lat", "stop_lon"),
-    }
-
     def __init__(self, client: NotGDKID):
         self.client = client
         self._debug = False
@@ -752,7 +753,7 @@ class Transit(commands.Cog):
         """
 
         return (
-            cls.TITLECASE_PATTERN.sub(lambda m: m.group().upper(), s.lower())
+            TITLECASE_PATTERN.sub(lambda m: m.group().upper(), s.lower())
             .replace("Uottawa", "uOttawa")
             .replace("H.s", "H.S")
             .replace("toh", "T.O.H.")
@@ -766,7 +767,7 @@ class Transit(commands.Cog):
 
         self.gtfs_task = tasks.loop(hours=24)(self._build_gtfs_tables)
         self.gtfs_task.before_loop(partial(asyncio.sleep, until_midnight.total_seconds()))
-        self.gtfs_task.start(include=self.GTFS_BUILD_INCLUDE)
+        self.gtfs_task.start(include=GTFS_BUILD_INCLUDE)
 
     async def cog_unload(self):
         self.gtfs_task.cancel()
@@ -843,8 +844,8 @@ class Transit(commands.Cog):
 
         if "stop_name" in columns:
             i = columns.index("stop_name")
-            if "/" not in filtered[i] or any(n in filtered[i] for n in self.LRT_STATION_HINTS):
-                filtered[i] = self.STN_PATTERN.sub(" stn.", filtered[i])
+            if "/" not in filtered[i] or any(n in filtered[i] for n in LRT_STATION_HINTS):
+                filtered[i] = STN_PATTERN.sub(" stn.", filtered[i])
 
             filtered[i] = self.title(filtered[i])
 
@@ -990,7 +991,7 @@ class Transit(commands.Cog):
     @commands.command(name="gtfs")
     @commands.is_owner()
     async def gtfs(self, ctx: NGKContext):
-        successful = await self._build_gtfs_tables(include=self.GTFS_BUILD_INCLUDE)
+        successful = await self._build_gtfs_tables(include=GTFS_BUILD_INCLUDE)
         if not successful:
             return await ctx.reply("build errored, check logs")
 
