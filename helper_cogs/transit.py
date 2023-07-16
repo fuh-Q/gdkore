@@ -768,12 +768,6 @@ class Transit(commands.Cog):
         self.gtfs_task.before_loop(partial(asyncio.sleep, until_midnight.total_seconds()))
         self.gtfs_task.start(include=self.GTFS_BUILD_INCLUDE)
 
-        query = "SELECT * FROM routes"
-        route_colour_map = {r["route_short_name"]: r[1:] for r in await self.client.db.fetch(query)}
-
-        global route_colour_cache
-        route_colour_cache = route_colour_map
-
     async def cog_unload(self):
         self.gtfs_task.cancel()
 
@@ -1011,3 +1005,9 @@ class Transit(commands.Cog):
 
 async def setup(client: NotGDKID):
     await client.add_cog(Transit(client=client))
+
+    query = "SELECT * FROM routes"
+    route_colour_map = {r["route_short_name"]: r[1:] for r in await client.db.fetch(query)}
+
+    global route_colour_cache
+    route_colour_cache = route_colour_map
