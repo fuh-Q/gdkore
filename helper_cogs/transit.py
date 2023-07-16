@@ -103,18 +103,18 @@ def _sort_routes(routes: List[RouteData], /) -> List[Tuple[str, str, List[TripDa
     )
 
 
+FONT = ImageFont.truetype("assets/opensans.ttf", 72)
 def _generate_route_icon(route: str, /) -> Coroutine[Any, Any, File]:
     def runner():
         bg_colour, text_colour = route_colour_cache[route]
-        font = ImageFont.truetype("assets/opensans.ttf", 72)
 
         buffer = io.BytesIO()
         img = Image.open(f"assets/{bg_colour}.png")
         draw = ImageDraw.Draw(img)
 
-        textsize = font.getbbox(route)
+        textsize = FONT.getbbox(route)
         x, y = (img.width - textsize[2]) // 2, 4
-        draw.text((x, y), route, fill="#" + text_colour, font=font)
+        draw.text((x, y), route, fill="#" + text_colour, font=FONT)
 
         img.save(buffer, "png")
         buffer.seek(0)
