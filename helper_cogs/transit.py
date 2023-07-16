@@ -1004,10 +1004,9 @@ class Transit(commands.Cog):
 
 
 async def setup(client: NotGDKID):
-    await client.add_cog(Transit(client=client))
+    global route_colour_cache
 
     query = "SELECT * FROM routes"
-    route_colour_map = {r["route_short_name"]: r[1:] for r in await client.db.fetch(query)}
+    route_colour_cache = {r["route_short_name"]: r[1:] for r in await client.db.fetch(query)}
 
-    global route_colour_cache
-    route_colour_cache = route_colour_map
+    await client.add_cog(Transit(client=client))
