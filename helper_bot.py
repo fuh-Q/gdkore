@@ -52,6 +52,7 @@ else:
 
 start = time.monotonic()
 DiscordWebSocket.identify = mobile
+log = logging.getLogger("NotGDKID:main")
 
 
 @tasks.loop(minutes=1)
@@ -83,8 +84,6 @@ class NotGDKID(commands.Bot):
     __file__ = __file__
 
     init_extensions = (*get_extensions("helper"), "utils")
-
-    log = logging.getLogger("NotGDKID:main")
 
     AMAZE_GUILD_ID = 996435988194791614
     ADMIN_ROLE_ID = 996437815619489922
@@ -171,17 +170,17 @@ class NotGDKID(commands.Bot):
     async def load_extension(self, name: str) -> None:
         await super().load_extension(name)
 
-        self.log.info("%sloaded%s %s", PrintColours.GREEN, PrintColours.WHITE, name)
+        log.info("%sloaded%s %s", PrintColours.GREEN, PrintColours.WHITE, name)
 
     async def unload_extension(self, name: str) -> None:
         await super().unload_extension(name)
 
-        self.log.info("%sunloaded%s %s", PrintColours.RED, PrintColours.WHITE, name)
+        log.info("%sunloaded%s %s", PrintColours.RED, PrintColours.WHITE, name)
 
     async def reload_extension(self, name: str) -> None:
         await super().reload_extension(name)
 
-        self.log.info("%sreloaded%s %s", PrintColours.YELLOW, PrintColours.WHITE, name)
+        log.info("%sreloaded%s %s", PrintColours.YELLOW, PrintColours.WHITE, name)
 
     async def setup_hook(self) -> None:
         self.session = aiohttp.ClientSession()
@@ -189,22 +188,24 @@ class NotGDKID(commands.Bot):
         self.blacklist = Config("dbs/blacklisted.json")
         self._db = await asyncpg.create_pool(self.postgres_dns)
         self._web_db = await asyncpg.create_pool(self.website_postgres)
-        self.log.info("%sdatabases connected", PrintColours.GREEN)
+        log.info("%sdatabases connected", PrintColours.GREEN)
 
         node = wavelink.Node(uri="http://144.172.70.155:1234", password=self.lavalink_pass)
         self.wavelink: Dict[str, wavelink.Node] = await wavelink.NodePool.connect(client=self, nodes=[node])
-        self.log.info("%swavelink server connected", PrintColours.GREEN)
+        log.info("%swavelink server connected", PrintColours.GREEN)
 
         self.status_task = status_task.start(self)
         ready_task = self.loop.create_task(self.first_ready())
-        ready_task.add_done_callback(lambda fut: traceback.print_exc() if fut.exception() else ...)
+        ready_task.add_done_callback(
+            lambda fut: log.error("on_ready error", exc_info=e) if (e := fut.exception()) else ...
+        )
 
         for extension in self.init_extensions:
             await self.load_extension(extension)
 
     async def first_ready(self):
         await self.wait_until_ready()
-        self.log.info("%sLogged in as: %s : %d", PrintColours.PURPLE, self.user, self.user.id)
+        log.info("%sLogged in as: %s : %d", PrintColours.PURPLE, self.user, self.user.id)
 
         for guild in self.guilds:
             if guild.id not in self.whitelist:
@@ -266,7 +267,7 @@ class NotGDKID(commands.Bot):
         if interaction.response.is_done():  # interaction already responded to
             return
 
-        self.log.error("\n%s%s" + PrintColours.RED + traceback.format_exc())
+        log.error("\n%s%s" + PrintColours.RED + traceback.format_exc())
 
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
         if payload.user_id in self.owner_ids and payload.emoji.name == "❌":
@@ -348,7 +349,7 @@ class NotGDKID(commands.Bot):
             # and `self.start` closes all sockets and the HTTPClient instance.
             return
         finally:
-            self.log.info("%ssuccessfully logged out :D", PrintColours.PURPLE)
+            log.info("%ssuccessfully logged out :D", PrintColours.PURPLE)
 
             if self._restart:
                 sys.exit(69)
