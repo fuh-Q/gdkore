@@ -196,12 +196,15 @@ class NotGDKID(commands.Bot):
 
         self.status_task = status_task.start(self)
         ready_task = self.loop.create_task(self.first_ready())
-        ready_task.add_done_callback(
-            lambda fut: log.error("on_ready error", exc_info=e) if (e := fut.exception()) else ...
-        )
+        ready_task.add_done_callback(self._ready_done)
 
         for extension in self.init_extensions:
             await self.load_extension(extension)
+
+    def _ready_done(self, fut: asyncio.Future[None]) -> Any:
+        exc = fut.exception()
+        if exc is not None:
+            log.error("on_ready error", exc_info=exc)
 
     async def first_ready(self):
         await self.wait_until_ready()
