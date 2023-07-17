@@ -7,7 +7,7 @@ import sys
 import time
 import traceback
 from datetime import datetime, timedelta, timezone
-from typing import Any, Callable, Coroutine, Dict, List, Set, TypeVar, TYPE_CHECKING
+from typing import Any, Callable, Coroutine, Dict, List, Set, TYPE_CHECKING
 
 import asyncpg
 import aiohttp
@@ -39,8 +39,6 @@ if TYPE_CHECKING:
     from helper_cogs.music import Music
     from utils import PostgresPool, OAuthCreds, Secrets
 
-    KT = TypeVar("KT")
-    VT = TypeVar("VT")
     Coro = Coroutine[Any, Any, None]
 
 try:
