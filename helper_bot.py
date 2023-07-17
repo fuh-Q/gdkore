@@ -197,7 +197,7 @@ class NotGDKID(commands.Bot):
 
         self.status_task = status_task.start(self)
         ready_task = self.loop.create_task(self.first_ready())
-        ready_task.add_done_callback(lambda exc: traceback.print_exc() if exc.exception() else ...)
+        ready_task.add_done_callback(lambda fut: traceback.print_exc() if fut.exception() else ...)
 
         for extension in self.init_extensions:
             await self.load_extension(extension)
