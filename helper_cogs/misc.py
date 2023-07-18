@@ -11,21 +11,21 @@ import discord
 from discord.http import Route
 from discord.app_commands import ContextMenu, command
 from discord.ext import commands
-from discord.interactions import Interaction
 
 from utils import CHOICES, BotEmojis
 
 if TYPE_CHECKING:
-    from discord import Interaction, Message, Thread
+    from discord import Message, Thread
 
     from helper_bot import NotGDKID
     from utils import NGKContext, OAuthCreds
+
+    Interaction = discord.Interaction[NotGDKID]
 
 
 class Misc(commands.Cog):
     DANK_MEMER_ID = 270904126974590976
     STUPIDLY_DECENT_ID = 890355226517860433
-    PARALLEL_ID = 782041178489094154
     TASK_MINUTES = 49
     THREADS_PURGE_CUTOFF = datetime(year=2023, month=7, day=3)
     THREAD_IDS = [
@@ -106,10 +106,8 @@ class Misc(commands.Cog):
         class Delay(discord.ui.View):
             message: Message | None
 
-            def __init__(self, *, cog: Misc):
-                self.cog = cog
+            def __init__(self):
                 self._postponed = False
-
                 self.message = None
 
                 super().__init__(timeout=8)
@@ -128,18 +126,18 @@ class Misc(commands.Cog):
                     pass  # we tried
 
             async def interaction_check(self, interaction: Interaction):
-                if interaction.user.id not in self.cog.client.owner_ids:
+                if interaction.user.id not in interaction.client.owner_ids:
                     await interaction.response.send_message(content=random.choice(CHOICES), ephemeral=True)
                     return False
                 return True
 
             @discord.ui.button(label="postpone 20s")
             async def postpone(self, interaction: Interaction, _):
-                timer = self.cog._purge_timers[channel_id]
+                timer = cog._purge_timers[channel_id]
                 if timer is not None:
                     timer.cancel()
 
-                self.cog._purge_timers[channel_id] = self.cog.client.loop.create_task(
+                cog._purge_timers[channel_id] = interaction.client.loop.create_task(
                     task(wait=20), name=f"purge-{rn.hour}:{rn.minute}-{channel_id}"
                 )
 
@@ -149,18 +147,18 @@ class Misc(commands.Cog):
             @discord.ui.button(label="fuck off")
             async def cancel(self, *_):
                 assert self.message is not None
-                timer = self.cog._purge_timers[channel_id]
+                timer = cog._purge_timers[channel_id]
                 if timer is not None:
                     timer.cancel()
 
-                self.cog._purge_timers[channel_id] = None
+                cog._purge_timers[channel_id] = None
                 await self.message.delete()
 
         async def task(*, wait: int):
             assert isinstance(message.channel, Thread)
             await asyncio.sleep(wait - 10)
 
-            view = Delay(cog=self)
+            view = Delay()
             msg = await message.channel.send(f"purging <t:{int(time.time()+10)}:R>", view=view)
             view.message = msg
 
@@ -174,6 +172,8 @@ class Misc(commands.Cog):
         channel_id = message.channel.id
         if self._purge_timers[channel_id] is not None:
             return
+
+        cog = self  # for the delay view's scope -- DO NOT REMOVE
 
         rn = datetime.now(tz=ZoneInfo("America/Toronto"))
         self._purge_timers[channel_id] = self.client.loop.create_task(
@@ -200,7 +200,7 @@ class Misc(commands.Cog):
         if not message.guild:
             return
 
-        if not message.interaction or message.guild.id not in (self.STUPIDLY_DECENT_ID, self.PARALLEL_ID):
+        if not message.interaction or message.guild.id != self.STUPIDLY_DECENT_ID:
             return
 
         if message.interaction.user.id not in self.client.owner_ids:
