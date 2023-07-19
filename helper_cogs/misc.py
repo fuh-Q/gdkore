@@ -234,11 +234,11 @@ class Misc(commands.Cog):
     @commands.command(name="lastwork", aliases=["lw", "lg"])
     @commands.is_owner()
     async def _lastgaw(self, ctx: NGKContext):
-        t = self._reminder_task
-        if not t:
+        task = self._reminder_task
+        if not task:
             return await ctx.send("none found")
 
-        await ctx.send(f"you last worked <t:{t.get_name().split('-')[-1]}:R>")
+        await ctx.send(f"you last worked <t:{task.get_name().split('-')[-1]}:R>")
 
     @commands.command(name="whitelist", aliases=["wl"], hidden=True)
     @commands.is_owner()
