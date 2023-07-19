@@ -66,7 +66,7 @@ class SuppressTraceback(discord.ui.View):
     @discord.ui.button(
         label="Suppress",
         style=discord.ButtonStyle.danger,
-        emoji=NewEmote.from_name("<:x_:822656892538191872>"),
+        emoji=NewEmote.from_name(BotEmojis.GDX),
     )
     async def close_menu(self, *_):
         self.delete_me = True
