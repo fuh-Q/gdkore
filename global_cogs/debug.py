@@ -151,7 +151,7 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
             f"Jishaku `v{package_version('jishaku')}`, discord.py `v{package_version('discord.py')}`, "
             f"`Python v{sys.version}` on `{sys.platform}`".replace("\n", ""),
             f"Bot was started <t:{self.bot.uptime.timestamp():.0f}:R>, "
-            f"cog was loaded <t:{self.start_time.timestamp():.0f}:R>.",  # type: ignore
+            f"cog was loaded <t:{self.start_time.timestamp():.0f}:R>.",
             "",
         ]
 
@@ -258,7 +258,7 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
         If invoked without subcommand, relays current voice state.
         """
 
-        if await self.voice_check(ctx):  # type: ignore
+        if await self.voice_check(ctx):
             return
 
         # give info about the current voice client if there is one
@@ -288,7 +288,7 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
         """
 
         async with ReplResponseReactor(ctx.message):
-            with self.submit(ctx):  # type: ignore
+            with self.submit(ctx):
                 with ShellReader(argument.content) as reader:
                     prefix = "```" + reader.highlight
 
@@ -543,11 +543,11 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
         arg_dict = get_var_dict_from_ctx(ctx, SCOPE_PREFIX)
         arg_dict["_"] = self.last_result
 
-        scope = self.scope  # type: ignore
+        scope = self.scope
 
         try:
             async with ReplResponseReactor(ctx.message):
-                with self.submit(ctx):  # type: ignore
+                with self.submit(ctx):
                     executor = AsyncCodeExecutor(argument.content, scope, arg_dict=arg_dict)
                     async for send, result in AsyncSender(executor):  # type: ignore
                         if result is None:
@@ -635,11 +635,11 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
         arg_dict = get_var_dict_from_ctx(ctx, SCOPE_PREFIX)
         arg_dict["_"] = self.last_result
 
-        scope = self.scope  # type: ignore
+        scope = self.scope
 
         try:
             async with ReplResponseReactor(ctx.message):
-                with self.submit(ctx):  # type: ignore
+                with self.submit(ctx):
                     executor = AsyncCodeExecutor(argument.content, scope, arg_dict=arg_dict)
                     async for send, result in AsyncSender(executor):  # type: ignore
                         self.last_result = result
@@ -686,12 +686,12 @@ class Jishaku(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
         Shows the currently running jishaku tasks.
         """
 
-        if not self.tasks:  # type: ignore
+        if not self.tasks:
             return await ctx.send("No currently running tasks.")
 
         paginator = commands.Paginator(max_size=1985)
 
-        for task in self.tasks:  # type: ignore
+        for task in self.tasks:
             paginator.add_line(
                 f"{task.index}: `{task.ctx.command.qualified_name}`, invoked at "
                 f"{task.ctx.message.created_at.strftime('%Y-%m-%d %H:%M:%S')} UTC"
@@ -706,4 +706,4 @@ async def setup(bot: commands.Bot):
     The setup function defining the jishaku.cog and jishaku extensions.
     """
 
-    await bot.add_cog(Jishaku(bot=bot))  # type: ignore
+    await bot.add_cog(Jishaku(bot=bot))
