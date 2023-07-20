@@ -27,9 +27,9 @@ from jishaku.exception_handling import ReplResponseReactor
 from jishaku.flags import Flags
 from jishaku.hljs import get_language
 from jishaku.modules import package_version
-from jishaku.paginators import WrappedFilePaginator, WrappedPaginator
+from jishaku.paginators import WrappedFilePaginator, WrappedPaginator, PaginatorInterface as OGPaginatorInterface
 from jishaku.shell import ShellReader as ShellReader
-from jishaku.shim.paginator_200 import PaginatorInterface as OGPaginatorInterface
+
 
 from utils import *
 

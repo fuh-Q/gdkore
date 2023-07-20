@@ -117,6 +117,8 @@ def _sort_routes(routes: List[RouteData], /) -> List[Tuple[str, str, List[TripDa
 
 
 FONT = ImageFont.truetype("assets/opensans.ttf", 72)
+
+
 def _generate_route_icon(route: str, /) -> Coroutine[Any, Any, File]:
     def runner():
         bg_colour, text_colour = route_colour_cache[route]
