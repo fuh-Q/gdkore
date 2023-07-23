@@ -44,7 +44,7 @@ if TYPE_CHECKING:
 
 try:
     import uvloop  # type: ignore
-except (ModuleNotFoundError, ImportError):
+except ModuleNotFoundError:
     pass
 else:
     uvloop.install()
