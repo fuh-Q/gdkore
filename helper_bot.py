@@ -7,7 +7,7 @@ import sys
 import time
 import traceback
 from datetime import datetime, timedelta, timezone
-from typing import Any, Callable, Coroutine, Dict, List, Set, TYPE_CHECKING
+from typing import Any, Callable, Coroutine, Dict, List, Set, TypeVar, TYPE_CHECKING
 
 import asyncpg
 import aiohttp
@@ -39,7 +39,8 @@ if TYPE_CHECKING:
     from helper_cogs.music import Music
     from utils import PostgresPool, OAuthCreds, Secrets
 
-    Coro = Coroutine[Any, Any, None]
+    T = TypeVar("T")
+    Coro = Coroutine[Any, Any, T]
 
 try:
     import uvloop  # type: ignore
@@ -243,7 +244,7 @@ class NotGDKID(commands.Bot):
         await self.process_commands(message)
 
     async def tree_interaction_check(self, interaction: Interaction) -> bool:
-        respond: Callable[[str], Coro] = lambda msg: (
+        respond: Callable[[str], Coro[None]] = lambda msg: (
             interaction.response.autocomplete([Choice(name=msg, value="")])
             if interaction.type is discord.InteractionType.autocomplete
             else interaction.response.send_message(msg, ephemeral=True)
