@@ -181,7 +181,7 @@ class Misc(commands.Cog):
 
         rn = datetime.now(tz=ZoneInfo("America/Toronto"))
         self._purge_timers[channel_id] = self.client.loop.create_task(
-            task(wait=30), name=f"purge-{rn.hour}:{rn.minute}-{channel_id}"
+            task(wait=90), name=f"purge-{rn.hour}:{rn.minute}-{channel_id}"
         )
 
     @commands.Cog.listener("on_message")
