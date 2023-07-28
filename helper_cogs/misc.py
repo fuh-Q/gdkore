@@ -173,6 +173,10 @@ class Misc(commands.Cog):
         if channel_id not in self.THREAD_IDS:
             return
 
+        timer = self._purge_timers[channel_id]
+        if timer is not None:
+            timer.cancel()
+
         cog = self  # for the delay view's scope -- DO NOT REMOVE
 
         rn = datetime.now(tz=ZoneInfo("America/Toronto"))
