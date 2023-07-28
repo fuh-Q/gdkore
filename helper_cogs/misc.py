@@ -166,18 +166,18 @@ class Misc(commands.Cog):
             await message.channel.purge(limit=None, after=self.THREADS_PURGE_CUTOFF)
             self._purge_timers[channel_id] = None
 
-        if message.channel.id not in self.THREAD_IDS:
+        if message.author.id == self.client.user.id:
             return
 
         channel_id = message.channel.id
-        if self._purge_timers[channel_id] is not None:
+        if channel_id not in self.THREAD_IDS:
             return
 
         cog = self  # for the delay view's scope -- DO NOT REMOVE
 
         rn = datetime.now(tz=ZoneInfo("America/Toronto"))
         self._purge_timers[channel_id] = self.client.loop.create_task(
-            task(wait=90), name=f"purge-{rn.hour}:{rn.minute}-{channel_id}"
+            task(wait=30), name=f"purge-{rn.hour}:{rn.minute}-{channel_id}"
         )
 
     @commands.Cog.listener("on_message")

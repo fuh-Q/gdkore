@@ -99,7 +99,7 @@ def _parse_trips(o: TripField) -> List[TripData]:
     if "Trip" not in o:
         return [o]  # type: ignore
 
-    return _parse_trips(o["Trip"])  # type: ignore
+    return _parse_trips(o["Trip"])
 
 
 def _sort_destinations(trips: List[TripData], /) -> List[str]:
