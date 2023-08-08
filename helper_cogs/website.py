@@ -103,7 +103,7 @@ class Website(commands.Cog):
     async def edit_mark_cmd(self, ctx: NGKContext, date: Date = datetime.now(), *, note: str | None = None):
         assert date
 
-        q = """UPDATE screamdates SET notes = $2
+        q = """UPDATE screamdates SET notes = $4
             WHERE EXTRACT(YEAR FROM day) = $1
             AND EXTRACT(MONTH FROM day) = $2
             AND EXTRACT(DAY FROM day) = $3
