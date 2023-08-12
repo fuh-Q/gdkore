@@ -186,7 +186,6 @@ class BusDisplay(View, auto_defer=False):
         _trip_fetcher: TripFetcher
 
         current_key: str
-        index_map: Dict[str, int]
 
     TIMEOUT = 120
     _pages: Dict[str, Embed] = {}
