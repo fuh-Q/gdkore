@@ -20,6 +20,7 @@ import discord
 from discord import ui
 from discord.app_commands import Choice, command, describe, autocomplete
 from discord.ext import commands, tasks
+from discord.utils import cached_property
 
 from utils import CHOICES, BotEmojis, PrintColours, View, cap
 
@@ -50,7 +51,7 @@ LRT_STATION_HINTS = (
 RELOAD_FAIL = "i couldn't reload that page, it's most likely that there were no trips left, therefore i've reset the menu to the landing screen"
 
 STN_PATTERN = re.compile(r"(?: \d?[A-Z]$)| O-TRAIN(?:$| (?:WEST|EAST|NORTH|SOUTH) / (?:OUEST$|EST$|NORD$|SUD$))")
-TITLECASE_PATTERN = re.compile(r"^\w| d'\w| \w|-\w")
+TITLECASE_PATTERN = re.compile(r"^\w|( d')(\w)| \w|-\w")
 
 GTFS_BUILD_INCLUDE = {
     "routes": ("route_short_name", "route_color", "route_text_color"),
@@ -185,6 +186,7 @@ class BusDisplay(View, auto_defer=False):
         _trip_fetcher: TripFetcher
 
         current_key: str
+        index_map: Dict[str, int]
 
     TIMEOUT = 120
     _pages: Dict[str, Embed] = {}
@@ -470,13 +472,8 @@ class BusDisplay(View, auto_defer=False):
             # responded in on_interaction
             return
 
-        await interaction.response.send_modal(
-            NewLookupModal(
-                og_view=self,
-                db=self._db,
-                trip_fetcher=self._trip_fetcher,
-            )
-        )
+        modal = NewLookupModal(og_view=self, db=self._db, trip_fetcher=self._trip_fetcher)
+        await interaction.response.send_modal(modal)
 
 
 class ResultSelector(View):
@@ -580,13 +577,9 @@ class ResultSelector(View):
     @ui.button(label="New lookup", row=1, style=discord.ButtonStyle.primary, custom_id="new_lookup")
     async def new_lookup(self, interaction: Interaction, item: ui.Button):
         self.stop()
-        await interaction.response.send_modal(
-            NewLookupModal(
-                og_view=self._og_view,
-                db=self._db,
-                trip_fetcher=self._trip_fetcher,
-            )
-        )
+
+        modal = NewLookupModal(og_view=self._og_view, db=self._db, trip_fetcher=self._trip_fetcher)
+        await interaction.response.send_modal(modal)
 
 
 class NewLookupModal(ui.Modal, title="Bus Stop Lookup"):
@@ -650,6 +643,15 @@ class Transit(commands.Cog):
         self.client = client
         self._debug = False
 
+    @cached_property
+    def item_indexes(self) -> Dict[str, int]:
+        indexes = {}
+        for member in BusDisplay.__dict__.values():
+            if hasattr(member, "__discord_ui_model_kwargs__"):
+                indexes[member.__discord_ui_model_kwargs__["custom_id"]] = len(indexes)
+
+        return indexes
+
     @commands.Cog.listener()
     async def on_interaction(self, interaction: Interaction):
         if (
@@ -682,23 +684,17 @@ class Transit(commands.Cog):
             return await interaction.response.send_message(random.choice(CHOICES), ephemeral=True)
 
         custom_id = interaction.data["custom_id"]  # type: ignore
-        mapping = {"counter": 1, "next25": 2, "refresh": 3, "selector": 4, "swap_sorting": 5, "new_lookup": 6}
-
         if custom_id.startswith("★"):
             child_idx = 0
         else:
-            child_idx = mapping[custom_id]
+            child_idx = self.item_indexes[custom_id]
 
         interaction.extras["sender"] = interaction.followup.send
         interaction.extras["editor"] = interaction.edit_original_response
         if child_idx == 6:
             # we can only send modals in responses, so we've gotta do it here
-            return await interaction.response.send_modal(
-                NewLookupModal(
-                    db=self.client.db,
-                    trip_fetcher=self.fetch_trips,
-                )
-            )
+            modal = NewLookupModal(db=self.client.db, trip_fetcher=self.fetch_trips)
+            return await interaction.response.send_modal(modal)
         else:
             await interaction.response.defer()
 
@@ -748,14 +744,16 @@ class Transit(commands.Cog):
 
             await interaction.edit_original_response(view=view)
 
-    @classmethod
-    def title(cls, s: str):
-        """
-        Problem with `str.title()` is that it misinterprets apostrophes as string boundaries, so we gotta fix that
-        """
+    @staticmethod
+    def title(s: str):
+        def handle_match(m: re.Match[str]) -> str:
+            if all(m.groups()):
+                return m.group(1) + m.group(2).upper()
+
+            return m.group().upper()
 
         return (
-            TITLECASE_PATTERN.sub(lambda m: m.group().upper(), s.lower())
+            TITLECASE_PATTERN.sub(handle_match, s.lower())
             .replace("Uottawa", "uOttawa")
             .replace("H.s", "H.S")
             .replace("toh", "T.O.H.")

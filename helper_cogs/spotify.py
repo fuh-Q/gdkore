@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     T = TypeVar("T")
     Response = Coroutine[Any, Any, T]
 
-log = logging.getLogger(f"NotGDKID:{__name__}")
+log = logging.getLogger(__name__)
 
 
 class Route:

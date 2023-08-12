@@ -51,7 +51,7 @@ else:
 
 start = time.monotonic()
 DiscordWebSocket.identify = mobile
-log = logging.getLogger("NotGDKID:main")
+log = logging.getLogger("main")
 
 
 @tasks.loop(minutes=1)
