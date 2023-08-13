@@ -655,11 +655,12 @@ class Transit(commands.Cog):
     async def on_interaction(self, interaction: Interaction):
         if (
             not interaction.message
-            or "recieved" in interaction.extras
-            or interaction.type is not discord.InteractionType.component
             or not interaction.message.components
             or not interaction.message.interaction
             or not interaction.data
+            or "recieved" in interaction.extras
+            or "custom_id" not in interaction.data
+            or interaction.type is not discord.InteractionType.component
         ):
             return
 
@@ -668,7 +669,9 @@ class Transit(commands.Cog):
 
         items = interaction.message.components
         first = items[0].children[0] if isinstance(items[0], discord.ActionRow) else items[0]
-        if not first.custom_id or not first.custom_id.startswith("★"):
+
+        assert first.custom_id is not None
+        if not first.custom_id.startswith("★"):
             return
 
         stop_code, current_key, last_active_str = first.custom_id.split(";")[-3:]
@@ -682,11 +685,8 @@ class Transit(commands.Cog):
         if interaction.user.id != interaction.message.interaction.user.id:
             return await interaction.response.send_message(random.choice(CHOICES), ephemeral=True)
 
-        custom_id = interaction.data["custom_id"]  # type: ignore
-        if custom_id.startswith("★"):
-            child_idx = 0
-        else:
-            child_idx = self.item_indexes[custom_id]
+        custom_id = interaction.data["custom_id"]
+        child_idx = 0 if custom_id.startswith("★") else self.item_indexes[custom_id]
 
         interaction.extras["sender"] = interaction.followup.send
         interaction.extras["editor"] = interaction.edit_original_response
