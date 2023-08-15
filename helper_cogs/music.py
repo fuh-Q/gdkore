@@ -124,7 +124,7 @@ class Music(commands.Cog):
         player: wavelink.Player = payload.player
         ctx: NGKContext | None = getattr(player, "ctx", None)
         if not ctx:
-            return # we set this attribute on the play command; no reason it shouldn't be there
+            return  # we set this attribute on the play command; no reason it shouldn't be there
 
         try:
             next_song: wavelink.YouTubeTrack = player.queue.get()  # type: ignore
