@@ -71,8 +71,8 @@ class Music(commands.Cog):
 
         self.loops: Dict[int, wavelink.Queue] = {}
 
-    def _format_seconds(self, seconds: float | int, /) -> str:
-        time: int = round(seconds)
+    def _format_seconds(self, milliseconds: float | int, /) -> str:
+        time: int = round(milliseconds / 1000)
 
         if time >= 3600:
             return f"{time//3600}h{time%3600//60}m{time%60}s"
@@ -113,7 +113,7 @@ class Music(commands.Cog):
             await self.client.wait_for(
                 "wavelink_track_start",
                 timeout=self.INACTIVITY_TIMEOUT,
-                check=(lambda p, t, r: p.channel.id == vc_id and p.guild.id == guild_id),
+                check=(lambda p: p.player.channel.id == vc_id and p.player.guild.id == guild_id),
             )
         except asyncio.TimeoutError:
             await vc.disconnect(force=True)
@@ -122,7 +122,9 @@ class Music(commands.Cog):
     @commands.Cog.listener()
     async def on_wavelink_track_end(self, payload: wavelink.TrackEventPayload):
         player: wavelink.Player = payload.player
-        ctx: NGKContext = player.ctx  # type: ignore
+        ctx: NGKContext | None = getattr(player, "ctx", None)
+        if not ctx:
+            return # we set this attribute on the play command; no reason it shouldn't be there
 
         try:
             next_song: wavelink.YouTubeTrack = player.queue.get()  # type: ignore
