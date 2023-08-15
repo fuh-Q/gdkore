@@ -117,7 +117,8 @@ class Music(commands.Cog):
             )
         except asyncio.TimeoutError:
             await vc.disconnect(force=True)
-            del self.loops[guild_id]
+            if guild_id in self.loops:
+                del self.loops[guild_id]
 
     @commands.Cog.listener()
     async def on_wavelink_track_end(self, payload: wavelink.TrackEventPayload):
