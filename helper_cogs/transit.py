@@ -660,6 +660,7 @@ class Transit(commands.Cog):
             or not interaction.data
             or "recieved" in interaction.extras
             or "custom_id" not in interaction.data
+            or interaction.response.is_done()
             or interaction.type is not discord.InteractionType.component
         ):
             return
@@ -983,8 +984,9 @@ class Transit(commands.Cog):
         today = datetime.now().strftime("%Y%m%d")
         title_url = f"https://octranspo.com/plan-your-trip/schedules-maps?sched-lang=en&date={today}&rte={route}"
         url = f"https://octranspo.com/images/files/routes/{route.zfill(3)}map.gif"
+        term = "line" if route in RAIL else "route"
 
-        embed = discord.Embed(title=f"Route map for route {route}", url=title_url).set_image(url=url)
+        embed = discord.Embed(title=f"Route map for {term} {route}", url=title_url).set_image(url=url)
         await interaction.response.send_message(embed=embed)
 
     @commands.command(name="gtfs")
