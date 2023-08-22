@@ -48,7 +48,7 @@ LRT_STATION_HINTS = (
     "PARLIAMENT",
 )
 
-RELOAD_FAIL = "i couldn't reload that page, it's most likely that there were no trips left, therefore i've reset the menu to the landing screen"
+RELOAD_FAIL = "i couldn't reload that page, it's most likely that there were no trips left, therefore i've reset the menu to the landing page"
 
 STN_PATTERN = re.compile(r"(?: \d?[A-Z]$)| O-TRAIN(?:$| (?:WEST|EAST|NORTH|SOUTH) / (?:OUEST$|EST$|NORD$|SUD$))")
 TITLECASE_PATTERN = re.compile(r"^\w|( d')(\w)| \w|-\w")
@@ -722,6 +722,11 @@ class Transit(commands.Cog):
             else:
                 view.sorting = Sorting.ROUTE
                 view.swap_sorting.label = "Sort by destination"
+
+        elif child_idx == 4:
+            # page wasn't found, and the select's callback would then raise an error
+            # so let's "pretend" we pressed refresh instead hehe
+            child_idx = 3
 
         if child_idx == 3:
             # this entire event handler is inherently a refresh, we don't need to do it twice
