@@ -118,11 +118,12 @@ def _sort_routes(routes: List[RouteData], /) -> List[Tuple[str, str, List[TripDa
 
 
 FONT = ImageFont.truetype("assets/opensans.ttf", 72)
+DEFAULT_ROUTE_COLOUR = ("E6E6E6", "58595B")
 
 
 def _generate_route_icon(route: str, /) -> Coroutine[Any, Any, File]:
     def runner():
-        bg_colour, text_colour = route_colour_cache[route]
+        bg_colour, text_colour = route_colour_cache.get(route, DEFAULT_ROUTE_COLOUR)
 
         buffer = io.BytesIO()
         img = Image.open(f"assets/{bg_colour}.png")
