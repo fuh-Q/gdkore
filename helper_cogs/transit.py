@@ -42,7 +42,7 @@ if TYPE_CHECKING:
 
 log = logging.getLogger(f"NotGDKID:{__name__}")
 
-RAIL = ["1"]
+RAIL = ("1",)
 LRT_STATION_HINTS = (
     "O-TRAIN",
     "PARLIAMENT",
@@ -71,7 +71,7 @@ stop_search_query: Callable[[int], str] = lambda limit: (
 )
 
 
-def _slice(obj: List[T], /, *, size: int = 25) -> Tuple[List[T]]:
+def _slice(obj: List[T], /, *, size: int = 25) -> Tuple[List[T], ...]:
     return tuple(obj[i : i + size] for i in range(0, len(obj), size))
 
 
@@ -178,8 +178,8 @@ class BusDisplay(View, auto_defer=False):
         _data: BusStopResponse
         _stop_info: StopInfo
         _db: PostgresPool
-        _destinations: Tuple[List[str]]
-        _routes: Tuple[List[Tuple[str, str]]]
+        _destinations: Tuple[List[str], ...]
+        _routes: Tuple[List[Tuple[str, str]], ...]
         _route_icons: Dict[str, File]
         _num_destinations: int
         _num_routes: int
@@ -253,7 +253,7 @@ class BusDisplay(View, auto_defer=False):
         return self._pages
 
     @property
-    def _collection(self) -> Tuple[List[str]] | Tuple[List[Tuple[str, str]]]:
+    def _collection(self) -> Tuple[List[str], ...] | Tuple[List[Tuple[str, str]], ...]:
         return self._routes if self.sorting is Sorting.ROUTE else self._destinations
 
     def _make_custom_id(self) -> str:
@@ -309,7 +309,8 @@ class BusDisplay(View, auto_defer=False):
         for fullroute, route_no, trips in routes:
             key = f"{BASE}:{fullroute}:{route_no}"
 
-            e = self._get_base_embed("route", fullroute, route_no=route_no)
+            term = "line" if route_no in RAIL else "route"
+            e = self._get_base_embed(term, fullroute, route_no=route_no)
             self._add_trip_fields_to_embed(e, trips=trips)
             self._pages[key] = e
 
@@ -841,7 +842,7 @@ class Transit(commands.Cog):
             else:
                 await tr.commit()
 
-    def _parse_csv_line(self, row: List[str], /, columns: Tuple[str], colindexes: Tuple[int]) -> List[str]:
+    def _parse_csv_line(self, row: List[str], /, columns: Tuple[str, ...], colindexes: Tuple[int, ...]) -> List[str]:
         filtered = [row[i] for i in colindexes]
 
         # special casing for the stops table, for transitway stations
