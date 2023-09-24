@@ -763,6 +763,7 @@ class Transit(commands.Cog):
             TITLECASE_PATTERN.sub(handle_match, s.lower())
             .replace("Uottawa", "uOttawa")
             .replace("H.s", "H.S")
+            .replace("R.r", "R.R")
             .replace("toh", "T.O.H.")
             .replace("Toh", "T.O.H.")
         )
