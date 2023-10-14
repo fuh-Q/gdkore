@@ -109,7 +109,7 @@ class cap:
         if len(self.string) <= size:
             return self.string
 
-        return self.string[:-1] + "\N{HORIZONTAL ELLIPSIS}"
+        return self.string[:size-1] + "\N{HORIZONTAL ELLIPSIS}"
 
 
 def all_casings(input_string: str) -> Generator[str, None, None]:
