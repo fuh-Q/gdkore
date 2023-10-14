@@ -258,21 +258,19 @@ class Logic:
             piece.emoji = BotEmojis.CHECKERS_BLUE_KING
 
     def _resolve_direction(self, direction: str) -> Tuple[int, int]:
-        ops: List[int] = []
-
         if direction == "NORTHWEST":
-            ops = [1, 1]
+            return (1, 1)
 
         if direction == "NORTHEAST":
-            ops = [-1, 1]
+            return (-1, 1)
 
         if direction == "SOUTHEAST":
-            ops = [-1, -1]
+            return (-1, -1)
 
         if direction == "SOUTHWEST":
-            ops = [1, -1]
+            return (1, -1)
 
-        return tuple(ops)
+        raise RuntimeError("unreachable") # so that the type checker shuts up
 
     def _get_slot(self, x: int, y: int) -> Slot | None:
         try:
