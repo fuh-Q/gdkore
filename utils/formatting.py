@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import logging
 import sys
 from datetime import datetime
-from typing import Callable, Generator, List
+from typing import Callable, Generator, List, overload, TYPE_CHECKING
 
 from discord.embeds import Embed as DPYEmbed, EmbedProxy as DPYEmbedProxy
 
@@ -83,7 +85,26 @@ class GClassLogging(logging.Formatter):
         return ret
 
 
-class cap:
+class capmeta(type):
+    @overload
+    def __call__(self, string: str, /) -> cap:
+        ...
+
+    @overload
+    def __call__(self, string: str, /, size: int) -> str:
+        ...
+
+    def __call__(self, string: str, /, size: int | None = None) -> cap | str:
+        obj = object.__new__(cap)
+        obj.string = string
+        if size is None:
+            return obj
+
+        return obj._cap(size)
+
+
+
+class cap(metaclass=capmeta):
     """
     Cap a string at a given size, appends an ellipsis to the end
 
@@ -91,12 +112,18 @@ class cap:
     -----
     ```
     really_long = "1234567890"
-    print(f"{cap(really_long):5}") # 12...
+    print(f"{cap(really_long):5}") # 1234…
+
+    really_long = "1234567890"
+    print(cap(really_long, 5)) # 1234…
     ```
     """
 
-    def __init__(self, string: str) -> None:
-        self.string = string
+    if TYPE_CHECKING:
+        # handled by the metaclass above, this stub is just to make pyright shut up
+
+        def __init__(self, string: str, /, size: int | None = None) -> None:
+            self.string = string
 
     def __str__(self) -> str:
         return self.string
@@ -105,7 +132,9 @@ class cap:
         return self.string
 
     def __format__(self, format_spec: str) -> str:
-        size = int(format_spec)
+        return self._cap(int(format_spec))
+
+    def _cap(self, size: int, /) -> str:
         if len(self.string) <= size:
             return self.string
 
