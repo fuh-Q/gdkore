@@ -135,6 +135,9 @@ class cap(metaclass=capmeta):
         return self._cap(int(format_spec))
 
     def _cap(self, size: int, /) -> str:
+        if not size:
+            raise ValueError("cap size must be greater than 0")
+
         if len(self.string) <= size:
             return self.string
 
