@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 
 
 ExtCoro = Coroutine[Any, Any, None]
-Slicer = Generator[Tuple[pathlib.Path], None, None]
+Slicer = Generator[Tuple[pathlib.Path, ...], None, None]
 
 S = "\\" if sys.platform == "win32" else "/"
 
@@ -53,7 +53,7 @@ def size(size_in_bytes: int) -> str:
 class DirectoryView(BasePages):
     items: List[pathlib.Path]
     directory: pathlib.Path
-    _directory_slices: List[Tuple[pathlib.Path]]
+    _directory_slices: List[Tuple[pathlib.Path, ...]]
     _actual_files: List[pathlib.Path]
 
     EXCLUDED_DIRS = ("__pycache__",)
@@ -120,7 +120,7 @@ class DirectoryView(BasePages):
                 for _ in range(diff)
             ]
 
-    def slice_directories(self, directories: Tuple[pathlib.Path]) -> Slicer:
+    def slice_directories(self, directories: Tuple[pathlib.Path, ...]) -> Slicer:
         chunk_size = 24
         l = len(directories)
         for idx in range(0, l, chunk_size):
