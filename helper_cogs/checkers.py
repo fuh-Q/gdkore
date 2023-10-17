@@ -270,7 +270,7 @@ class Logic:
         if direction == "SOUTHWEST":
             return (1, -1)
 
-        raise RuntimeError("unreachable") # so that the type checker shuts up
+        raise RuntimeError("unreachable")  # so that the type checker shuts up
 
     def _get_slot(self, x: int, y: int) -> Slot | None:
         try:

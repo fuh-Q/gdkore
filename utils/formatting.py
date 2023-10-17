@@ -103,7 +103,6 @@ class capmeta(type):
         return obj._cap(size)
 
 
-
 class cap(metaclass=capmeta):
     """
     Cap a string at a given size, appends an ellipsis to the end
@@ -141,7 +140,7 @@ class cap(metaclass=capmeta):
         if len(self.string) <= size:
             return self.string
 
-        return self.string[:size-1] + "\N{HORIZONTAL ELLIPSIS}"
+        return self.string[: size - 1] + "\N{HORIZONTAL ELLIPSIS}"
 
 
 def all_casings(input_string: str) -> Generator[str, None, None]:
