@@ -352,7 +352,12 @@ class BusDisplay(View, auto_defer=False):
             # since we're only ever processing 2 objects at once, the index counter will only ever be 0 or 1
             # so we can use it as if it were a bool in an if statement, hence the naming
             for first_trip_processed, trip in enumerate(trips[:2]):
-                line += self._board_handle_tripdata(trip, first_trip_processed)
+                time = self._board_handle_tripdata(trip, first_trip_processed)
+                line += time  # gross this looks ugly
+
+                # emojis also have colons, we don't want that
+                if ":" in time and "<" not in time:
+                    break
 
             description_lines.append(line)
 
@@ -400,9 +405,10 @@ class BusDisplay(View, auto_defer=False):
             self.pages[key] = e
 
     def _count_shown(self) -> str:
-        start = 25 * self.group + 1
+        offset = 1 if not self.group else 0
+        start = 25 * self.group + offset
         total = self._route_count
-        stop = min(total, 25 * (self.group + 1))
+        stop = min(total, 25 * (self.group + 1) - offset) if total > 25 else total
 
         return f"{start}-{stop} of {total}"
 
