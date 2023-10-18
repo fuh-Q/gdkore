@@ -37,6 +37,7 @@ if TYPE_CHECKING:
     TripField = List[TripData] | TripData | Dict[Literal["Trip"], List[TripData]] | Dict[Literal["Trip"], TripData]
     TripFetcher = Callable[[str], Coroutine[Any, Any, BusStopResponse]]
     EditFunc = Callable[..., Coroutine[Any, Any, InteractionMessage]]
+    RouteCollection = List[Tuple[str, str, List[TripData]]]
 
     route_colour_cache: Dict[str, str]
 
@@ -49,6 +50,7 @@ LRT_STATION_HINTS = (
 )
 
 RELOAD_FAIL = "i couldn't reload that page, it's most likely that there were no trips left, therefore i've reset the menu to the landing page"
+PLACEHOLDER_URL = "https://i.vgy.me/x66JRh.png"
 
 STN_PATTERN = re.compile(r"(?: \d?[A-Z]$)| O-TRAIN(?:$| (?:WEST|EAST|NORTH|SOUTH) / (?:OUEST$|EST$|NORD$|SUD$))")
 TITLECASE_PATTERN = re.compile(r"^\w|( d')(\w)| \w|-\w")
@@ -110,9 +112,9 @@ def _sort_destinations(trips: List[TripData], /) -> List[str]:
     )
 
 
-def _sort_routes(routes: List[RouteData], /) -> List[Tuple[str, str, List[TripData]]]:
+def _sort_routes(routes: List[RouteData], /) -> RouteCollection:
     return sorted(
-        ((f"[{i['RouteNo']}] {i['RouteHeading']}", i["RouteNo"], _parse_trips(i["Trips"])) for i in routes),
+        ((i["RouteHeading"], i["RouteNo"], _parse_trips(i["Trips"])) for i in routes),
         key=lambda x: int(x[1]) if x[1].isnumeric() else 0,
     )
 
@@ -142,10 +144,12 @@ def _generate_route_icon(route: str, /) -> Coroutine[Any, Any, File]:
 
 
 async def _view_edit_kwargs(view: BusDisplay, *, as_send: bool = False) -> Dict[str, Any]:
-    if view.sorting is Sorting.ROUTE:
+    if not view.departure_board_selected and view.sorting is Sorting.ROUTE:
         attachments = [await _generate_route_icon(view.current_key.split(":")[-1])]
-    else:
+    elif not view.departure_board_selected:
         attachments = [discord.File("assets/penis.png")]
+    else:
+        attachments = []
 
     file_key = "files" if as_send else "attachments"
 
@@ -181,16 +185,17 @@ class BusDisplay(View, auto_defer=False):
         _destinations: Tuple[List[str], ...]
         _routes: Tuple[List[Tuple[str, str]], ...]
         _route_icons: Dict[str, File]
-        _num_destinations: int
-        _num_routes: int
         _owner: User | Member
         _trip_fetcher: TripFetcher
+        _route_count: int
 
+        departure_page_count: int
         current_key: str
 
     TIMEOUT = 120
-    _pages: Dict[str, Embed] = {}
-    _group: int = 0
+    pages: Dict[str, Embed] = {}
+    group: int = 0
+    departure_page: int = 0
     sorting: Sorting = Sorting.ROUTE
 
     @classmethod
@@ -201,6 +206,7 @@ class BusDisplay(View, auto_defer=False):
         db: PostgresPool,
         owner: User | Member,
         trip_fetcher: TripFetcher,
+        skip_components: bool = False,
     ) -> Self:
         assert data["Routes"]["Route"] is not None
         trips, routes_raw = _get_trips_and_routes(data["Routes"]["Route"])
@@ -217,19 +223,19 @@ class BusDisplay(View, auto_defer=False):
         self._data = data
         self._db = db
         self._destinations = _slice(destinations)
-        self._routes = _slice([r[:2] for r in routes])
-        self._num_destinations = len(destinations)
-        self._num_routes = len(routes)
         self._trip_fetcher = trip_fetcher
 
-        fullroute, route_no, _ = routes[0]
-        self.current_key = f"r:{fullroute}:{route_no}"
+        spoof = [("", "")]  # spoof item, this will be the select option for the departure board
+        self._routes = _slice(spoof + [r[:2] for r in routes])
+        self._route_count = len(routes)
+
+        self.current_key = "r::0"  # departure board page 1
 
         self._build_route_pages(routes)
+        self._build_departure_board_pages(routes)
         self._build_destination_pages(destinations)
-        self.update_components()
-
-        self.children[0].custom_id = self._make_custom_id()
+        if not skip_components:
+            self.update_components()
 
         return self
 
@@ -248,25 +254,39 @@ class BusDisplay(View, auto_defer=False):
 
         return True
 
-    @property
-    def pages(self) -> Dict[str, Embed]:
-        return self._pages
+    def reconfigure_with_key(self, key: str, /) -> None:
+        self.current_key = key
+        if key.startswith("d:"):
+            self.sorting = Sorting.DEST
+            self.swap_sorting.label = "Sort by route"
+        else:
+            self.sorting = Sorting.ROUTE
+            self.swap_sorting.label = "Sort by destination"
+
+        if self.departure_board_selected:
+            group_count = len(self.collection)
+            self.departure_page = int(key.split(":")[-1])
+            self.group = self.departure_page if self.departure_page < group_count else group_count - 1
+            self.current_key = f"r::{self.departure_page}"
 
     @property
-    def _collection(self) -> Tuple[List[str], ...] | Tuple[List[Tuple[str, str]], ...]:
+    def collection(self) -> Tuple[List[str], ...] | Tuple[List[Tuple[str, str]], ...]:
         return self._routes if self.sorting is Sorting.ROUTE else self._destinations
+
+    @property
+    def departure_board_selected(self) -> bool:
+        return "::" in self.current_key  # checking for no headsign, the delimiters would then be back-to-back
 
     def _make_custom_id(self) -> str:
         return f"★;{self._stop_info['stop_code']};{self.current_key};{round(time.time())}"
 
     def _add_trip_fields_to_embed(self, embed: Embed, /, *, trips: List[TripData]) -> None:
-        for i in range(3):
-            name = f"Trip {i+1}"
-            if i >= len(trips):
+        for i, trip in enumerate(trips[:3], start=1):
+            name = f"Trip {i}"
+            if i > len(trips):
                 embed.add_field(name=name, value="No data")
                 continue
 
-            trip = trips[i]
             cums_at = round((datetime.now() + timedelta(minutes=int(trip["AdjustedScheduleTime"]))).timestamp())
 
             arrives = f"**<t:{cums_at}:R>**"
@@ -279,14 +299,14 @@ class BusDisplay(View, auto_defer=False):
             else:
                 mid = f"__Destination__\n**`{trip['TripDestination']}`**"
 
-            if trips[i]["AdjustmentAge"] != "-1":
+            if trip["AdjustmentAge"] != "-1":
                 gps = f"GPS-adjusted? {BotEmojis.YES}"
                 last_adjusted = f"Updated {round(60*float(trip['AdjustmentAge']))}s ago"
 
             last_trip = f"Last trip? - {BotEmojis.YES if trip['LastTripOfSchedule'] else BotEmojis.NO}"
             embed.add_field(name=name, value=f"{arrives}\n\n{mid}\n\n{last_adjusted}\n{gps}\n{last_trip}\n\u200b")
 
-    def _get_base_embed(self, item: str, value: str, /, *, route_no: str | None = None) -> Embed:
+    def _build_next_three_embed(self, item: str, value: str, /, *, route_no: str | None = None) -> Embed:
         e = discord.Embed(
             title=f"Next 3 trips for {item} {value}",
             timestamp=datetime.now(),
@@ -299,67 +319,121 @@ class BusDisplay(View, auto_defer=False):
             today = datetime.now().strftime("%Y%m%d")
             e.url = f"https://octranspo.com/plan-your-trip/schedules-maps?sched-lang=en&date={today}&rte={route_no}"
         else:
-            e.url = "https://cdn.discordapp.com/attachments/860182093811417158/1124050953692250224/image.png"
+            e.url = PLACEHOLDER_URL
 
         return e
 
-    def _build_route_pages(self, routes: List[Tuple[str, str, List[TripData]]], /) -> None:
-        BASE = "r"
+    def _board_handle_tripdata(self, trip: TripData, first_trip_processed: int, /) -> str:
+        s = " & " if first_trip_processed else ""
 
-        for fullroute, route_no, trips in routes:
-            key = f"{BASE}:{fullroute}:{route_no}"
+        minutes = int(trip["AdjustedScheduleTime"])
+        if trip["AdjustmentAge"] != "-1" and minutes < 60:
+            to_add = f"**{minutes}***" if minutes > 1 else BotEmojis.BUS_FLASHING  # f"**[{minutes}*]({PLACEHOLDER_URL})**"
 
+        elif minutes >= 60:
+            cums_at = datetime.now() + timedelta(minutes=minutes)
+            to_add = cums_at.strftime("%H:%M")
+
+        else:  # scheduled in under an hour, no gps tracking available
+            to_add = trip["AdjustedScheduleTime"]
+
+        return s + (f"__{to_add}__" if trip["LastTripOfSchedule"] else to_add)
+
+    def _make_board_description(self, chunk: RouteCollection, max_length: int, /) -> str:
+        HEADSIGN_CAP = 19  # total 20, but excluding the space between the number and destination
+
+        description_lines = []
+        for headsign, route_no, trips in chunk:
+            dest_cap = HEADSIGN_CAP - max_length
+            num = format(route_no, f">{max_length}")
+            text = format(cap(headsign, dest_cap), f"<{dest_cap}")
+            line = f"**`{num} `**`{text}` - "
+
+            # since we're only ever processing 2 objects at once, the index counter will only ever be 0 or 1
+            # so we can use it as if it were a bool in an if statement, hence the naming
+            for first_trip_processed, trip in enumerate(trips[:2]):
+                line += self._board_handle_tripdata(trip, first_trip_processed)
+
+            description_lines.append(line)
+
+        return "\n".join(description_lines)
+
+    def _build_departure_board_pages(self, routes: RouteCollection, /) -> None:
+        ROUTES_PER_PAGE = 20
+
+        sliced_routes = _slice(routes, size=ROUTES_PER_PAGE)
+        self._departure_page_count = len(sliced_routes)
+        for idx, chunk in enumerate(sliced_routes):
+            key = f"r::{idx}"
+
+            max_route_length = len(max(chunk, key=lambda x: len(x[1]))[1])
+            desc = self._make_board_description(chunk, max_route_length)
+            e = discord.Embed(title="All upcoming departures", description=desc, url=PLACEHOLDER_URL)
+            e.set_author(name=f"Departure Board - {self._stop_info['stop_name']} [#{self._stop_info['stop_code']}]")
+            e.set_footer(text=f"Page {idx + 1}/{len(sliced_routes)}")
+            self.pages[key] = e
+
+    def _build_route_pages(self, routes: RouteCollection, /) -> None:
+        for headsign, route_no, trips in routes:
+            key = f"r:{headsign}:{route_no}"
+
+            fullroute = f"[{route_no}] {headsign}"
             term = "line" if route_no in RAIL else "route"
-            e = self._get_base_embed(term, fullroute, route_no=route_no)
+            e = self._build_next_three_embed(term, fullroute, route_no=route_no)
             self._add_trip_fields_to_embed(e, trips=trips)
-            self._pages[key] = e
+            self.pages[key] = e
 
     def _build_destination_pages(self, destinations: List[str], /) -> None:
         assert self._data["Routes"]["Route"] is not None
-        BASE = "d"
 
         for dest in destinations:
-            key = f"{BASE}:{dest}"
+            key = f"d:{dest}"
 
-            e = self._get_base_embed("destination", dest)
+            e = self._build_next_three_embed("destination", dest)
             trips = sorted(
                 (t for t in _get_trips_and_routes(self._data["Routes"]["Route"])[0] if t["TripDestination"] == dest),
                 key=lambda x: int(x["AdjustedScheduleTime"]),
             )[:3]
 
             self._add_trip_fields_to_embed(e, trips=trips)
-            self._pages[key] = e
+            self.pages[key] = e
 
     def _count_shown(self) -> str:
-        start = 25 * self._group + 1
-        total = self._num_routes if self.sorting is Sorting.ROUTE else self._num_destinations
-        stop = min(total, start + len(self._collection[self._group]))
+        start = 25 * self.group + 1
+        total = self._route_count
+        stop = min(total, 25 * (self.group + 1))
 
         return f"{start}-{stop} of {total}"
 
     @property
     def _bus_route_opts(self) -> List[SelectOption]:
-        return [
-            discord.SelectOption(label=f, value=f"r:{f}:{n}", description="Bus route" if n not in RAIL else "LRT line")
-            for (f, n) in self._routes[self._group]  # (full route + destination, just the route number)
-            if f"r:{f}:{n}" != self.current_key
+        get_term = lambda n: "Bus route" if n not in RAIL else "LRT line"
+
+        opts = [
+            discord.SelectOption(label=f"[{n}] {h}", value=f"r:{h}:{n}", description=get_term(n))
+            for (h, n) in self._routes[self.group]  # (route headsign, route number)
+            if h and f"r:{h}:{n}" != self.current_key or not h and not self.departure_board_selected
         ]
+
+        # no headsign aka departure board option
+        if not self.departure_board_selected and not self._routes[self.group][0][0]:
+            opts[0].value = f"r::{self.departure_page}"
+            opts[0].label = "View departure board"
+            opts[0].description = "Click/Tap to view"
+
+        return opts
 
     @property
     def _destination_opts(self) -> List[SelectOption]:
         return [
             discord.SelectOption(label=dest, value=f"d:{dest}", description="Destination")
-            for dest in self._destinations[self._group]
+            for dest in self._destinations[self.group]
             if f"d:{dest}" != self.current_key
         ]
 
     def _prepare_select(self) -> None:
-        if self.sorting is Sorting.ROUTE:
-            item = "Bus routes"
-            opts = self._bus_route_opts
-        else:
-            item = "Destinations"
-            opts = self._destination_opts
+        item = "Bus routes" if self.sorting is Sorting.ROUTE else "Destinations"
+        opts = self._bus_route_opts if self.sorting is Sorting.ROUTE else self._destination_opts
 
         self.mode_entity_select.placeholder = f"{item} [{self._count_shown()}]"
         self.mode_entity_select.disabled = not bool(opts)
@@ -367,9 +441,13 @@ class BusDisplay(View, auto_defer=False):
         self.mode_entity_select.options = opts or [discord.SelectOption(label="suck my balls")]
 
     def update_components(self) -> None:
+        if_dep_board: Callable[[bool], bool] = lambda c: c if self.departure_board_selected else True
+
         self.children[0].custom_id = self._make_custom_id()
-        self.previous_25.disabled = self._group == 0
-        self.next_25.disabled = self._group == len(self._collection) - 1
+        self.previous_25.disabled = self.group == 0 and if_dep_board(self.departure_page == 0)
+        self.next_25.disabled = self.group >= len(self.collection) - 1 and if_dep_board(
+            self.departure_page >= self._departure_page_count - 1
+        )
 
         self.shown_counter.label = self._count_shown()
         self._prepare_select()
@@ -378,11 +456,16 @@ class BusDisplay(View, auto_defer=False):
 
     @ui.button(label="❮", row=0, disabled=True, custom_id="prev25")
     async def previous_25(self, interaction: Interaction, item: ui.Button):
-        if self._group > 0:
-            self._group -= 1
+        if self.group > 0:
+            self.group -= 1
+
+        if self.departure_board_selected and self.departure_page > 0:
+            self.departure_page -= 1
+            self.current_key = f"r::{self.departure_page}"
 
         self.update_components()
-        await interaction.extras["editor"](view=self)
+        kwargs = await _view_edit_kwargs(self)
+        await interaction.extras["editor"](**kwargs)
 
     @ui.button(row=0, disabled=True, custom_id="counter")
     async def shown_counter(self, interaction: Interaction, item: ui.Button):
@@ -390,11 +473,16 @@ class BusDisplay(View, auto_defer=False):
 
     @ui.button(label="❯", row=0, disabled=True, custom_id="next25")
     async def next_25(self, interaction: Interaction, item: ui.Button):
-        if self._group < len(self._collection) - 1:
-            self._group += 1
+        if self.group < len(self.collection) - 1:
+            self.group += 1
+
+        if self.departure_board_selected and self.departure_page < self._departure_page_count - 1:
+            self.departure_page += 1
+            self.current_key = f"r::{self.departure_page}"
 
         self.update_components()
-        await interaction.extras["editor"](view=self)
+        kwargs = await _view_edit_kwargs(self)
+        await interaction.extras["editor"](**kwargs)
 
     @ui.button(emoji=BotEmojis.REFRESH, row=0, custom_id="refresh")
     async def refresh(self, interaction: Interaction, item: ui.Button):
@@ -416,19 +504,21 @@ class BusDisplay(View, auto_defer=False):
 
         self._data = new_data
         self._destinations = _slice(destinations)
-        self._routes = _slice([r[:2] for r in routes])
-        self._num_destinations = len(destinations)
-        self._num_routes = len(routes)
 
-        self._pages = {}
+        spoof = [("", "")]  # spoof item, this will be the select option for the departure board
+        self._routes = _slice(spoof + [r[:2] for r in routes])
+        self._route_count = len(routes)
+
+        self.pages = {}
         self._build_route_pages(routes)
+        self._build_departure_board_pages(routes)
         self._build_destination_pages(destinations)
 
-        page = self._pages.get(self.current_key, None)
+        page = self.pages.get(self.current_key, None)
         if not page:
-            fullroute, route_no, _ = routes[0]
-            self.current_key = f"r:{fullroute}:{route_no}"
+            self.current_key = "r::0"  # departure board first page
             self.sorting = Sorting.ROUTE
+            self.departure_page = 0
 
             await interaction.followup.send(RELOAD_FAIL, ephemeral=True)
 
@@ -453,13 +543,13 @@ class BusDisplay(View, auto_defer=False):
 
             new_label = "Sort by route"
         else:
-            fullroute, route_no = self._routes[0][0]
             self.sorting = Sorting.ROUTE
-            self.current_key = f"r:{fullroute}:{route_no}"
+            self.current_key = "r::0"
+            self.departure_page = 0
 
             new_label = "Sort by destination"
 
-        self._group = 0
+        self.group = 0
         item.label = new_label
 
         self.update_components()
@@ -709,21 +799,12 @@ class Transit(commands.Cog):
 
         assert new_data["Routes"]["Route"] is not None
         view = await BusDisplay.async_init(
-            data=new_data,
-            db=self.client.db,
-            owner=interaction.user,
-            trip_fetcher=self.fetch_trips,
+            data=new_data, db=self.client.db, owner=interaction.user, trip_fetcher=self.fetch_trips, skip_components=True
         )
 
         page = view.pages.get(current_key, None)
         if page is not None:
-            view.current_key = current_key
-            if current_key.startswith("d:"):
-                view.sorting = Sorting.DEST
-                view.swap_sorting.label = "Sort by route"
-            else:
-                view.sorting = Sorting.ROUTE
-                view.swap_sorting.label = "Sort by destination"
+            view.reconfigure_with_key(current_key)
 
         elif child_idx == 4:
             # page wasn't found, and the select's callback would then raise an error
