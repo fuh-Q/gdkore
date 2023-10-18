@@ -328,7 +328,7 @@ class BusDisplay(View, auto_defer=False):
 
         minutes = int(trip["AdjustedScheduleTime"])
         if trip["AdjustmentAge"] != "-1" and minutes < 60:
-            to_add = f"**{minutes}***" if minutes > 1 else BotEmojis.BUS_FLASHING  # f"**[{minutes}*]({PLACEHOLDER_URL})**"
+            to_add = f"**{minutes}***" if minutes > 1 else BotEmojis.BUS_FLASHING
 
         elif minutes >= 60:
             cums_at = datetime.now() + timedelta(minutes=minutes)
