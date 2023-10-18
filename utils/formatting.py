@@ -121,8 +121,10 @@ class cap(metaclass=capmeta):
     if TYPE_CHECKING:
         # handled by the metaclass above, this stub is just to make pyright shut up
 
+        string: str
+
         def __init__(self, string: str, /, size: int | None = None) -> None:
-            self.string = string
+            ...
 
     def __str__(self) -> str:
         return self.string
