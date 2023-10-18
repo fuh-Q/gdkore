@@ -366,9 +366,10 @@ class BusDisplay(View, auto_defer=False):
         for idx, chunk in enumerate(sliced_routes):
             key = f"r::{idx}"
 
+            rn = datetime.now()
             max_route_length = len(max(chunk, key=lambda x: len(x[1]))[1])
             desc = self._make_board_description(chunk, max_route_length)
-            e = discord.Embed(title="All upcoming departures", description=desc, url=PLACEHOLDER_URL)
+            e = discord.Embed(title="All upcoming departures", description=desc, url=PLACEHOLDER_URL, timestamp=rn)
             e.set_author(name=f"Departure Board - {self._stop_info['stop_name']} [#{self._stop_info['stop_code']}]")
             e.set_footer(text=f"Page {idx + 1}/{len(sliced_routes)}")
             self.pages[key] = e
