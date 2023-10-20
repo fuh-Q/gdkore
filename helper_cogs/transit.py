@@ -182,12 +182,13 @@ class BusDisplay(View, auto_defer=False):
         _data: BusStopResponse
         _stop_info: StopInfo
         _db: PostgresPool
+        _route_count: int
+        _destination_count: int
         _destinations: Tuple[List[str], ...]
         _routes: Tuple[List[Tuple[str, str]], ...]
         _route_icons: Dict[str, File]
         _owner: User | Member
         _trip_fetcher: TripFetcher
-        _route_count: int
 
         departure_page_count: int
         current_key: str
@@ -223,6 +224,7 @@ class BusDisplay(View, auto_defer=False):
         self._data = data
         self._db = db
         self._destinations = _slice(destinations)
+        self._destination_count = len(destinations)
         self._trip_fetcher = trip_fetcher
 
         spoof = [("", "")]  # spoof item, this will be the select option for the departure board
@@ -272,6 +274,10 @@ class BusDisplay(View, auto_defer=False):
     @property
     def collection(self) -> Tuple[List[str], ...] | Tuple[List[Tuple[str, str]], ...]:
         return self._routes if self.sorting is Sorting.ROUTE else self._destinations
+
+    @property
+    def collection_length(self) -> int:
+        return self._route_count if self.sorting is Sorting.ROUTE else self._destination_count
 
     @property
     def departure_board_selected(self) -> bool:
@@ -407,7 +413,7 @@ class BusDisplay(View, auto_defer=False):
     def _count_shown(self) -> str:
         offset = 1 if not self.group else 0
         start = 25 * self.group + offset
-        total = self._route_count
+        total = self.collection_length
         stop = min(total, 25 * (self.group + 1) - offset) if total > 25 else total
 
         return f"{start}-{stop} of {total}"
@@ -511,6 +517,7 @@ class BusDisplay(View, auto_defer=False):
 
         self._data = new_data
         self._destinations = _slice(destinations)
+        self._destination_count = len(destinations)
 
         spoof = [("", "")]  # spoof item, this will be the select option for the departure board
         self._routes = _slice(spoof + [r[:2] for r in routes])
