@@ -414,7 +414,7 @@ class BusDisplay(View, auto_defer=False):
         offset = 1 if not self.group else 0
         start = 25 * self.group + offset
         total = self.collection_length
-        stop = min(total, 25 * (self.group + 1) - offset) if total > 25 else total
+        stop = min(total, 25 * (self.group + 1) - offset) if total >= 25 else total
 
         return f"{start}-{stop} of {total}"
 
