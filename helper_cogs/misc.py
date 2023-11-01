@@ -32,7 +32,7 @@ class Misc(commands.Cog):
         1125273011201785987,  # gdkid
         1125273798397141034,  # toilet
         1125273927564918816,  # sam
-        1125274051116535858,  # little shit
+        1169390818524667944,  # little shit
     ]
 
     def __init__(self, client: NotGDKID) -> None:
