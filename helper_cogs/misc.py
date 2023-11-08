@@ -71,7 +71,7 @@ class Misc(commands.Cog):
         async with self.client.session.put(endpoint, json=json, headers=headers) as res:
             return res.status
 
-    async def _do_refresh(self, *, refresh_token: str) -> OAuthCreds:
+    async def _try_refresh(self, *, refresh_token: str) -> OAuthCreds | None:
         endpoint = f"{Route.BASE}/oauth2/token"
         headers = {"Content-Type": "application/x-www-form-urlencoded"}
         data = {
@@ -83,6 +83,9 @@ class Misc(commands.Cog):
 
         assert self.client.session
         async with self.client.session.post(endpoint, data=data, headers=headers) as res:
+            if res.status != 200:
+                return
+
             return await res.json()
 
     @commands.Cog.listener()
@@ -96,8 +99,12 @@ class Misc(commands.Cog):
 
         status = await self._try_request(member, token=member_creds["access_token"])
         if status >= 400:  # probably needs a refresh
-            new_creds = await self._do_refresh(refresh_token=member_creds["refresh_token"])
-            self.client.serverjail[str(member.id)] = new_creds
+            new_creds = await self._try_refresh(refresh_token=member_creds["refresh_token"])
+            if new_creds:
+                self.client.serverjail[str(member.id)] = new_creds
+            else:
+                del self.client.serverjail[str(member.id)]
+                return
 
         await self._try_request(member, token=member_creds["access_token"])
 
