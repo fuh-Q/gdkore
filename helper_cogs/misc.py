@@ -99,15 +99,15 @@ class Misc(commands.Cog):
 
         status = await self._try_request(member, token=member_creds["access_token"])
         if 200 <= status < 300:
-            return await self._try_request(member, token=member_creds["access_token"])
+            return
 
         # probably needs a refresh
         new_creds = await self._try_refresh(refresh_token=member_creds["refresh_token"])
         if new_creds:
             self.client.serverjail[str(member.id)] = new_creds
+            await self._try_request(member, token=member_creds["access_token"])
         else:
             del self.client.serverjail[str(member.id)]
-            return
 
     @commands.Cog.listener("on_message")
     async def dank_msg_deleter(self, message: Message):
