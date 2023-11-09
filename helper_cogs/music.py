@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 
 
 class QueuePages(BasePages):
-    TRACKS_PER_PAGE = 10
+    TRACKS_PER_PAGE: ClassVar[int] = 10
 
     def __init__(self, interaction: Interaction, tracks: wavelink.Queue):
         self._pages = []
