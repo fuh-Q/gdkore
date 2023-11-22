@@ -859,6 +859,7 @@ class Transit(commands.Cog):
             .replace("Uottawa", "uOttawa")
             .replace("H.s", "H.S")
             .replace("R.r", "R.R")
+            .replace("Td", "TD")
             .replace("toh", "T.O.H.")
             .replace("Toh", "T.O.H.")
         )
