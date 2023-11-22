@@ -469,6 +469,11 @@ class Dev(commands.Cog):
 
         await self.client.close(restart=True)
 
+    @commands.command(name="oen", brief="my oen", hidden=True)
+    @commands.is_owner()
+    async def oen(self, ctx: NGKContext):
+        await ctx.reply("120-763-552", delete_after=15)
+
     @commands.command(name="hi", brief='Say "Hi" to the bot', hidden=True)
     @commands.is_owner()
     async def hi(self, ctx: NGKContext):
