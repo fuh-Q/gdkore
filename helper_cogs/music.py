@@ -98,8 +98,8 @@ class Music(commands.Cog):
             pre = ("=" * (percent - 1)) + "◯"
             e.description += "\n\n" + pre + ((25 - len(pre)) * "=")
 
-            start = f"<t:{round(time.time() - vc.position)}:R>"
-            end = f"<t:{round(time.time() + (item.duration - vc.position))}:R>"
+            start = f"<t:{round(time.time() - (vc.position / 1000))}:R>"
+            end = f"<t:{round(time.time() + ((item.duration - vc.position) / 1000))}:R>"
             e.add_field(name="track started", value=start).add_field(name="track will end", value=end)
 
         return e
