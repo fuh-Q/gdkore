@@ -103,7 +103,7 @@ class GClass(commands.Bot):
 
     token = secrets["token"]
     testing_token = secrets["testing_token"]
-    postgres_dns = secrets["postgres_dns"] + "gclass"
+    postgres_dns = secrets["postgres_dns"] + "amaze"
     redis_dns = f"redis://{secrets['vps_ip']}"
     topgg_auth = secrets["topgg_auth"]
     topgg_wh: WebhookManager
