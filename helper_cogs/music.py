@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from helper_bot import NotGDKID
 
 
-class QueuePages(BasePages):
+class QueuePages(BasePages, auto_defer=False):
     TRACKS_PER_PAGE: ClassVar[int] = 10
 
     def __init__(self, interaction: Interaction, tracks: wavelink.Queue):
@@ -55,7 +55,7 @@ class QueuePages(BasePages):
 
     async def after_callback(self, interaction: Interaction, item: Item):
         self.update_components()
-        await self._interaction.response.edit_message(**self.edit_kwargs)
+        await interaction.response.edit_message(**self.edit_kwargs)
 
 
 class Music(commands.Cog):
@@ -134,7 +134,7 @@ class Music(commands.Cog):
         except wavelink.QueueEmpty:
             if player.loop:  # type: ignore
                 assert ctx.guild
-                player.queue = self.loops[ctx.guild.id].copy()  # type: ignore
+                player.queue = self.loops[ctx.guild.id].copy()
                 try:
                     next_song = player.queue.get()  # type: ignore
                 except wavelink.QueueEmpty:
@@ -174,7 +174,7 @@ class Music(commands.Cog):
             track = results[0]
 
         if vc.queue.is_empty and not vc.is_playing():
-            self.loops[interaction.guild.id] = vc.queue.copy()  # type: ignore
+            self.loops[interaction.guild.id] = vc.queue.copy()
             await vc.play(track)
             vc.loop = False  # type: ignore
         else:
@@ -250,7 +250,7 @@ class Music(commands.Cog):
         if vc.queue.is_empty and not self.loops[interaction.guild.id].is_empty and vc.loop:  # type: ignore
             return await QueuePages(interaction, self.loops[interaction.guild.id].copy()).start()  # type: ignore
 
-        await QueuePages(interaction, vc.queue.copy()).start()  # type: ignore
+        await QueuePages(interaction, vc.queue.copy()).start()
 
     @command(name="remove")
     @voice_connected()
