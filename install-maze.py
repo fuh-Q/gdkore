@@ -6,6 +6,11 @@ from pathlib import Path
 if sys.platform != "linux":
     raise OSError("what no not here")
 
+if len(sys.argv) < 2:
+    raise ValueError("no version specified")
+else:
+    ver = sys.argv[1]
+
 version_tuple = platform.python_version_tuple()[:2]
 plat = "cp" + "".join(version_tuple)
 
@@ -17,11 +22,6 @@ match machine:
         mlinux = ("2_12", "2010")
     case _:
         raise ValueError("idk what %s is supposed to be" % machine)
-
-if len(sys.argv) < 2:
-    ver = "0.1.0"
-else:
-    ver = sys.argv[1]
 
 asset_name = f"maze-{ver}-{plat}-{plat}-manylinux_{mlinux[0]}_{machine}.manylinux{mlinux[1]}_{machine}.whl"
 url = f"https://github.com/fuh-Q/maze/releases/download/maze/{asset_name}"
