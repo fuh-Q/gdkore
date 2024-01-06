@@ -3,7 +3,17 @@ from __future__ import annotations
 import discord
 from discord import ui
 from discord.ext import commands
-from discord.app_commands import AppCommandError, Choice, CheckFailure, Range, autocomplete, command, checks, describe
+from discord.app_commands import (
+    AppCommandError,
+    Choice,
+    CheckFailure,
+    Cooldown,
+    Range,
+    autocomplete,
+    command,
+    checks,
+    describe,
+)
 
 import asyncio
 from io import BytesIO
@@ -217,7 +227,10 @@ class Game(View, metaclass=AsyncInit, auto_defer=False):
             f"<@!{self._owner_id}>\n\n"
         )
 
-        await self.last_interaction.edit_original_response(content=content, view=self)
+        try:
+            await self.last_interaction.edit_original_response(content=content, view=self)
+        except discord.HTTPException:  # race condition with the forfeit button being pressed
+            pass
 
     async def interaction_check(self, interaction: Interaction, item: ui.Item) -> bool:
         if interaction.user.id != self._owner_id:
@@ -283,7 +296,7 @@ class Game(View, metaclass=AsyncInit, auto_defer=False):
         await edit_method(content=content, attachments=[discord.File(image, filename=MAZE_FILE)], view=menu)
 
     def stop(self):
-        del _active_games[self._owner_id]
+        _active_games.pop(self._owner_id, None)
         super().stop()
 
     def update_components(self):
@@ -339,6 +352,11 @@ def default_suggest(n: int, /) -> Callable[..., Coro[List[Choice[int]]]]:
     return wrapped
 
 
+def maze_cooldown(interaction: Interaction):
+    if interaction.user.id not in interaction.client.owner_ids:
+        return Cooldown(1, 3)
+
+
 class Mazes(commands.Cog):
     def __init__(self, client: Amaze):
         self.client = client
@@ -361,21 +379,21 @@ class Mazes(commands.Cog):
 
     @command(name="maze")
     @describe(width="the width of the maze (default 20)", height="the height of the maze (default 15)")
-    @checks.cooldown(1, 3)
+    @checks.dynamic_cooldown(maze_cooldown)
     @autocomplete(width=default_suggest(20), height=default_suggest(15))
     async def maze(self, interaction: Interaction, width: Range[int, 2], height: Range[int, 2]):
         """
         generates a maze puzzle with the given width and height
         """
 
-        if interaction.user.id in _active_games:
+        if interaction.user.id in _active_games and interaction.user.id not in self.client.owner_ids:
             raise MaxConcurrencyReached(_active_games[interaction.user.id])
 
         if width * height > MAX_MAZE_SIZE:
             raise MazeTooBig
 
-        await interaction.response.send_message("building maze...")
         _active_games[interaction.user.id] = None
+        await interaction.response.send_message("building maze...")
 
         settings = await self._fetch_settings(interaction.user.id)
         game: Game = await Game(
