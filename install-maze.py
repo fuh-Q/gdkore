@@ -29,6 +29,8 @@ url = f"https://github.com/fuh-Q/maze/releases/download/maze/{asset_name}"
 cwd = Path.cwd()
 py = ".".join(version_tuple)
 interpreter = cwd / "venv" / "bin" / f"python{py}"
-os.system(f"{interpreter} -m pip install -U pip {url}")
+error_code = os.system(f"{interpreter} -m pip install -U pip {url}")
+if error_code:
+    raise Exception("could not install for version %s" % version)
 
 print(f"successfully installed to the venv found in this current directory ({cwd})")
