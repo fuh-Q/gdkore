@@ -171,7 +171,9 @@ class MoveButton(ui.Button):
             return
 
         # normal move
-        self.view.coords = (coords[0] + direction[0], coords[1] + direction[1])
+        new_coords = (coords[0] + direction[0], coords[1] + direction[1])
+        if not self.view.maze.has_wall_between(self.view.coords, new_coords):
+            self.view.coords = new_coords
 
 
 class Game(View, metaclass=AsyncInit, auto_defer=False):
