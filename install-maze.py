@@ -31,6 +31,6 @@ py = ".".join(version_tuple)
 interpreter = cwd / "venv" / "bin" / f"python{py}"
 error_code = os.system(f"{interpreter} -m pip install -U pip {url}")
 if error_code:
-    raise Exception("could not install for version %s" % version)
+    raise Exception("could not install for version %s" % ver)
 
 print(f"successfully installed to the venv found in this current directory ({cwd})")
