@@ -10,7 +10,7 @@ from discord.app_commands import command
 from utils import BotColours, Confirm, Embed, is_logged_in
 
 if TYPE_CHECKING:
-    from bot import GClass
+    from bot import Amaze
 
     from discord import Interaction
 
@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 class Authorization(commands.Cog):
     LINK_EXPIRY = 300
 
-    def __init__(self, client: GClass):
+    def __init__(self, client: Amaze):
         self.client = client
 
     @command(name="login")
@@ -62,7 +62,7 @@ class Authorization(commands.Cog):
     @command(name="logout")
     @is_logged_in()
     async def gc_logout(self, interaction: Interaction):
-        """logout of gclass"""
+        """logout of GClass"""
 
         view = Confirm(interaction.user)
         embed = Embed(
@@ -88,5 +88,5 @@ class Authorization(commands.Cog):
         await interaction.followup.send("successfully logged out", ephemeral=True)
 
 
-async def setup(client: GClass):
+async def setup(client: Amaze):
     await client.add_cog(Authorization(client=client))

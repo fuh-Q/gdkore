@@ -39,7 +39,7 @@ if TYPE_CHECKING:
     from discord import Interaction
     from discord.ui import Item
 
-    from bot import GClass
+    from bot import Amaze
     from utils import Attachment, Course, CourseWork, Resource
 
 
@@ -71,7 +71,7 @@ def get_due_date(assignment: CourseWork) -> datetime | None:
     return due_date
 
 
-class GoBack(Generic[HomeT], View):
+class GoBack(Generic[HomeT], View, auto_defer=True):
     def __init__(self, homepage: HomeT):
         self._home = homepage
 
@@ -209,8 +209,8 @@ class ClassPicker(Select[CoursePages]):
         await interaction.edit_original_response(embed=e, view=menu)
 
 
-class ClassHome(GoBack[CoursePages]):
-    client: GClass
+class ClassHome(GoBack[CoursePages], auto_defer=True):
+    client: Amaze
 
     def __init__(
         self,
@@ -559,7 +559,7 @@ class ClassMenu(BasePages, auto_defer=False):
         await interaction.response.edit_message(view=view)
 
 
-class AttachmentsView(GoBack[ClassMenu]):
+class AttachmentsView(GoBack[ClassMenu], auto_defer=True):
     def __init__(self, homepage: ClassMenu, attachments: List[Attachment], service: Resource, content: str | None = None):
         self._home = homepage
         self._resource = service
@@ -609,7 +609,7 @@ class AttachmentsView(GoBack[ClassMenu]):
 
 
 class Browser(commands.Cog):
-    def __init__(self, client: GClass):
+    def __init__(self, client: Amaze):
         self.client = client
 
         self.course_cache: ExpiringDict[int, List[Course]] = ExpiringDict(300)
@@ -674,5 +674,5 @@ class Browser(commands.Cog):
             menu.courses_to_pages(courses=courses)
 
 
-async def setup(client: GClass):
+async def setup(client: Amaze):
     await client.add_cog(Browser(client=client))

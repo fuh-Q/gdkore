@@ -14,7 +14,7 @@ from utils import PrintColours
 if TYPE_CHECKING:
     from discord import Interaction
 
-    from bot import GClass
+    from bot import Amaze
 
 R = PrintColours.RED
 G = PrintColours.GREEN
@@ -23,7 +23,7 @@ P = PrintColours.PURPLE
 
 
 class Voting(commands.Cog):
-    def __init__(self, client: GClass) -> None:
+    def __init__(self, client: Amaze) -> None:
         self.client = client
 
         self.client.topgg_wh = WebhookManager(client)
@@ -52,5 +52,5 @@ class Voting(commands.Cog):
         )
 
 
-async def setup(client: GClass):
+async def setup(client: Amaze):
     await client.add_cog(Voting(client=client))

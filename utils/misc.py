@@ -28,6 +28,17 @@ CHOICES = (
 )
 
 
+class AsyncInit(type):
+    """
+    Allows you to define an async `__init__` method
+    """
+
+    async def __call__(self, *a, **kw):
+        obj = object.__new__(self)  # type: ignore
+        await obj.__init__(*a, **kw)
+        return obj
+
+
 class MaxConcurrencyReached(CheckFailure):
     """
     An error subclass typically for game commands
@@ -37,7 +48,7 @@ class MaxConcurrencyReached(CheckFailure):
         The jump url to the ongoing game's message
     """
 
-    def __init__(self, jump_url: str) -> None:
+    def __init__(self, jump_url: str | None) -> None:
         self.jump_url = jump_url
 
 

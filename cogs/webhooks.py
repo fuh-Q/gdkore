@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import sys
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from itertools import chain
@@ -35,7 +36,7 @@ if TYPE_CHECKING:
     from discord import Interaction
     from discord.ui import Item
 
-    from bot import GClass
+    from bot import Amaze
     from utils import Attachment, Post, Resource, WebhookData
 
 DEL_QUERY = """DELETE FROM webhooks
@@ -74,7 +75,7 @@ class EmbedWithPostData:
 
 
 @tasks.loop(minutes=10)
-async def fetch_posts(client: GClass):
+async def fetch_posts(client: Amaze):
     def run_google() -> Tuple[Post]:  # all google libs are sync
         kwargs = {"courseId": webhook["course_id"], "pageSize": 5}
         start = len(webhook) - 3
@@ -82,7 +83,7 @@ async def fetch_posts(client: GClass):
         _: Callable[[Resource], Dict[str, Post]] = lambda item: item.list(**kwargs).execute()
 
         # fmt: off
-        return tuple(chain.from_iterable(map(lambda i: tuple(filter(
+        return tuple(chain.from_iterable(map(lambda i: tuple(filter( # type: ignore
             lambda m: (created_at := format_google_time(m)) > webhook[tuple(webhook.keys())[i[0] + start]]
             and created_at > webhook["last_date"], i[1]
         )), enumerate((
@@ -379,14 +380,18 @@ class WebhookPages(BasePages, auto_defer=False):
 
 
 class Webhooks(commands.Cog):
-    def __init__(self, client: GClass) -> None:
+    def __init__(self, client: Amaze) -> None:
         self.client = client
+        if sys.platform == "win32":
+            return
 
         fetch_posts.before_loop(client.wait_until_ready)
         self.running_task = fetch_posts.start(client)
 
-    async def cog_unload(self) -> None:
-        self.running_task.cancel()
+    if sys.platform != "win32":
+
+        async def cog_unload(self) -> None:
+            self.running_task.cancel()
 
     @command(name="webhooks")
     @is_logged_in()
@@ -408,5 +413,5 @@ class Webhooks(commands.Cog):
         await WebhookPages(interaction, webhooks).start(edit_existing=True)
 
 
-async def setup(client: GClass):
+async def setup(client: Amaze):
     await client.add_cog(Webhooks(client=client))

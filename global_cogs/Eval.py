@@ -107,6 +107,7 @@ class SQLTable:
 
         return "\n".join(final)
 
+
 # fmt: on
 class Eval(commands.Cog):
     def __init__(self, client: NotGDKID):
@@ -276,7 +277,6 @@ class Eval(commands.Cog):
     )
     @commands.is_owner()
     async def debug(self, ctx: commands.Context, *, code: str):
-
         env = self.get_environment(ctx)
 
         code = self.cleanup_code(code)
@@ -330,7 +330,6 @@ class Eval(commands.Cog):
     )
     @commands.is_owner()
     async def repl(self, ctx: commands.Context, *, code: Optional[str] = None):
-
         if code:
             code = self.cleanup_code(code)
             output = self.simulate_repl(code)
@@ -426,7 +425,7 @@ class Eval(commands.Cog):
                     assert code
                     with redirect_stdout(stdout):
                         if executor is None:
-                            result = types.FunctionType(code, env)()  # type: ignore
+                            result = types.FunctionType(code, env)()
                         else:
                             result = executor(code, env)
                         result = await self.maybe_await(result)

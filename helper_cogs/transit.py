@@ -22,15 +22,13 @@ from discord.app_commands import Choice, command, describe, autocomplete
 from discord.ext import commands, tasks
 from discord.utils import cached_property
 
-from utils import CHOICES, BotEmojis, PrintColours, View, cap
+from utils import CHOICES, AsyncInit, BotEmojis, PrintColours, View, cap
 
 if TYPE_CHECKING:
     from discord import Embed, File, InteractionMessage, Member, SelectOption, User
 
     from helper_bot import NotGDKID
     from utils import BusStopResponse, NGKContext, PostgresPool, RouteData, StopInfo, TripData
-
-    from typing_extensions import Self
 
     T = TypeVar("T")
     Interaction = discord.Interaction[NotGDKID]
@@ -177,21 +175,10 @@ class Sorting(Enum):
     DEST = 2
 
 
-class BusDisplay(View, auto_defer=False):
+class BusDisplay(View, auto_defer=False, metaclass=AsyncInit):
     if TYPE_CHECKING:
-        _data: BusStopResponse
-        _stop_info: StopInfo
-        _db: PostgresPool
-        _route_count: int
-        _destination_count: int
         _destinations: Tuple[List[str], ...]
         _routes: Tuple[List[Tuple[str, str]], ...]
-        _route_icons: Dict[str, File]
-        _owner: User | Member
-        _trip_fetcher: TripFetcher
-
-        departure_page_count: int
-        current_key: str
 
     TIMEOUT = 120
     pages: Dict[str, Embed] = {}
@@ -199,23 +186,22 @@ class BusDisplay(View, auto_defer=False):
     departure_page: int = 0
     sorting: Sorting = Sorting.ROUTE
 
-    @classmethod
-    async def async_init(
-        cls,
+    async def __init__(
+        self,
         *,
         data: BusStopResponse,
         db: PostgresPool,
         owner: User | Member,
         trip_fetcher: TripFetcher,
         skip_components: bool = False,
-    ) -> Self:
+    ):
         assert data["Routes"]["Route"] is not None
         trips, routes_raw = _get_trips_and_routes(data["Routes"]["Route"])
 
         destinations = _sort_destinations(trips)
         routes = _sort_routes(routes_raw)
 
-        self = cls(timeout=cls.TIMEOUT)
+        super().__init__(timeout=self.TIMEOUT)
 
         query = "SELECT * FROM stops WHERE stop_code = $1"
         self._stop_info: StopInfo = await db.fetchrow(query, data["StopNo"])  # type: ignore
@@ -238,8 +224,6 @@ class BusDisplay(View, auto_defer=False):
         self._build_destination_pages(destinations)
         if not skip_components:
             self.update_components()
-
-        return self
 
     async def interaction_check(self, interaction: Interaction, item: ui.Item) -> bool:
         if interaction.client.is_blacklisted(interaction.user):
@@ -581,7 +565,7 @@ class BusDisplay(View, auto_defer=False):
         await interaction.response.send_modal(modal)
 
 
-class ResultSelector(View):
+class ResultSelector(View, auto_defer=True):
     def __init__(
         self,
         results: List[StopInfo],
@@ -657,7 +641,7 @@ class ResultSelector(View):
             return await interaction.followup.send(f"{str(e)}\n```json\n{e.raw!r}```", ephemeral=True)
 
         assert data["Routes"]["Route"] is not None
-        view = await BusDisplay.async_init(
+        view = await BusDisplay(
             data=data,
             db=self._db,
             owner=interaction.user,
@@ -709,7 +693,7 @@ class NewLookupModal(ui.Modal, title="Bus Stop Lookup"):
                 return await interaction.followup.send(f"{str(e)}\n```json\n{e.raw!r}```", ephemeral=True)
 
             assert data["Routes"]["Route"] is not None
-            view = await BusDisplay.async_init(
+            view = await BusDisplay(
                 data=data,
                 db=self._db,
                 owner=interaction.user,
@@ -812,7 +796,7 @@ class Transit(commands.Cog):
             return await interaction.followup.send(f"{str(e)}\n```json\n{e.raw!r}```", ephemeral=True)
 
         assert new_data["Routes"]["Route"] is not None
-        view = await BusDisplay.async_init(
+        view = await BusDisplay(
             data=new_data, db=self.client.db, owner=interaction.user, trip_fetcher=self.fetch_trips, skip_components=True
         )
 
@@ -1066,7 +1050,7 @@ class Transit(commands.Cog):
             return await interaction.followup.send(f"{str(e)}\n```json\n{e.raw!r}```", ephemeral=True)
 
         assert data["Routes"]["Route"] is not None
-        view = await BusDisplay.async_init(
+        view = await BusDisplay(
             data=data,
             db=self.client.db,
             owner=interaction.user,

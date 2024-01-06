@@ -287,7 +287,7 @@ class Logic:
             return None
 
 
-class Game(View):
+class Game(View, auto_defer=True):
     children: List[Select | Button]
     northwest: Button[Game]
     northeast: Button[Game]

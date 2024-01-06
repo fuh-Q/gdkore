@@ -10,17 +10,17 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from discord import Interaction
 
-    from bot import GClass
+    from bot import Amaze
     from helper_bot import NotGDKID
 
 
 def is_logged_in():
     """
-    Check to ensure the command-invoking user has in fact authenticated with GClass.
+    Check to ensure the command-invoking user has in fact authenticated with Amaze.
     """
 
     async def predicate(interaction: Interaction) -> bool:
-        client: GClass = interaction.client  # type: ignore
+        client: Amaze = interaction.client  # type: ignore
         user_id: int = interaction.user.id
 
         q = """SELECT credentials FROM authorized

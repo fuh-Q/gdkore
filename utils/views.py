@@ -14,7 +14,7 @@ from google.auth.exceptions import RefreshError
 if TYPE_CHECKING:
     from discord.ext.commands import Context
 
-    from bot import GClass
+    from bot import Amaze
     from helper_bot import NotGDKID
 
 
@@ -122,7 +122,7 @@ class View(DPYView):
 
     TIMEOUT = 180
 
-    client: GClass
+    client: Amaze
     original_message: discord.Message | discord.WebhookMessage | InteractionMessage
     children: List[Button | Select]
     __discord_auto_defer__: bool
@@ -141,7 +141,7 @@ class View(DPYView):
         """
         return self.__discord_auto_defer__
 
-    def __init_subclass__(cls, *, auto_defer: bool = True) -> None:
+    def __init_subclass__(cls, *, auto_defer: bool) -> None:
         cls.__discord_auto_defer__ = auto_defer
         return super().__init_subclass__()
 
@@ -180,7 +180,7 @@ class View(DPYView):
                 for _ in range(5 - weight):
                     self.add_item(Button(label="\u200b", disabled=True, row=index))
 
-    async def interaction_check(self, interaction: Interaction, item: Item) -> bool:
+    async def interaction_check(self, interaction: Interaction, item: Item) -> bool | None:
         """
         Check function run whenever a component on this view is dispatched.
         To run the component's callback normally, return `True`.
@@ -206,10 +206,13 @@ class View(DPYView):
         """
         Method called after a component callback has completed.
 
+        If the `auto_defer` keyword has been set to `True` in the subclass definition,
+        the interaction object passed will have been deferred at this point.
+
         Parameters
         ----------
         interaction: `Interaction`
-            The (responded) `Interaction` object from the dispatched item.
+            The `Interaction` object from the dispatched item.
         item: `Item`
             The item dispatched.
         """
@@ -217,7 +220,7 @@ class View(DPYView):
         return
 
 
-class BasePages(View):
+class BasePages(View, auto_defer=True):
     """
     ABC for paginators to inherit from.
     """
@@ -227,7 +230,7 @@ class BasePages(View):
     _current: int = 0  # current page
     _pages: List[discord.Embed] = []  # pages are comprised of embeds
     _interaction: Interaction  # typically the initial interaction from the user
-    _ctx: Context[GClass | NotGDKID] | None = None  # instance of context if this is being used in a prefixed command
+    _ctx: Context[Amaze | NotGDKID] | None = None  # instance of context if this is being used in a prefixed command
 
     _home: BasePages  # homepage
     _parent: bool = False  # currently focused in a "sub-view"
@@ -241,15 +244,17 @@ class BasePages(View):
         return True
 
     async def on_timeout(self) -> None:
-        if not self._parent:
-            self.disable_all(exclude_urls=True)
+        if self._parent:
+            return
 
-            method = self.original_message.edit if self._ctx else self._interaction.edit_original_response
+        self.disable_all(exclude_urls=True)
 
-            try:
-                await method(view=self)
-            except discord.HTTPException:
-                pass  # we tried
+        method = self.original_message.edit if self._ctx else self._interaction.edit_original_response
+
+        try:
+            await method(view=self)
+        except discord.HTTPException:
+            pass  # we tried
 
     async def on_error(self, interaction: Interaction, error: Exception, item: Item) -> None:
         if isinstance(error, RefreshError):
@@ -258,7 +263,7 @@ class BasePages(View):
         raise error
 
     @property
-    def client(self) -> GClass | NotGDKID:
+    def client(self) -> Amaze | NotGDKID:
         """
         Returns the main bot object.
         """
@@ -308,7 +313,12 @@ class BasePages(View):
         self.button_current.label = f"{self.current_page + 1} / {self.page_count}"
 
     async def start(
-        self, *, edit_existing: bool = False, interaction: Interaction | None = None, content: str | None = None
+        self,
+        *,
+        ephemeral: bool = True,
+        edit_existing: bool = False,
+        interaction: Interaction | None = None,
+        content: str | None = None,
     ):
         if not interaction and not hasattr(self, "_interaction"):
             raise TypeError("Interaction must be set")
@@ -330,7 +340,7 @@ class BasePages(View):
             )
         else:
             method = interaction.response.send_message if not interaction.response.is_done() else interaction.followup.send
-            kwargs["ephemeral"] = True
+            kwargs["ephemeral"] = ephemeral
 
         await method(**kwargs)
 

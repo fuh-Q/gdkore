@@ -9,7 +9,7 @@ import sys
 import time
 import traceback
 from datetime import datetime, timedelta, timezone
-from typing import Callable, List, Tuple, TYPE_CHECKING
+from typing import Any, Callable, Coroutine, List, Tuple, TypeVar, TYPE_CHECKING
 
 # <-- discord imports -->
 import discord
@@ -53,12 +53,15 @@ if TYPE_CHECKING:
 
     from discord import Interaction
     from discord.abc import Snowflake
-    from discord.app_commands import AppCommandError, CommandInvokeError
+    from discord.app_commands import AppCommandError, CommandInvokeError, Choice
 
     from topgg.webhook import WebhookManager
 
     from cogs.browser import Browser
     from utils import PostgresPool, Secrets
+
+    T = TypeVar("T")
+    Coro = Coroutine[Any, Any, T]
 
 # <-- uvloop -->
 try:
@@ -81,7 +84,7 @@ DiscordWebSocket.identify = mobile
 logging.getLogger("googleapiclient.discovery_cache").setLevel(logging.ERROR)
 
 
-class GClass(commands.Bot):
+class Amaze(commands.Bot):
     """
     The sexiest bot of all time.
     """
@@ -154,11 +157,11 @@ class GClass(commands.Bot):
         self.guild_limit = []
         self.uptime = datetime.now(tz=timezone(timedelta(hours=-4 if is_dst() else -5)))
 
-        self.tree.interaction_check = self.on_app_command
+        self.tree.interaction_check = self.tree_interaction_check
         self.tree.on_error = self.on_app_command_error
         self.add_commands()
 
-    def _is_blacklisted(self, obj: Snowflake) -> bool:
+    def is_blacklisted(self, obj: Snowflake) -> bool:
         return obj.id in self.blacklist
 
     async def remove_access(self, user_id: int):
@@ -256,7 +259,7 @@ class GClass(commands.Bot):
         )
 
         q = """SELECT tablename FROM pg_tables
-                WHERE tableowner = 'GDKID'
+                WHERE tableowner = 'gdkid'
             """
         self._table_names = [i[0] for i in await self.db.fetch(q)]
         self.avatar_bytes = await self.user.avatar.read() if self.user.avatar else b""
@@ -285,7 +288,7 @@ class GClass(commands.Bot):
         if not hasattr(self, "guild_logs"):  # discord bug...?
             return
 
-        if self._is_blacklisted(guild):
+        if self.is_blacklisted(guild):
             return await guild.leave()
 
         counter = 0
@@ -342,15 +345,26 @@ class GClass(commands.Bot):
 
         await self.guild_logs.send(embed=e)
 
-    async def on_app_command(self, interaction: Interaction) -> bool:
-        if g := interaction.guild:
-            if self._is_blacklisted(g):
-                await interaction.response.send_message("server is blacklisted", ephemeral=True)
+    async def tree_interaction_check(self, interaction: Interaction) -> bool:
+        respond: Callable[[str], Coro[None]] = lambda msg: (
+            interaction.response.autocomplete([Choice(name=msg, value="")])
+            if interaction.type is discord.InteractionType.autocomplete
+            else interaction.response.send_message(msg, ephemeral=True)
+        )
+
+        if self.is_blacklisted(interaction.user):
+            await respond("you're blacklisted L")
+            return False
+
+        guild = interaction.guild
+        if guild is not None:
+            if self.is_blacklisted(guild):
+                await respond("server is blacklisted")
                 return False
 
         return True
 
-    async def on_app_command_error(self, interaction: Interaction, error: AppCommandError | CommandInvokeError):
+    async def on_app_command_error(self, interaction: Interaction, error: AppCommandError | CommandInvokeError) -> None:
         if (responded := interaction.response.is_done()) and isinstance(error, CheckFailure):
             return
         else:
@@ -394,10 +408,10 @@ class GClass(commands.Bot):
         await self.invoke(ctx)
 
     async def on_message(self, message: discord.Message):
-        if message.author.bot or self._is_blacklisted(message.author):
+        if message.author.bot or self.is_blacklisted(message.author):
             return
 
-        if message.guild and self._is_blacklisted(message.guild):
+        if message.guild and self.is_blacklisted(message.guild):
             return
 
         if message.content in [f"<@!{self.user.id}>", f"<@{self.user.id}>"]:
@@ -533,4 +547,4 @@ class GClass(commands.Bot):
 
 
 if __name__ == "__main__":
-    GClass().run()
+    Amaze().run()

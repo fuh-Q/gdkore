@@ -50,7 +50,7 @@ def size(size_in_bytes: int) -> str:
     return f"{(size_in_bytes / (1024 ** power)):.2f}{units[power]}"
 
 
-class DirectoryView(BasePages):
+class DirectoryView(BasePages, auto_defer=True):
     items: List[pathlib.Path]
     directory: pathlib.Path
     _directory_slices: List[Tuple[pathlib.Path, ...]]
