@@ -17,13 +17,12 @@ from discord.app_commands import (
 
 import asyncio
 from io import BytesIO
-import random
 import time
 from datetime import datetime, timezone
 from typing import Any, ClassVar, Callable, Coroutine, Dict, List, Sequence, Tuple, TypedDict, TypeVar, TYPE_CHECKING
 
 import maze
-from utils import CHOICES, AsyncInit, BasePages, BotEmojis, BotColours, MaxConcurrencyReached, View, humanize_timedelta
+from utils import AsyncInit, BasePages, BotEmojis, BotColours, MaxConcurrencyReached, View, humanize_timedelta
 
 if TYPE_CHECKING:
     from bot import Amaze
@@ -140,12 +139,6 @@ class GameEndedMenu(View, auto_defer=True):
             await self.last_interaction.edit_original_response(view=self)
         except discord.HTTPException:
             pass  # we tried
-
-    async def interaction_check(self, interaction: Interaction, item: ui.Item):
-        if interaction.user.id != self._owner_id:
-            await interaction.response.send_message(content=random.choice(CHOICES), ephemeral=True)
-            return False
-        return True
 
     @ui.button(label="view a perfect run", style=discord.ButtonStyle.secondary)
     async def perfect_run(self, interaction: Interaction, button: ui.Button):
