@@ -5,6 +5,8 @@ from typing import TYPE_CHECKING
 from discord.ext import commands
 from discord.app_commands import command
 
+import orjson
+
 from aiohttp import web
 from topgg.webhook import WebhookManager
 from topgg.types import BotVoteData
@@ -31,8 +33,12 @@ class Voting(commands.Cog):
         self.client.topgg_wh.run(1337)
 
     async def on_topgg_vote(self, request: web.Request):
+        try:
+            data: BotVoteData = orjson.loads(await request.text())
+        except orjson.JSONDecodeError:
+            return web.Response(status=401, text="nope fuck off")
+
         auth = request.headers.get("Authorization", "")
-        data: BotVoteData = await request.json()
         if auth == self.client.topgg_auth and int(data["bot"]) == self.client.user.id:
             return web.Response(status=200, text="OK")
 
