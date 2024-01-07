@@ -314,7 +314,7 @@ class Game(View, metaclass=AsyncInit, auto_defer=False):
             new_coords = (self.coords[0] + direction[0], self.coords[1] + direction[1])
             button.disabled = self.maze.has_wall_between(self.coords, new_coords)
 
-    @ui.button(label="fuck this", style=discord.ButtonStyle.danger)
+    @ui.button(emoji=BotEmojis.FUCKTHIS, style=discord.ButtonStyle.danger)
     async def forfeit(self, interaction: Interaction, button: ui.Button):
         self.stop()
         if self._width * self._height > MOVE_DEFER_THRESHOLD:
