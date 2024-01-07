@@ -34,7 +34,7 @@ class Voting(commands.Cog):
 
     async def on_topgg_vote(self, request: web.Request):
         try:
-            data: BotVoteData = orjson.loads(await request.text())
+            data: BotVoteData = await request.json(loads=orjson.loads)
         except orjson.JSONDecodeError:
             return web.Response(status=401, text="nope fuck off")
 
