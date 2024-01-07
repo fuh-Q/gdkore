@@ -56,6 +56,16 @@ DIRECTION_NAME = {
     maze.RIGHT: "RIGHT",
 }
 
+TUTORIAL = """
+so if this is your first time doing this...
+
+- your goal is to get to the bottom right corner, and you can move around by clicking the buttons below
+- the first row of buttons move you one space over in whichever direction you clicked
+- the second row of buttons move you the furthest possible distance in a direction until you hit a wall
+- in order to change this text, you can run `/mazeconfig title`, and set the `text` argument accordingly
+- if you want to remove this text altogether, you can run that same command, but without arguments
+""".strip()
+
 
 class MazeTooBig(CheckFailure):
     shpeal = (
@@ -211,7 +221,7 @@ class Game(View, metaclass=AsyncInit, auto_defer=False):
 
     @property
     def title(self) -> str | None:
-        return f"> *{self._title}*" if self._title else None
+        return self._title
 
     async def on_timeout(self) -> None:
         self.disable_all()
@@ -283,8 +293,8 @@ class Game(View, metaclass=AsyncInit, auto_defer=False):
             f"\N{HANGUL FILLER}*{bottom}*\n\u200b"
         )
 
-        if self._title:
-            content += f"\n> *{self._title}*"
+        if self.title:
+            content += f"\n——————————\n{self.title}"
 
         menu = GameEndedMenu(self._owner_id, directions)
         menu.last_interaction = self.last_interaction
@@ -327,8 +337,8 @@ class Game(View, metaclass=AsyncInit, auto_defer=False):
             f"you can view a perfect run done in `{n_moves}` moves using the button below\n\u200b"
         )
 
-        if self._title:
-            content += f"\n> *{self._title}*"
+        if self.title:
+            content += f"\n——————————\n{self.title}"
 
         image = await asyncio.to_thread(self.maze.get_image_expensively)
         menu = GameEndedMenu(self._owner_id, directions=solution)
@@ -369,7 +379,7 @@ class Mazes(commands.Cog):
             "solution_colour": RED,
             "player": None,
             "endzone": None,
-            "title": None,
+            "title": TUTORIAL,
         }
 
     @command(name="maze")

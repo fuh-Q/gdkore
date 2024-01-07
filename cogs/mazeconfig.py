@@ -6,7 +6,7 @@ from typing import Tuple, TYPE_CHECKING
 
 import discord
 from discord import Attachment
-from discord.app_commands import describe, Group
+from discord.app_commands import Group, describe
 from discord.ext import commands
 
 from bot import Amaze
@@ -129,10 +129,15 @@ class MazeConfig(commands.Cog):
 
     @settings.command(name="title")
     @describe(text="the text to set as the title caption")
-    async def settings_title(self, interaction: Interaction, text: str = ""):
+    async def settings_title(self, interaction: Interaction, text: str | None):
         """
         customize the text displayed over mazes when you play
         """
+
+        if text is None:
+            q = "UPDATE maze_settings SET title = NULL WHERE user_id = $1"
+            await self.client.db.execute(q, interaction.user.id)
+            return await interaction.response.send_message(f"title removed {BotEmojis.HEHEBOI}", ephemeral=True)
 
         if len(text) > 32:
             return await interaction.response.send_message(
