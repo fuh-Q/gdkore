@@ -110,7 +110,7 @@ class PerfectRunDirections(BasePages, auto_defer=False):
     def directions_to_pages(self, *, directions: Sequence[str]):
         items = [i for i in directions]
         offset = 0
-        total_pages = len(directions) // self.MOVES_PER_PAGE + 1
+        total_pages = len(directions) // (self.MOVES_PER_PAGE + 1) + 1
 
         while items != []:
             bundle = items[: self.MOVES_PER_PAGE]
@@ -141,6 +141,9 @@ class GameEndedMenu(View, auto_defer=True):
         self._directions = directions
 
         super().__init__(timeout=self.TIMEOUT)
+
+    async def interaction_check(self, interaction: Interaction, item: ui.Item) -> bool:
+        return True
 
     async def on_timeout(self) -> None:
         self.clear_items()
