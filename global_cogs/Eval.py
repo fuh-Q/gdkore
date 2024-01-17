@@ -176,16 +176,6 @@ class Eval(commands.Cog):
         return content.strip("` \n")
 
     @staticmethod
-    def pretty_query(query: str):
-        start = "postgres=# "
-        lines = query.split("\n")
-
-        lines[0] = start + lines[0]
-        lines = [lines[0]] + [len(start) * " " + line for line in lines[1:]]
-
-        return "\n".join(lines)
-
-    @staticmethod
     def paginate(text: str, max_text: int = 1990) -> list:
         """One that's less weird"""
         if type(text) != str:
@@ -197,6 +187,15 @@ class Eval(commands.Cog):
             pages.append(text[:max_text])
             text = text[max_text:]
         return pages
+
+    def pretty_query(self, query: str):
+        start = f"{self.client.postgres_dns.split('/')[-1]}=# "
+        lines = query.split("\n")
+
+        lines[0] = start + lines[0]
+        lines = [lines[0]] + [len(start) * " " + line for line in lines[1:]]
+
+        return "\n".join(lines)
 
     def get_environment(self, ctx: commands.Context) -> dict:
         env = {
