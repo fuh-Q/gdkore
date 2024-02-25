@@ -37,7 +37,7 @@ if TYPE_CHECKING:
     EditFunc = Callable[..., Coroutine[Any, Any, InteractionMessage]]
     RouteCollection = List[Tuple[str, str, List[TripData]]]
 
-    route_colour_cache: Dict[str, str]
+    route_colour_cache: Dict[str, Tuple[str, str]]
 
 log = logging.getLogger(f"NotGDKID:{__name__}")
 
@@ -50,8 +50,34 @@ LRT_STATION_HINTS = (
 RELOAD_FAIL = "i couldn't reload that page, it's most likely that there were no trips left, therefore i've reset the menu to the landing page"
 PLACEHOLDER_URL = "https://i.vgy.me/x66JRh.png"
 
-STN_PATTERN = re.compile(r"(?: \d?[A-Z]$)| O-TRAIN(?:$| (?:WEST|EAST|NORTH|SOUTH) / (?:OUEST$|EST$|NORD$|SUD$))")
-TITLECASE_PATTERN = re.compile(r"^\w|( d')(\w)| \w|-\w")
+STN_PATTERN = re.compile(
+    r"""
+    # matches first set of a bus bay identifier (eg: South Keys [2A])
+    # as well as an optional secondary paranthesized ID (eg: South Keys 2A [(B)])
+    # reason why there are two formats is because OC Transpo is currently migrating to a simpler signage convention
+    # so in the future, South Keys "stop 2A" will be renamed to simply "stop B"
+    (?:
+        (?:\s\d?[A-Z])
+        |
+        (?:\s\(\d?[A-Z]\))
+    )+$
+
+    |  # string terminates, OR
+
+    # the station name suffix can also follow this particular format
+    # string can terminate immediately, or can also contain a direction
+    \sO-TRAIN(?:
+        $
+        |
+        \s(?:WEST|EAST|NORTH|SOUTH)\s/\s(?:OUEST|EST|NORD|SUD)$
+    )
+    """,
+    flags=re.ASCII | re.VERBOSE,
+)
+
+TITLECASE_PATTERN = re.compile(
+    r"^(?P<start>\w)|(?:\s|-)d'(?P<d_apostrophe>\w)|\s(?P<normal_space>\w)|-(?P<dash>[^d'])|(?P<abbrev>(?:\w\.)+\w)", flags=re.ASCII
+)
 
 GTFS_BUILD_INCLUDE = {
     "routes": ("route_short_name", "route_color", "route_text_color"),
@@ -833,17 +859,16 @@ class Transit(commands.Cog):
     @staticmethod
     def title(s: str):
         def handle_match(m: re.Match[str]) -> str:
-            if all(m.groups()):
-                return m.group(1) + m.group(2).upper()
-
-            return m.group().upper()
+            subber = next(filter(lambda x: x, m.groups()))
+            return m.group().replace(subber, subber.upper())
 
         return (
             TITLECASE_PATTERN.sub(handle_match, s.lower())
             .replace("Uottawa", "uOttawa")
             .replace("H.s", "H.S")
             .replace("R.r", "R.R")
-            .replace("Td", "TD")
+            .replace("Td ", "TD ")
+            .replace("Ey ", "EY ")
             .replace("toh", "T.O.H.")
             .replace("Toh", "T.O.H.")
         )
@@ -933,9 +958,15 @@ class Transit(commands.Cog):
         if "stop_name" in columns:
             i = columns.index("stop_name")
             if "/" not in filtered[i] or any(n in filtered[i] for n in LRT_STATION_HINTS):
-                filtered[i] = STN_PATTERN.sub(" stn.", filtered[i])
+                filtered[i] = STN_PATTERN.sub(" stn.", filtered[i], count=1)
 
             filtered[i] = self.title(filtered[i])
+
+        # special casing for the routes table, just caches it right here right now
+
+        elif "route_short_name" in columns:
+            global route_colour_cache
+            route_colour_cache[filtered[0]] = tuple(filtered[1:])  # type: ignore
 
         return filtered
 
@@ -953,6 +984,11 @@ class Transit(commands.Cog):
             log.warn("%d column(s) were not found whilst building table '%s'", diff, table)
 
         new_content = ""
+
+        # caching routes
+        if "route_short_name" in columns:
+            global route_colour_cache
+            route_colour_cache.clear()
 
         for row in reader:
             filtered = self._parse_csv_line(row, columns, colindexes)

@@ -110,7 +110,6 @@ class PerfectRunDirections(BasePages, auto_defer=False):
     def directions_to_pages(self, *, directions: Sequence[str]):
         items = [i for i in directions]
         offset = 0
-        total_pages = len(directions) // (self.MOVES_PER_PAGE + 1) + 1
 
         while items != []:
             bundle = items[: self.MOVES_PER_PAGE]
@@ -122,7 +121,7 @@ class PerfectRunDirections(BasePages, auto_defer=False):
 
             current_page = offset // self.MOVES_PER_PAGE + 1
             e = discord.Embed(description=f"```ocaml\n{desc}```")
-            e.set_footer(text=f"page {current_page}/{total_pages}")
+            e.set_footer(text=f"page {current_page}/{self.page_count}")
             self._pages.append(e)
 
             offset += self.MOVES_PER_PAGE
@@ -317,7 +316,7 @@ class Game(View, metaclass=AsyncInit, auto_defer=False):
             new_coords = (self.coords[0] + direction[0], self.coords[1] + direction[1])
             button.disabled = self.maze.has_wall_between(self.coords, new_coords)
 
-    @ui.button(emoji=BotEmojis.FUCKTHIS, style=discord.ButtonStyle.danger)
+    @ui.button(emoji=BotEmojis.QUIT_GAME, style=discord.ButtonStyle.danger)
     async def forfeit(self, interaction: Interaction, button: ui.Button):
         self.stop()
         if self._width * self._height > MOVE_DEFER_THRESHOLD:

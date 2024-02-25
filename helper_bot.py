@@ -274,6 +274,7 @@ class NotGDKID(commands.Bot):
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
         if payload.user_id in self.owner_ids and payload.emoji.name == "❌":
             try:
+                log.info("Message delete in channel %s", payload.channel_id)
                 msg = await self.get_channel(payload.channel_id).fetch_message(payload.message_id)
 
                 if msg.author == self.user:
