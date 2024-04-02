@@ -190,7 +190,7 @@ class NotGDKID(commands.Bot):
         log.info("%sdatabases connected", PrintColours.GREEN)
 
         node = wavelink.Node(uri="http://144.172.70.155:1234", password=self.lavalink_pass)
-        self.wavelink: Dict[str, wavelink.Node] = await wavelink.NodePool.connect(client=self, nodes=[node])
+        self.wavelink: Dict[str, wavelink.Node] = await wavelink.Pool.connect(client=self, nodes=[node])
         log.info("%swavelink server connected", PrintColours.GREEN)
 
         self.status_task = status_task.start(self)

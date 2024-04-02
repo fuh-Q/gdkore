@@ -87,7 +87,7 @@ def voice_connected(*, owner_bypass: bool = False):
                 return False
 
             if not interaction.guild.voice_client:
-                await interaction.user.voice.channel.connect(cls=wavelink.Player)  # type: ignore
+                await interaction.user.voice.channel.connect(cls=wavelink.Player)
         else:
             assert isinstance(voice.channel, discord.VoiceChannel)
             if voice.channel.id != interaction.user.voice.channel.id:
