@@ -76,7 +76,8 @@ STN_PATTERN = re.compile(
 )
 
 TITLECASE_PATTERN = re.compile(
-    r"^(?P<start>\w)|(?:\s|-)d'(?P<d_apostrophe>\w)|\s(?P<normal_space>\w)|-(?P<dash>[^d'])|(?P<abbrev>(?:\w\.)+\w)", flags=re.ASCII
+    r"^(?P<start>\w)|(?:\s|-)d'(?P<d_apostrophe>\w)|\s(?P<normal_space>\w)|-(?P<dash>[^d'])|(?P<abbrev>(?:\w\.)+\w)",
+    flags=re.ASCII,
 )
 
 GTFS_BUILD_INCLUDE = {
