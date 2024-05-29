@@ -4,11 +4,10 @@ import asyncio
 import time
 import random
 import re
-from collections.abc import Container
-from functools import partial
+from collections.abc import Collection
 from datetime import datetime
 from fractions import Fraction
-from typing import Any, Callable, Dict, List, Literal, TYPE_CHECKING
+from typing import Any, Dict, List, Literal, TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
 import discord
@@ -27,10 +26,78 @@ if TYPE_CHECKING:
     from utils import NGKContext, OAuthCreds
 
     Interaction = discord.Interaction[NotGDKID]
-    OfferTargets = Container[Literal["buying", "selling", "item"] | str]
+    OfferTargets = Collection[Literal["buying", "selling", "item"] | str]
 
-OFFER_ITEM_PAT = re.compile(r"^\*\*(?P<verb>Buying|Selling)\s(?P<amount>[\d,]+)\s<a?:\w+:\d{17,}>\s(?P<name>.+)\*\*$", re.M | re.A)
-FOR_ITEM_PAT = re.compile(r"^<a?:\w+:\d{17,}>\sFor:\s(?P<amount>[\d,]+)x\s<a?:\w+:\d{17,}>\s(?P<name>.+)$", re.M | re.A)
+OFFER_ITEM_PAT = re.compile(r"^\*\*(?P<verb>Buying|Selling)\s(?P<amount>[\d,]+)\s<a?:\w+:\d{17,}>\s(?P<name>.+)\*\*$", re.A)
+FOR_ITEM_PAT = re.compile(r"^<a?:\w+:\d{17,}>\sFor:\s(?P<amount>[\d,]+)x\s<a?:\w+:\d{17,}>\s(?P<name>.+)$", re.A)
+
+
+def _human_friendly_value(inp: str, /) -> str:
+    split = inp.split(",")
+    unit = ("", "k", "mil", "b", "t")[len(split) - 1]
+    if len(split) == 1:
+        return split[0]
+
+    front, decimal = split[0], split[1][0]
+    if decimal == "0":
+        return f"{front}{unit}"
+
+    return f"{front}.{decimal}{unit}"
+
+
+def _gen_ad_impl(
+    offers: Collection[str],
+    *,
+    components: List[MessageComponentType],
+    targets: OfferTargets,
+) -> str:
+    def is_my_offer() -> bool:
+        this_row = components[int(idx > 1) + 2]  # offset 2 component rows down
+        assert isinstance(this_row, discord.ActionRow)
+
+        this_component = this_row.children[idx % 2]
+        assert isinstance(this_component, ui.Button)
+
+        return this_component.style != ButtonStyle.green
+
+    ret = []
+    for idx, offer in enumerate(offers):
+        if not is_my_offer():
+            continue
+
+        lines = offer.splitlines()
+        first, fallback, value = lines[:3]
+
+        offer_id = offer[-7:].strip()
+        item = OFFER_ITEM_PAT.search(first)
+        assert item is not None
+
+        partial = "Partial Accepting Allowed" in offer
+        coin_offer = "Value per Unit" in value
+        lowered_verb = item["verb"].lower()
+
+        if coin_offer and lowered_verb in targets:
+            ret.append("")
+            amount = _human_friendly_value(value.split()[-1])
+            ret[-1] += f"{lowered_verb} {item['name'].lower()} "
+            ret[-1] += f"⏣ {amount}" if value[-4] != "," else amount
+            ret[-1] += " each " if partial else " "
+            ret[-1] += f"--> **{offer_id}**"
+        elif not coin_offer and "item" in targets:
+            ret.append("")
+            for_item = FOR_ITEM_PAT.search(fallback)
+            assert for_item is not None
+
+            item_qty = int(item["amount"].replace(",", ""))
+            for_qty = int(for_item["amount"].replace(",", ""))
+            a, b = Fraction(item_qty, for_qty).as_integer_ratio()
+            ret[-1] += f"my {item['name'].lower()} for your {for_item['name'].lower()} {a}:{b} --> **{offer_id}**"
+
+    if not ret:
+        return "none of these offers are yours"
+
+    return "\n".join(ret)
+
 
 class Filter(View, auto_defer=True):
     interaction: Interaction
@@ -40,10 +107,11 @@ class Filter(View, auto_defer=True):
         SelectOption(label="item-for-item offers", value="item", default=True),
     ]
 
-    def __init__(self, owner_id: int, *, gen_func: Callable[[OfferTargets], str]):
+    def __init__(self, owner_id: int, *, offers: OfferTargets, components: List[MessageComponentType]):
         super().__init__(timeout=self.TIMEOUT)
-        self._gen_func = gen_func
         self._owner_id = owner_id
+        self._offers = offers
+        self._components = components
 
         self.select = ui.Select(options=self.opts, min_values=1, max_values=len(self.opts), row=0)
         self.select._values = [o.value for o in self.opts]
@@ -65,7 +133,7 @@ class Filter(View, auto_defer=True):
 
     @ui.button(label="generate", row=1)
     async def generate(self, interaction: Interaction, button: ui.Button):
-        ad = self._gen_func(self.select.values)
+        ad = _gen_ad_impl(self._offers, components=self._components, targets=self.select.values)
         await interaction.response.edit_message(
             content=ad or "no ads of the selected types found",
             embed=None,
@@ -296,71 +364,6 @@ class Misc(commands.Cog):
             ephemeral=True,
         )
 
-    def _human_friendly_value(self, /, inp: str) -> str:
-        split = inp.split(",")
-        unit = ("", "k", "mil", "b", "t")[len(split) - 1]
-        if len(split) == 1:
-            return split[0]
-
-        front, decimal = split[0], split[1][0]
-        if decimal == "0":
-            return f"{front}{unit}"
-
-        return f"{front}.{decimal}{unit}"
-
-    def _gen_ad_impl(
-        self,
-        offers: List[str],
-        components: List[MessageComponentType],
-        targets: OfferTargets,
-    ) -> str:
-        def is_my_offer() -> bool:
-            this_row = components[int(idx > 1) + 2]  # offset 2 component rows down
-            assert isinstance(this_row, discord.ActionRow)
-
-            this_component = this_row.children[idx % 2]
-            assert isinstance(this_component, ui.Button)
-
-            return this_component.style != ButtonStyle.green
-
-        ret = []
-        for idx, offer in enumerate(offers):
-            if not is_my_offer():
-                continue
-
-            lines = offer.splitlines()
-            first, fallback, value = lines[:3]
-
-            offer_id = offer[-7:].strip()
-            item = OFFER_ITEM_PAT.search(first)
-            assert item is not None
-
-            partial = "Partial Accepting Allowed" in offer
-            coin_offer = "Value per Unit" in value
-            lowered_verb = item["verb"].lower()
-
-            if coin_offer and lowered_verb in targets:
-                ret.append("")
-                amount = self._human_friendly_value(value.split()[-1])
-                ret[-1] += f"{lowered_verb} {item['name'].lower()} "
-                ret[-1] += f"⏣ {amount}" if value[-4] != "," else amount
-                ret[-1] += " each " if partial else " "
-                ret[-1] += f"--> **{offer_id}**"
-            elif not coin_offer and "item" in targets:
-                ret.append("")
-                for_item = FOR_ITEM_PAT.search(fallback)
-                assert for_item is not None
-
-                item_qty = int(item["amount"].replace(",", ""))
-                for_qty = int(for_item["amount"].replace(",", ""))
-                a, b = Fraction(item_qty, for_qty).as_integer_ratio()
-                ret[-1] += f"my {item['name'].lower()} for your {for_item['name'].lower()} {a}:{b} --> **{offer_id}**"
-
-        if not ret:
-            return "none of these offers are yours"
-
-        return "\n".join(ret)
-
     async def generate_ad(self, interaction: Interaction, message: discord.Message):
         fail = interaction.response.send_message("no \N{SKULL}", ephemeral=True)
         if message.author.id != self.DANK_MEMER_ID or not message.interaction or not message.embeds:
@@ -378,14 +381,14 @@ class Misc(commands.Cog):
         if not offers:
             return await interaction.response.send_message("there are no offers", ephemeral=True)
 
-        view = Filter(interaction.user.id, gen_func=partial(self._gen_ad_impl, offers, message.components))
+        view = Filter(interaction.user.id, offers=offers, components=message.components)
+
         view.interaction = interaction
         await interaction.response.send_message(
             embed=discord.Embed(description="choose offer types to include in your ad"),
             view=view,
             ephemeral=True,
         )
-
 
     @commands.command(name="lastwork", aliases=["lw", "lg"])
     @commands.is_owner()
