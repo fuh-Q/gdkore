@@ -366,10 +366,7 @@ class Misc(commands.Cog):
 
     async def generate_ad(self, interaction: Interaction, message: discord.Message):
         fail = interaction.response.send_message("no \N{SKULL}", ephemeral=True)
-        if message.author.id != self.DANK_MEMER_ID or not message.interaction or not message.embeds:
-            return await fail
-
-        if message.interaction.user.id != interaction.user.id:
+        if message.author.id != self.DANK_MEMER_ID or not message.embeds:
             return await fail
 
         e = message.embeds[0]
