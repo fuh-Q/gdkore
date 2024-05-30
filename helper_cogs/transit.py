@@ -213,6 +213,10 @@ class BusDisplay(View, auto_defer=False, metaclass=AsyncInit):
     departure_page: int = 0
     sorting: Sorting = Sorting.ROUTE
 
+    if TYPE_CHECKING:
+        def __await__(self):
+            return self.__init__.__await__
+
     async def __init__(
         self,
         *,
