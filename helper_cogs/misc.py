@@ -7,7 +7,7 @@ import re
 from collections.abc import Collection
 from datetime import datetime
 from fractions import Fraction
-from typing import Any, Dict, List, Literal, TYPE_CHECKING
+from typing import Any, Dict, List, Literal, Tuple, TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
 import discord
@@ -60,7 +60,8 @@ def _gen_ad_impl(
 
         return this_component.style != ButtonStyle.green
 
-    ret = []
+    ret: List[str] = []
+    offer_lines: Dict[Tuple[str, str], int] = {}
     for idx, offer in enumerate(offers):
         if not is_my_offer():
             continue
@@ -79,6 +80,13 @@ def _gen_ad_impl(
         if coin_offer and lowered_verb in targets:
             ret.append("")
             amount = _human_friendly_value(value.split()[-1])
+            key = (item["name"], amount)
+            line = offer_lines.get(key)
+            if line:
+                ret[line] += f", **{offer_id}**"
+                continue
+
+            offer_lines[key] = idx
             ret[-1] += f"{lowered_verb} {item['name'].lower()} "
             ret[-1] += f"⏣ {amount}" if value[-4] != "," else amount
             ret[-1] += " each " if partial else " "
@@ -91,6 +99,12 @@ def _gen_ad_impl(
             item_qty = int(item["amount"].replace(",", ""))
             for_qty = int(for_item["amount"].replace(",", ""))
             a, b = Fraction(item_qty, for_qty).as_integer_ratio()
+            key = (item["name"], f"{a}:{b}")
+            line = offer_lines.get(key)
+            if line:
+                ret[line] += f", **{offer_id}**"
+                continue
+
             ret[-1] += f"my {item['name'].lower()} for your {for_item['name'].lower()} {a}:{b} --> **{offer_id}**"
 
     if not ret:
@@ -112,6 +126,7 @@ class Filter(View, auto_defer=True):
         self._owner_id = owner_id
         self._offers = offers
         self._components = components
+        self._codeblocked = False
 
         self.select = ui.Select(options=self.opts, min_values=1, max_values=len(self.opts), row=0)
         self.select._values = [o.value for o in self.opts]
@@ -131,14 +146,22 @@ class Filter(View, auto_defer=True):
         except discord.HTTPException:
             pass  # we tried
 
-    @ui.button(label="generate", row=1)
+    @ui.button(label="go", style=ButtonStyle.primary, row=1)
     async def generate(self, interaction: Interaction, button: ui.Button):
+        self.stop()
         ad = _gen_ad_impl(self._offers, components=self._components, targets=self.select.values)
+        ad = f"```{ad}```" if self._codeblocked else ad
         await interaction.response.edit_message(
             content=ad or "no ads of the selected types found",
             embed=None,
             view=None,
         )
+
+    @ui.button(label="codeblocked?", emoji=BotEmojis.NO, row=1)
+    async def codeblocked(self, interaction: Interaction, button: ui.Button):
+        self._codeblocked = not self._codeblocked
+        button.emoji = BotEmojis.YES if self._codeblocked else BotEmojis.NO
+        await interaction.response.edit_message(view=self)
 
 
 class Misc(commands.Cog):
