@@ -283,7 +283,7 @@ class BusDisplay(View, auto_defer=False, metaclass=AsyncInit):
         if self.departure_board_selected:
             group_count = len(self.collection)
             self.departure_page = int(key.split(":")[-1])
-            self.group = self.departure_page if self.departure_page < group_count else group_count - 1
+            self.group = min(self.departure_page, group_count - 1)
             self.current_key = f"r::{self.departure_page}"
 
     @property
