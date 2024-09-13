@@ -83,7 +83,7 @@ async def fetch_posts(client: Amaze):
         _: Callable[[Resource], Dict[str, Post]] = lambda item: item.list(**kwargs).execute()
 
         # fmt: off
-        return tuple(chain.from_iterable(map(lambda i: tuple(filter( # type: ignore
+        return tuple(chain.from_iterable(map(lambda i: tuple(filter(
             lambda m: (created_at := format_google_time(m)) > webhook[tuple(webhook.keys())[i[0] + start]]
             and created_at > webhook["last_date"], i[1]
         )), enumerate((
@@ -93,7 +93,7 @@ async def fetch_posts(client: Amaze):
         )))))
         # fmt: on
 
-    def make_embeds(posts: Tuple[Post]) -> List[EmbedWithPostData]:  # transform post JSON into dpy embeds
+    def make_embeds(posts: Tuple[Post, ...]) -> List[EmbedWithPostData]:  # transform post JSON into dpy embeds
         pages: List[EmbedWithPostData] = []
 
         for post in posts:
@@ -202,7 +202,7 @@ async def fetch_posts(client: Amaze):
         )
 
     resource_cache: CappedDict[int, Resource] = CappedDict(50)
-    post_cache: CappedDict[int, Tuple[Post]] = CappedDict(100)
+    post_cache: CappedDict[int, Tuple[Post, ...]] = CappedDict(100)
     webhooks: List[WebhookData] = await client.db.fetch("SELECT * FROM webhooks")
 
     client.logger.info(

@@ -13,6 +13,7 @@ from discord.app_commands import (
     command,
     checks,
     describe,
+    errors,
 )
 
 import asyncio
@@ -182,7 +183,11 @@ class MoveButton(ui.Button):
 
 
 class Game(View, metaclass=AsyncInit, auto_defer=False):
-    last_interaction: Interaction
+    if TYPE_CHECKING:
+        last_interaction: Interaction
+
+        def __await__(self):
+            return self.__init__.__await__
 
     async def __init__(
         self, *, owner_id: int, title: str | None, start_coords: XY | None = None, **params: Unpack[MazeParams]
@@ -431,7 +436,7 @@ class Mazes(commands.Cog):
                 msg + (end_jump if error.jump_url is not None else end_fallback),
                 ephemeral=True,
             )
-        if isinstance(error, checks.CommandOnCooldown):
+        if isinstance(error, errors.CommandOnCooldown):
             return await interaction.response.send_message(
                 f"you're on cooldown, wait `{error.retry_after:.2f}s`",
                 ephemeral=True,
