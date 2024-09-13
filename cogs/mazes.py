@@ -122,7 +122,7 @@ class PerfectRunDirections(BasePages, auto_defer=False):
 
             current_page = offset // self.MOVES_PER_PAGE + 1
             e = discord.Embed(description=f"```ocaml\n{desc}```")
-            e.set_footer(text=f"page {current_page}/{self.page_count}")
+            e.set_footer(text=f"page {current_page}/{len(items)}")
             self._pages.append(e)
 
             offset += self.MOVES_PER_PAGE
