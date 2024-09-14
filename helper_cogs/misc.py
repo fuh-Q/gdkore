@@ -337,12 +337,12 @@ class Misc(commands.Cog):
         )
 
     @commands.Cog.listener("on_message")
-    async def work_reminder(self, message: Message):
+    async def giveaway_reminder(self, message: Message):
         async def task():
             assert message.interaction
             await asyncio.sleep(60 * self.TASK_MINUTES)
 
-            msg = f"{message.interaction.user.mention} oi time to </work shift:1011560371267579942>"
+            msg = f"{message.interaction.user.mention} oi giveaway time"
             hour = datetime.now(tz=ZoneInfo("America/Toronto")).hour
             if hour < 7:
                 self._sleep_reminded = True
@@ -362,7 +362,7 @@ class Misc(commands.Cog):
         if message.interaction.user.id not in self.client.owner_ids:
             return
 
-        if message.interaction.name == "work shift":
+        if message.interaction.name == "giveaway create coins":
             rn = datetime.now(tz=ZoneInfo("America/Toronto"))
             if rn.hour < 7 and self._sleep_reminded:
                 return
