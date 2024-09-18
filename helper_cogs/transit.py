@@ -563,6 +563,8 @@ class BusDisplay(View, auto_defer=False, metaclass=AsyncInit):
         key = item.values[0]
         self.current_key = key
 
+        self.departure_page = 0
+
         self.update_components()
         kwargs = await _view_edit_kwargs(self)
         await interaction.extras["editor"](**kwargs)
