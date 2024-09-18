@@ -470,6 +470,7 @@ class BusDisplay(View, auto_defer=False, metaclass=AsyncInit):
         self.mode_entity_select.options = opts or [discord.SelectOption(label="suck my balls")]
 
     def update_components(self) -> None:
+        # condition only matters if the departure board is being displayed, hence this shorthand
         if_dep_board: Callable[[bool], bool] = lambda c: c if self.departure_board_selected else True
 
         self.children[0].custom_id = self._make_custom_id()
@@ -478,7 +479,8 @@ class BusDisplay(View, auto_defer=False, metaclass=AsyncInit):
             self.departure_page >= self._departure_page_count - 1
         )
 
-        self.shown_counter.label = self._count_shown(group_index=self.departure_page, group_size=20)
+        idx, size = (self.departure_page, 20) if self.departure_board_selected else (self.group, 25)
+        self.shown_counter.label = self._count_shown(group_index=idx, group_size=size)
         self._prepare_select()
 
     # <-- actual components now lmfao -->
@@ -505,7 +507,7 @@ class BusDisplay(View, auto_defer=False, metaclass=AsyncInit):
         if self.group < len(self.collection) - 1:
             self.group += 1
 
-        if self.departure_board_selected and self.departure_page < self._departure_page_count:
+        if self.departure_board_selected and self.departure_page < self._departure_page_count - 1:
             self.departure_page += 1
             self.current_key = f"r::{self.departure_page}"
 
