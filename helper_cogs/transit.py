@@ -214,6 +214,7 @@ class BusDisplay(View, auto_defer=False, metaclass=AsyncInit):
     sorting: Sorting = Sorting.ROUTE
 
     if TYPE_CHECKING:
+
         def __await__(self):
             return self.__init__.__await__
 
@@ -425,11 +426,11 @@ class BusDisplay(View, auto_defer=False, metaclass=AsyncInit):
             self._add_trip_fields_to_embed(e, trips=trips)
             self.pages[key] = e
 
-    def _count_shown(self) -> str:
-        offset = 1 if not self.group else 0
-        start = 25 * self.group + offset
+    def _count_shown(self, *, group_index: int, group_size: int = 25) -> str:
+        offset = 1 if not group_index else 0
+        start = group_size * group_index + offset
         total = self.collection_length
-        stop = min(total, 25 * (self.group + 1) - offset) if total >= 25 else total
+        stop = min(total, group_size * (group_index + 1) - offset) if total >= group_size else total
 
         return f"{start}-{stop} of {total}"
 
@@ -463,7 +464,7 @@ class BusDisplay(View, auto_defer=False, metaclass=AsyncInit):
         item = "Bus routes" if self.sorting is Sorting.ROUTE else "Destinations"
         opts = self._bus_route_opts if self.sorting is Sorting.ROUTE else self._destination_opts
 
-        self.mode_entity_select.placeholder = f"{item} [{self._count_shown()}]"
+        self.mode_entity_select.placeholder = f"{item} [{self._count_shown(group_index=self.group)}]"
         self.mode_entity_select.disabled = not bool(opts)
 
         self.mode_entity_select.options = opts or [discord.SelectOption(label="suck my balls")]
@@ -477,7 +478,7 @@ class BusDisplay(View, auto_defer=False, metaclass=AsyncInit):
             self.departure_page >= self._departure_page_count - 1
         )
 
-        self.shown_counter.label = self._count_shown()
+        self.shown_counter.label = self._count_shown(group_index=self.departure_page, group_size=20)
         self._prepare_select()
 
     # <-- actual components now lmfao -->
@@ -504,7 +505,7 @@ class BusDisplay(View, auto_defer=False, metaclass=AsyncInit):
         if self.group < len(self.collection) - 1:
             self.group += 1
 
-        if self.departure_board_selected and self.departure_page < self._departure_page_count - 1:
+        if self.departure_board_selected and self.departure_page < self._departure_page_count:
             self.departure_page += 1
             self.current_key = f"r::{self.departure_page}"
 
