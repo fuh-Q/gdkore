@@ -207,16 +207,14 @@ class BusDisplay(View, auto_defer=False, metaclass=AsyncInit):
         _destinations: Tuple[List[str], ...]
         _routes: Tuple[List[Tuple[str, str]], ...]
 
+        def __await__(self):
+            return self.__init__.__await__
+
     TIMEOUT = 120
     pages: Dict[str, Embed] = {}
     group: int = 0
     departure_page: int = 0
     sorting: Sorting = Sorting.ROUTE
-
-    if TYPE_CHECKING:
-
-        def __await__(self):
-            return self.__init__.__await__
 
     async def __init__(
         self,
