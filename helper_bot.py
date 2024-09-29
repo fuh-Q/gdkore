@@ -62,7 +62,7 @@ async def status_task(client: NotGDKID):
     fmt = now.strftime(f"%{_}I:%M %p")
 
     await client.change_presence(
-        status=discord.Status.idle,
+        status=discord.Status.online,
         activity=discord.Activity(
             name=f"{name} - {fmt}",
             type=discord.ActivityType.watching,
