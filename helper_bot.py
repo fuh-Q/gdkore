@@ -214,7 +214,7 @@ class NotGDKID(commands.Bot):
                 await asyncio.sleep(0.2)
                 await guild.leave()
 
-        await self.change_presence(status=discord.Status.idle, activity=None)
+        await self.change_presence(status=discord.Status.online, activity=None)
         self.owner = await self.fetch_user(596481615253733408)
         self.amaze_guild = self.get_guild(self.AMAZE_GUILD_ID)
 
