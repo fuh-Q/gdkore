@@ -92,7 +92,8 @@ class Website(commands.Cog):
 
     @commands.command(name="mark", aliases=["sm"])
     @commands.is_owner()
-    async def set_mark_cmd(self, ctx: NGKContext, date: Date = datetime.now(), *, note: str | None = None):
+    async def set_mark_cmd(self, ctx: NGKContext, date: Date = None, *, note: str | None = None):
+        date = date or datetime.now()
         q = "INSERT INTO screamdates VALUES ($1, $2) ON CONFLICT ON CONSTRAINT screamdates_pkey DO UPDATE SET notes = $2"
         await self.client.web_db.execute(q, date, note)
 
@@ -100,8 +101,8 @@ class Website(commands.Cog):
 
     @commands.command(name="editmark", aliases=["em"])
     @commands.is_owner()
-    async def edit_mark_cmd(self, ctx: NGKContext, date: Date = datetime.now(), *, note: str | None = None):
-        assert date
+    async def edit_mark_cmd(self, ctx: NGKContext, date: Date = None, *, note: str | None = None):
+        date = date or datetime.now()
 
         q = """UPDATE screamdates SET notes = $4
             WHERE EXTRACT(YEAR FROM day) = $1
@@ -117,8 +118,8 @@ class Website(commands.Cog):
 
     @commands.command(name="deletemark", aliases=["dm"])
     @commands.is_owner()
-    async def delete_mark_cmd(self, ctx: NGKContext, date: Date = datetime.now()):
-        assert date
+    async def delete_mark_cmd(self, ctx: NGKContext, date: Date = None):
+        date = date or datetime.now()
 
         q = """DELETE FROM screamdates
             WHERE EXTRACT(YEAR FROM day) = $1
