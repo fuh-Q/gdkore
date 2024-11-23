@@ -121,7 +121,7 @@ class Spotify(commands.Cog):
                     response_body = await resp.text()
 
                 if resp.status >= 400:
-                    log.warn(response_body)
+                    log.warning(response_body)
 
                 if resp.status == 401:
                     new_creds = await self.do_refresh()
@@ -131,7 +131,7 @@ class Spotify(commands.Cog):
 
                 if resp.status == 429:
                     retry_after = resp.headers["Retry-After"]
-                    log.warn("Spotify ratelimit hit for %s %s, waiting %ss", route.method, route.endpoint, retry_after)
+                    log.warning("Spotify ratelimit hit for %s %s, waiting %ss", route.method, route.endpoint, retry_after)
 
                     await asyncio.sleep(float(retry_after))
                     continue

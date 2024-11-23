@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import time
 import random
 import re
@@ -28,8 +29,27 @@ if TYPE_CHECKING:
     Interaction = discord.Interaction[NotGDKID]
     OfferTargets = Collection[Literal["buying", "selling", "item"] | str]
 
+log = logging.getLogger(__name__)
+
 OFFER_ITEM_PAT = re.compile(r"^\*\*(?P<verb>Buying|Selling)\s(?P<amount>[\d,]+)\s<a?:\w+:\d{17,}>\s(?P<name>.+)\*\*$", re.A)
 FOR_ITEM_PAT = re.compile(r"^<a?:\w+:\d{17,}>\sFor:\s(?P<amount>[\d,]+)x\s<a?:\w+:\d{17,}>\s(?P<name>.+)$", re.A)
+
+EVENT_MUTE = {
+    # guild id -> muted role id
+    # in descending order (event serv. #x -> #1)
+    1309946222018170951: 1309949786308214824,
+    1309689611701714965: 1309928701483417741,
+    1309689566336389292: 1309928702838177955,
+    1309689524846198908: 1309928703962382403,
+    1309689473394802830: 1309928705497497691,
+    1309689437164404777: 1309928706478837881,
+    1309689647370338324: 1309928712971616256,
+    1309689323699830896: 1309928714540285993,
+    1309689217407778826: 1309928715421089804,
+    1309689175016079460: 1309928716431917150,
+    1309689123094921236: 1309928717790875653,
+    1299189004146839592: 1309928718692782080,
+}
 
 
 def _human_friendly_value(inp: str, /) -> str:
@@ -175,6 +195,16 @@ class Misc(commands.Cog):
         1125273927564918816,  # sam
         1169390818524667944,  # little shit
     ]
+
+    EVENT_BLACKLIST = {
+        # event name, event timeout
+        "trivia night": 300,
+        "anti-rizz": 300,
+        "item guesser": 300,
+        "reverse reverse": 300,
+        "dice champs": 600,
+        "boss battle": 600,
+    }
 
     def __init__(self, client: NotGDKID) -> None:
         self.client = client
@@ -374,6 +404,31 @@ class Misc(commands.Cog):
                 task(), name=f"Reminder-{rn.hour}:{rn.minute}-{int(rn.timestamp())}"
             )
 
+    @commands.Cog.listener("on_message")
+    async def event_suppression(self, message: Message):
+        if not message.guild or message.author.id != self.DANK_MEMER_ID:
+            return
+        assert isinstance(message.author, discord.Member)
+
+        if not message.guild.name.startswith("event server"):
+            return
+
+        title = message.embeds[0].title
+        if not title or title.lower() not in self.EVENT_BLACKLIST:
+            return
+
+        role = message.guild.get_role(EVENT_MUTE[message.guild.id])
+        if not role:
+            log.warning(f"suppression role not found for {message.guild.name} ({message.guild.id})")
+            return
+
+        await message.author.add_roles(role)
+        await message.add_reaction("\N{SPEAKER WITH CANCELLATION STROKE}")
+
+        timeout = self.EVENT_BLACKLIST[title]
+        await asyncio.sleep(timeout + 30)
+        await message.author.remove_roles(role)
+
     async def invite_bot(self, interaction: Interaction, user: discord.User):
         if not user.bot:
             return await interaction.response.send_message(f"{user.mention} is not a bot", ephemeral=True)
@@ -409,6 +464,37 @@ class Misc(commands.Cog):
             view=view,
             ephemeral=True,
         )
+
+    @commands.group(name="event")
+    @commands.is_owner()
+    @commands.guild_only()
+    async def events(self, _):
+        pass
+
+    @events.command(name="setup")
+    async def eventsetup(self, ctx: NGKContext):
+        assert ctx.guild and isinstance(ctx.me, discord.Member)
+        if not ctx.me.guild_permissions > discord.Permissions(8):
+            return await ctx.reply("bro what u on, no perms la")
+
+        dank = ctx.guild.get_member(270904126974590976)
+        if not dank:
+            return await ctx.reply("add dank first")
+
+        dank_role = discord.utils.find(lambda r: r.is_bot_managed(), dank.roles)
+        assert dank_role and ctx.guild.self_role
+        if dank_role.position > ctx.guild.self_role.position:
+            return await ctx.reply("change the order of our roles")
+
+        await dank_role.edit(permissions=discord.Permissions.none())
+
+        role = await ctx.guild.create_role(name="fuck off", hoist=True)
+        await ctx.guild.edit_role_positions({dank: 1, role: 2})
+        await ctx.guild.text_channels[0].edit(overwrites={role: discord.PermissionOverwrite(send_messages=False)})
+        await ctx.reply(f"add this to the mute role dict in `misc.py`: `{ctx.guild.id}: {role.id}`")
+
+        if ctx.guild.id not in EVENT_MUTE:
+            EVENT_MUTE[ctx.guild.id] = role.id
 
     @commands.command(name="lastwork", aliases=["lw", "lg"])
     @commands.is_owner()
