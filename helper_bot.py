@@ -309,11 +309,9 @@ class NotGDKID(commands.Bot):
             view.original_message = await gdkid.send(embed=embed, view=view)
 
             expired = await view.wait()
-            if expired:
-                return await guild.leave()
-
             await view.interaction.response.edit_message(view=view)
-            if not view.choice:
+
+            if expired or not view.choice:
                 return await guild.leave()
 
             await self.whitelist.put(guild.id, guild.name)

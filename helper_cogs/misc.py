@@ -419,8 +419,7 @@ class Misc(commands.Cog):
 
         role = message.guild.get_role(EVENT_MUTE[message.guild.id])
         if not role:
-            log.warning(f"suppression role not found for {message.guild.name} ({message.guild.id})")
-            return
+            return await message.reply(f"suppression role not found for this guild")
 
         await message.author.add_roles(role)
         await message.add_reaction("\N{SPEAKER WITH CANCELLATION STROKE}")
