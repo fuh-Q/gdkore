@@ -480,6 +480,9 @@ class Misc(commands.Cog):
     @events.command(name="setup")
     async def eventsetup(self, ctx: NGKContext):
         assert ctx.guild and isinstance(ctx.me, discord.Member)
+        if ctx.guild.id in EVENT_MUTE:
+            return await ctx.reply("already done")
+
         if not ctx.me.guild_permissions > discord.Permissions(8):
             return await ctx.reply("bro what u on, no perms la")
 
