@@ -37,7 +37,7 @@ class Confirm(DPYView):
     third_label: `Optional[str]`
         Custom lavel for the third button, if any.
 
-    Parameters
+    Attributes
     ----------
     choice: `bool`
         The choice that the user picked.
