@@ -424,7 +424,7 @@ class Misc(commands.Cog):
         await message.author.add_roles(role)
         await message.add_reaction("\N{SPEAKER WITH CANCELLATION STROKE}")
 
-        timeout = self.EVENT_BLACKLIST[title]
+        timeout = self.EVENT_BLACKLIST[title.lower()]
         await asyncio.sleep(timeout + 30)
         await message.author.remove_roles(role)
 
