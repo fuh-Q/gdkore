@@ -420,6 +420,9 @@ class Misc(commands.Cog):
         if not message.guild.name.startswith("event server"):
             return
 
+        if not not message.guild.id in EVENT_MUTE:
+            return
+
         title = message.embeds[0].title
         if not title or title.lower() not in self.EVENT_BLACKLIST:
             return
