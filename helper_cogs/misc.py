@@ -399,7 +399,7 @@ class Misc(commands.Cog):
         if message.interaction.user.id not in self.client.owner_ids:
             return
 
-        if message.interaction.name == "giveaway create coins":
+        if message.interaction.name.startswith("giveaway create"):
             rn = datetime.now(tz=ZoneInfo("America/Toronto"))
             if rn.hour < 7 and self._sleep_reminded:
                 return
