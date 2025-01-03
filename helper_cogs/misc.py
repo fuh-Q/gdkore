@@ -508,14 +508,14 @@ class Misc(commands.Cog):
         if ctx.guild.id not in EVENT_MUTE:
             EVENT_MUTE[ctx.guild.id] = role.id
 
-    @commands.command(name="lastwork", aliases=["lw", "lg"])
+    @commands.command(name="lastgaw", aliases=["lw", "lg"])
     @commands.is_owner()
     async def _lastgaw(self, ctx: NGKContext):
         task = self._reminder_task
         if not task:
             return await ctx.send("none found")
 
-        await ctx.send(f"you last worked <t:{task.get_name().split('-')[-1]}:R>")
+        await ctx.send(f"last giveaway started <t:{task.get_name().split('-')[-1]}:R>")
 
     @commands.command(name="whitelist", aliases=["wl"], hidden=True)
     @commands.is_owner()
